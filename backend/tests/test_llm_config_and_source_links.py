@@ -122,3 +122,6 @@ def test_llm_config_runtime_refresh(monkeypatch):
     monkeypatch.setenv("LLM_MODEL", "unit-test-model")
     asyncio.run(c.run(LLMRequest(key="x", prompt="x", task="general", complexity=0.1)))
     assert c.model == "unit-test-model"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

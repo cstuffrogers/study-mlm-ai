@@ -107,3 +107,6 @@ async def test_chat_output_is_clean_and_structured(monkeypatch):
     # 不存在于正文库的引用不进结构化列表
     assert all(content_provider.get_chunk(i) is not None for i in ids)
     assert all(c.get("kind") == "related" for c in ai["source_chunks"])
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

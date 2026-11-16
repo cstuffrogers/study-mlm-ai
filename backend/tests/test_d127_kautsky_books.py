@@ -323,3 +323,6 @@ def test_d127_scoped_to_selected_chapters():
         local = {i.get("local_work") for i in extensions_for(sid) if i.get("local_work")}
         others = {w for s in EXPECTED.values() for w in s} - target
         assert not (local & others), f"{sid}: 混入了他章的挂接 {sorted(local & others)}"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

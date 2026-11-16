@@ -189,3 +189,8 @@ def test_d102_other_specs_and_capital_postface_unchanged():
             f"非修复对象被改动: {s['file']}"
     cap = (TEXTS / "0-资本论节选.txt").read_text(encoding="utf-8")
     assert cap.count("\n第二版跋\n") == 1
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

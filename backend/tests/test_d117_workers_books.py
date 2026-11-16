@@ -277,3 +277,6 @@ def test_d117_chapters_still_32():
     assert len(SECTIONS) == 32
     assert len({s["id"] for s in SECTIONS}) == 32
     assert set(D117_EXTENSIONS) <= {s["id"] for s in SECTIONS}
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

@@ -144,3 +144,8 @@ def test_no_legacy_placeholders_left():
         if "CH-ME-TH-" in str(c.get("source_id") or ""):
             offenders.append((c.get("name"), c.get("source_id")))
     assert not offenders, offenders
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

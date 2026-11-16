@@ -106,3 +106,6 @@ def test_no_trotsky_or_critique_targets_leaked_in():
             hay = f"{it['title']}{it.get('author', '')}"
             for b in banned:
                 assert b not in hay, f"{sid}:{it['title']} 触碰红线（{b}）"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

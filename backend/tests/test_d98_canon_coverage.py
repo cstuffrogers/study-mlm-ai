@@ -133,3 +133,6 @@ def test_d98_extensions_wellformed():
     dup = [k for k, n in seen.items() if n > 1]
     assert not problems, "延伸阅读结构问题:\n" + "\n".join(problems)
     assert not dup, f"同一章节内重复条目: {dup}"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

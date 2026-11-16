@@ -295,3 +295,8 @@ def test_d119_concept_terms_match_chunk_mentions():
     chapters = [c for c in all_book_chunks() if c["source"] == "中国共产党章程"]
     assert chapters, "缺少《中国共产党章程》分片"
     assert "章程" in {m for c in chapters for m in c["concept_mentions"]}
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

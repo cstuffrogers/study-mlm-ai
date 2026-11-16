@@ -216,3 +216,8 @@ class TestGuideOnlyWorks:
         r = _build_retriever()
         bad = {c["source"] for c in r._chunks.values()} & GUIDE_ONLY_WORKS
         assert not bad, f"对话检索索引里仍有导览专用条目：{bad}"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

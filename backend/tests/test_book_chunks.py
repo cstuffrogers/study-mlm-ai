@@ -114,3 +114,6 @@ def test_merge_loses_no_text():
         assert got == want, (meta["work"], len(got), len(want))
         checked += 1
     assert checked >= 200, f"只核对了 {checked} 部，覆盖面不足"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

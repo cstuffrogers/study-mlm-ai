@@ -357,3 +357,6 @@ def test_d126_no_critical_material():
     for b in mine:
         assert b["orthodoxy_tag"] in {"经典原著", "正统"}, f"{b['file']}: 分档越界「{b['orthodoxy_tag']}」"
         assert b["author"] == "周恩来", f"{b['file']}: 作者应为周恩来"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

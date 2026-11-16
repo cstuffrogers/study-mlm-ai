@@ -347,3 +347,6 @@ def test_d125_no_critical_material():
     for b in BOOKS:
         for word in banned:
             assert word not in (b.get("work") or ""), f"《{b['work']}》属排除项（{word}）"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

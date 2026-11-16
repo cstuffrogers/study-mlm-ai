@@ -187,3 +187,8 @@ def test_d116_chapters_still_32():
     assert len(SECTIONS) == 32
     assert len({s["id"] for s in SECTIONS}) == 32
     assert set(D116_EXTENSIONS) <= {s["id"] for s in SECTIONS}
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

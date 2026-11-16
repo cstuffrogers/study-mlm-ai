@@ -260,3 +260,8 @@ def test_d118_concept_term_matches_chunk_mentions():
     mentions = {m for c in chunks for m in c["concept_mentions"]}
     assert "唯物史观" in mentions, "分片 mention 未包含标准名，图召回连不上"
     assert "唯物史观" in ConceptDictionary().extract_concepts("唯物史观在史学上有什么价值")
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

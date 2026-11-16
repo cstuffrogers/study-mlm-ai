@@ -439,3 +439,6 @@ def test_d123_trim_reproducible_from_backup():
         assert len(cur) < len(full), f"{f} 未裁剪"
         assert 0.35 < len(cur) / len(full) < 0.80, f"{f} 裁剪比例异常"
         assert mod.apply_trim(f, full) == cur, f"{f} 裁剪结果不可复现（原文被改写？）"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

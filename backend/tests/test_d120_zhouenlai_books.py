@@ -299,3 +299,8 @@ def test_d120_concept_terms_match_chunk_mentions():
     assert rep, "缺少《关于知识分子问题的报告》分片"
     mentions = {m for c in rep for m in c["concept_mentions"]}
     assert "知识分子" in mentions, f"分片侧未抽到「知识分子」mention: {sorted(mentions)[:20]}"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

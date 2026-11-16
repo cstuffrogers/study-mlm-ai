@@ -206,3 +206,6 @@ def test_d105_no_new_sections_and_merge_order():
         idx = [titles.index(it["title"]) for it in items]
         assert idx == sorted(idx) and idx == list(range(idx[0], idx[0] + len(idx))), \
             f"{sid} D105 条目未连续追加"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

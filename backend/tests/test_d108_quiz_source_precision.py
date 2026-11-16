@@ -103,3 +103,8 @@ def test_upgraded_items_point_to_reported_chunk():
     want = {r["id"]: r["to"] for r in data["upgraded"]}
     got = {it["id"]: it["source_chunk_id"] for it in _items() if it["id"] in want}
     assert got == want, {k: (want[k], got.get(k)) for k in want if got.get(k) != want[k]}
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

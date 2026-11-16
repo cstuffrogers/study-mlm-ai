@@ -80,3 +80,8 @@ def test_extension_local_work_exists() -> None:
         if it.get("local_work") and it["local_work"] not in books
     ]
     assert not bad, "延伸阅读引用了不存在的正文：\n  " + "\n  ".join(bad)
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

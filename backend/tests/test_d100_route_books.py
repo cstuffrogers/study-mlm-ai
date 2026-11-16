@@ -416,3 +416,8 @@ def test_d101_book_registration_and_chunk_ids_still_valid():
     assert len(ids) == len(set(ids))
     assert len(BOOKS) == len(_ALL_WORKS) == 229
     assert len(SECTIONS) == 32
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

@@ -27,3 +27,39 @@ def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
         db_learning.reset_learning_engine()
     except Exception:
         pass
+
+
+# ---------------------------------------------------------------------------
+# 「需要原著正文」的用例：本仓库按 NOTICE.md 第四节**不随代码分发正文**
+# （sources/texts/*.txt 与 frontend/assets/offline/ 均在 .gitignore 内），
+# 所以刚 clone 下来时没有任何分片。这类用例若照跑会一次红 278 个，
+# 看起来像项目坏了 —— 实际是数据缺失。这里统一 skip 并给出补齐指路。
+#
+# 有正文时行为不变（全量照跑），因此不会掩盖真问题。
+# ---------------------------------------------------------------------------
+def _has_source_texts() -> bool:
+    texts = os.path.join(_ROOT, "sources", "texts")
+    return os.path.isdir(texts) and any(
+        f.endswith(".txt") for f in os.listdir(texts)
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "needs_texts: 依赖 sources/texts/ 原著正文的用例（无正文时自动跳过）",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if _has_source_texts():
+        return
+    import pytest
+
+    marker = pytest.mark.skip(
+        reason="无原著正文（sources/texts/ 为空）：本仓库不随代码分发正文，"
+        "补齐方式见 README「原著正文数据（克隆后必读）」"
+    )
+    for item in items:
+        if "needs_texts" in item.keywords:
+            item.add_marker(marker)

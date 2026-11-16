@@ -284,3 +284,6 @@ def test_d124_quotes_verbatim():
 def test_d124_chapter_count_unchanged():
     from content.routes import SECTIONS
     assert len(SECTIONS) == 32
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts

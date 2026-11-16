@@ -269,3 +269,8 @@ def test_d121_concept_terms_match_chunk_mentions():
     mentions = {m for c in rep for m in c["concept_mentions"]}
     assert "个人在历史上的作用" in mentions, \
         f"分片侧未抽到 mention: {sorted(mentions)[:20]}"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

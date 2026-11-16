@@ -84,3 +84,8 @@ def test_classic_entries_have_local_text():
                         f"{sid}:{it['title']} 无本地正文却带外链，应改为导读或先入库正文"
     # 至少 15 个经典条目指向本地已入库正文（D87+D88 补齐的路线 A/B/C 经典原著）
     assert local_count >= 15, f"经典条目本地正文入口过少: {local_count}"
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+import pytest
+
+pytestmark = pytest.mark.needs_texts

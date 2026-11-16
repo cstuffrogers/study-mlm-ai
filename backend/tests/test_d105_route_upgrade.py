@@ -105,3 +105,6 @@ def test_work_alias_skips_short_generic_names():
 
     assert "资本论" not in _work_aliases("资本论（第一卷节选）")
     assert "金融资本" in _work_aliases("金融资本（节选）")
+
+# 依赖 sources/texts/ 原著正文；无正文时由 conftest.py 自动跳过。
+pytestmark = pytest.mark.needs_texts
