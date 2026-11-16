@@ -1,0 +1,35 @@
+MIT License
+
+Copyright (c) 2026 xxmz contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+注意（不构成许可证条款的一部分，仅为事实说明）：
+
+1. 上述许可覆盖本仓库内的**软件代码**与项目自撰的**辅助材料**
+   （导读、注释、概念卡、题库、学习路线设计、文档）。
+2. 上述许可**不覆盖**马克思主义经典原著的正文与译文本身。
+   原著正文文件（`sources/texts/*.txt`）与其派生的离线数据
+   （`frontend/assets/offline/`）**不随本仓库分发**，故不在本许可范围内。
+   他人自行取得并放入的这些文本，其著作权仍归各自权利人所有。
+3. 本项目为个人非官方学习项目，与人民出版社、中央编译局、
+   任何政党或政府机构无隶属、授权或合作关系。
+   详见 `NOTICE.md`。

@@ -1,0 +1,1374 @@
+// 本机原著「分页阅读器」——把已入库的原著正文按行精确分页（不是无限长的一页），
+// 提供市面阅读器常见功能：翻页 / 目录跳转 / 页码跳转 / 字号缩放 / 复制 / 划线标色
+// / 标签 / 笔记 / 书签 / 进度记忆（下次自动跳到上次页面）/ 会话（五模式 AI 精读）。
+//
+// 数据：GET /api/chunks/by_work/{work}（content_provider → book_chunks，内存）。
+// 分页：用 TextPainter 逐行测量，精确切到「填满可视区」的行，杜绝滚动与内容丢失。
+// 本地持久化：shared_preferences，按著作名分 key 存 进度/笔记/标签/书签/字号。
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SelectedContent;
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/message.dart';
+import '../offline/offline_content.dart';
+import '../services/chat_service.dart';
+import '../services/content_service_api.dart';
+import '../services/reader_paginator.dart';
+import '../theme/app_theme.dart';
+import 'chapter_guide_screen.dart';
+import '../widgets/floating_chat.dart';
+import '../widgets/related_original_button.dart';
+import '../widgets/speak_button.dart';
+
+// ─────────────────────────── 数据模型 ───────────────────────────
+
+class _Bookmark {
+  final int page;
+  final String label;
+  final int createdAt;
+  _Bookmark(this.page, this.label, this.createdAt);
+  Map<String, dynamic> toJson() => {'p': page, 'l': label, 't': createdAt};
+  factory _Bookmark.fromJson(Map<String, dynamic> j) => _Bookmark((j['p'] as num).toInt(), (j['l'] ?? '').toString(), (j['t'] as num?)?.toInt() ?? 0);
+}
+
+class _Note {
+  final int page;
+  String note;
+  String tag;
+  int color;
+  final int createdAt;
+  _Note({required this.page, required this.note, required this.tag, required this.color, required this.createdAt});
+  Map<String, dynamic> toJson() => {'p': page, 'n': note, 'g': tag, 'c': color, 't': createdAt};
+  factory _Note.fromJson(Map<String, dynamic> j) => _Note(page: (j['p'] as num).toInt(), note: (j['n'] ?? '').toString(), tag: (j['g'] ?? '').toString(), color: (j['c'] as num?)?.toInt() ?? 0, createdAt: (j['t'] as num?)?.toInt() ?? 0);
+}
+
+// 划线/标色：段落级（para 段整段着色），同时记录选区区间用于列表展示
+class _Highlight {
+  final int page;
+  final int para;
+  final int start;
+  final int end;
+  int color;
+  String label;
+  String note;
+  final int createdAt;
+  _Highlight({required this.page, required this.para, required this.start, required this.end, required this.color, required this.label, this.note = '', required this.createdAt});
+  Map<String, dynamic> toJson() => {'p': page, 'i': para, 's': start, 'e': end, 'c': color, 'l': label, 'n': note, 't': createdAt};
+  factory _Highlight.fromJson(Map<String, dynamic> j) => _Highlight(page: (j['p'] as num).toInt(), para: (j['i'] as num).toInt(), start: (j['s'] as num).toInt(), end: (j['e'] as num).toInt(), color: (j['c'] as num?)?.toInt() ?? 0, label: (j['l'] ?? '').toString(), note: (j['n'] ?? '').toString(), createdAt: (j['t'] as num?)?.toInt() ?? 0);
+
+  /// 悬停提示用的备注文本（笔记 / 标签二者之一）。
+  String get memo => note.trim().isNotEmpty ? note.trim() : label.trim();
+}
+
+const _kColors = <int>[
+  0xFFFFE08A, // 黄
+  0xFFB9E6A8, // 绿
+  0xFFAFD6F6, // 蓝
+  0xFFF6B8C8, // 粉
+  0xFFE5D4F7, // 紫
+];
+
+// ─────────────────────────── 屏幕 ───────────────────────────
+
+class WorkReaderScreen extends StatefulWidget {
+  final String work;
+  final String title;
+
+  /// 要直接定位到的原文分片（「相关原文」跳转用）。
+  /// 打开后自动翻到该分片所在页，而不是回上次进度；找不到则按常规进度打开。
+  final String? focusChunkId;
+  const WorkReaderScreen(
+      {super.key, required this.work, required this.title, this.focusChunkId});
+
+  @override
+  State<WorkReaderScreen> createState() => _WorkReaderScreenState();
+}
+
+class _WorkReaderScreenState extends State<WorkReaderScreen> {
+  static const _padding = EdgeInsets.fromLTRB(20, 12, 20, 12);
+
+  bool _loading = true;
+  String? _error;
+  List<String> _paragraphs = const [];
+  /// 待定位的段落下标（一次性，定位后清空，避免影响后续翻页/字号重排）
+  int? _focusPara;
+
+  ReaderDoc? _doc;
+  Size? _docSize;
+  double _fontSize = 18;
+  final double _lineHeight = 1.9;
+  int? _keepPage; // 重排后要停留的页
+  bool _building = false;
+
+  PageController? _pc;
+  int _page = 0;
+
+  String _selected = '';
+
+  // 浮层：会话浮窗（可任意拖动的对话）
+  bool _sheetOpen = false;
+  ChatService? _chatSvc;
+  VoidCallback? _chatListener;
+
+  List<_Bookmark> _bookmarks = [];
+  List<_Note> _notes = [];
+  List<_Highlight> _highlights = [];
+
+  /// 这本书在学习路线里出现在哪几章（离线索引 work_sections.json）。
+  List<Map<String, dynamic>> _routeRows = const [];
+
+  String get _key => 'reader_${widget.work}';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _loadRouteIndex();
+  }
+
+  /// 反向索引：书 → 出现过的章节（主线主书在前，延伸阅读在后）。
+  Future<void> _loadRouteIndex() async {
+    await OfflineContent.ensureMeta();
+    final rows = OfflineContent.sectionsOfWork(widget.work);
+    if (!mounted || rows.isEmpty) return;
+    setState(() => _routeRows = rows);
+  }
+
+  @override
+  void dispose() {
+    if (_chatListener != null && _chatSvc != null) {
+      _chatSvc!.removeListener(_chatListener!);
+    }
+    _chatEntry?.remove();
+    _pc?.dispose();
+    super.dispose();
+  }
+
+  TextStyle _textStyle() => TextStyle(fontSize: _fontSize, height: _lineHeight, color: const Color(0xFF241C1A), fontFamily: 'Deng', fontFamilyFallback: const ['Deng', 'Roboto', 'WarnSym']);
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final chunks = await ContentApi().chunksByWork(widget.work);
+      final layer1 = chunks.where((c) => (c['layer'] as num?)?.toInt() == 1).toList();
+      final picked = layer1.isEmpty ? chunks : layer1;
+      final list = <String>[];
+      final ids = <String>[];
+      for (final c in picked) {
+        final t = (c['text'] ?? '').toString().replaceAll('\r', '').trim();
+        if (t.isEmpty) continue;
+        list.add(t);
+        ids.add('${c['id'] ?? ''}');
+      }
+      await _loadPrefs();
+      // 「相关原文」跳转：按分片 id 找到段落下标（找不到则按常规进度打开）
+      final focus = widget.focusChunkId;
+      int? focusPara;
+      if (focus != null && focus.isNotEmpty) {
+        final i = ids.indexOf(focus);
+        if (i >= 0) focusPara = i;
+      }
+      setState(() {
+        _paragraphs = list;
+        _focusPara = focusPara;
+        _loading = false;
+        _doc = null;
+        _docSize = null;
+        _building = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = '$e';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loadPrefs() async {
+    final sp = await SharedPreferences.getInstance();
+    _fontSize = sp.getDouble('${_key}_fs') ?? 18;
+    _bookmarks = _decode(sp.getString('${_key}_bm'), _Bookmark.fromJson);
+    _notes = _decode(sp.getString('${_key}_nt'), _Note.fromJson);
+    _highlights = _decode(sp.getString('${_key}_hl'), _Highlight.fromJson);
+  }
+
+  List<T> _decode<T>(String? raw, T Function(Map<String, dynamic>) f) {
+    if (raw == null || raw.isEmpty) return <T>[];
+    try {
+      return (jsonDecode(raw) as List).map((e) => f(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return <T>[];
+    }
+  }
+
+  Future<void> _savePrefs() async {
+    final sp = await SharedPreferences.getInstance();
+    await sp.setDouble('${_key}_fs', _fontSize);
+    await sp.setString('${_key}_bm', jsonEncode(_bookmarks.map((e) => e.toJson()).toList()));
+    await sp.setString('${_key}_nt', jsonEncode(_notes.map((e) => e.toJson()).toList()));
+    await sp.setString('${_key}_hl', jsonEncode(_highlights.map((e) => e.toJson()).toList()));
+    await sp.setInt('${_key}_last', _page);
+  }
+
+  Future<void> _buildDoc(Size size) async {
+    final width = size.width - _padding.left - _padding.right;
+    final height = size.height - _padding.top - _padding.bottom;
+    if (width <= 0 || height <= 0) return;
+    final doc = ReaderPaginator.paginate(paragraphs: _paragraphs, width: width, height: height, style: _textStyle());
+    final sp = await SharedPreferences.getInstance();
+    final last = sp.getInt('${_key}_last') ?? 0;
+    // 定位优先级：本次要跳到的分片 > 重排前停留页 > 上次进度
+    int? focusPage;
+    final focusPara = _focusPara;
+    if (focusPara != null) {
+      for (var i = 0; i < doc.pages.length; i++) {
+        if (doc.pages[i].paraIndexes.contains(focusPara)) {
+          focusPage = i;
+          break;
+        }
+      }
+    }
+    final target = (focusPage ?? _keepPage ?? last).clamp(0, doc.pages.length - 1);
+    _keepPage = null;
+    if (!mounted) return;
+    setState(() {
+      _doc = doc;
+      _docSize = size;
+      _page = target;
+      _building = false;
+      _pc?.dispose();
+      _pc = PageController(initialPage: target);
+    });
+  }
+
+  Future<void> _goto(int page) async {
+    if (_doc == null) return;
+    // 用户主动翻页 → 结束「相关原文」定位状态，之后按正常进度记忆
+    _focusPara = null;
+    final p = page.clamp(0, _doc!.pages.length - 1);
+    await _pc?.animateToPage(p, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    if (!mounted) return;
+    setState(() => _page = p);
+    _savePrefs();
+  }
+
+  void _setFont(double fs) {
+    final next = fs.clamp(13.0, 30.0);
+    if (next == _fontSize) return;
+    _keepPage = _page;
+    _focusPara = null;
+    setState(() {
+      _fontSize = next;
+      _doc = null;
+      _docSize = null;
+      _building = false;
+    });
+    _savePrefs();
+  }
+
+  void _ask(String text, String mode) {
+    final svc = context.read<ChatService>();
+    final m = ChatMode.values.firstWhere((e) => e.name == mode, orElse: () => ChatMode.explain);
+    svc.switchMode(m);
+    svc.send(content: '请就这段原文展开${m.label}', selectedText: text, paragraphId: '${widget.work}:p$_page');
+    _openFloatingChat(svc);
+  }
+
+  // 打开（或重新唤起）可任意拖动的会话浮窗。用 Overlay 而非 bottomSheet，
+  // 才能让会话浮在正文之上并可自由移动。
+  void _openFloatingChat(ChatService svc) {
+    if (_sheetOpen) return;
+    final overlay = Overlay.of(context);
+    final size = MediaQuery.of(context).size;
+    final w = (size.width - 64).clamp(280.0, 372.0);
+    final h = (size.height * 0.62).clamp(300.0, 560.0);
+    final entry = OverlayEntry(
+      builder: (_) => FloatingChat(
+        turns: svc.turns,
+        status: svc.status,
+        currentMode: svc.currentMode,
+        criticalReading: svc.criticalReading,
+        onModeChanged: svc.switchMode,
+        onToggleCritical: svc.toggleCriticalReading,
+        onSend: (t) => svc.send(content: t),
+        onClear: svc.clear,
+        onClose: () => _closeFloatingChat(),
+        onOpenOriginal: _openRelatedOriginal,
+        pending: svc.pending,
+        error: svc.lastError,
+        onRetry: svc.retryLast,
+        initialOffset: Offset(size.width - w - 16, 96),
+        bounds: size,
+        size: Size(w, h),
+      ),
+    );
+    _chatListener = () {
+      if (entry.mounted) entry.markNeedsBuild();
+    };
+    _chatSvc = svc..addListener(_chatListener!);
+    overlay.insert(entry);
+    _chatEntry = entry;
+    setState(() => _sheetOpen = true);
+  }
+
+  OverlayEntry? _chatEntry;
+
+  /// 「相关原文」跳转：浮窗是插在 Overlay 里的，会压住任何页面，
+  /// 所以先撤下浮窗 → 打开原文（定位到分片所在页）→ 回来后恢复浮窗。
+  Future<void> _openRelatedOriginal(List<String> ids) async {
+    final svc = context.read<ChatService>();
+    final nav = Navigator.of(context, rootNavigator: true);
+    _closeFloatingChat();
+    await showRelatedOriginalsFrom(nav, ids);
+    if (!mounted) return;
+    _openFloatingChat(svc);
+  }
+
+  void _closeFloatingChat() {
+    if (_chatListener != null && _chatSvc != null) {
+      _chatSvc!.removeListener(_chatListener!);
+    }
+    _chatEntry?.remove();
+    _chatEntry = null;
+    _chatListener = null;
+    if (mounted) setState(() => _sheetOpen = false);
+  }
+
+  Future<void> _copyText(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    _snack('已复制到剪贴板');
+  }
+
+  void _snack(String s) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s), duration: const Duration(milliseconds: 1100)));
+  }
+
+  Future<void> _editAnnotations(int page, int para, {int? selStart, int? selEnd, String? initialLabel, _Highlight? editHighlight, _Note? editNote}) async {
+    int color = editHighlight?.color ?? editNote?.color ?? _kColors[0];
+    final labelCtl = TextEditingController(text: initialLabel ?? editHighlight?.label ?? editNote?.tag ?? '');
+    final noteCtl = TextEditingController(text: editHighlight?.note ?? editNote?.note ?? '');
+    final isEdit = editHighlight != null || editNote != null;
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => Container(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEdit ? '修改标注' : '标色 / 标签 / 笔记',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.ink900),
+              ),
+              const SizedBox(height: 12),
+              const Text('标色', style: TextStyle(fontSize: 12.5, color: AppColors.ink500)),
+              const SizedBox(height: 8),
+              Row(
+                children: List.generate(_kColors.length, (i) {
+                  final cc = _kColors[i];
+                  final selected = color == cc;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: GestureDetector(
+                      onTap: () => setSt(() => color = cc),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Color(cc),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: selected ? AppColors.brand : Colors.transparent, width: 2.5),
+                        ),
+                        child: selected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: labelCtl,
+                decoration: const InputDecoration(labelText: '标签（可选）', hintText: '如：重点 / 待查 / 结论'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteCtl,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: '笔记（可选）', hintText: '写下你的想法…'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.brand),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('保存'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok != true) return;
+    setState(() {
+      final lbl = labelCtl.text.trim();
+      final nt = noteCtl.text.trim();
+      if (editHighlight != null) {
+        // 修改已有高亮：改颜色 / 标签 / 备注（笔记）
+        editHighlight.color = color;
+        editHighlight.label = lbl;
+        editHighlight.note = nt;
+      } else if (editNote != null) {
+        editNote.color = color;
+        editNote.tag = lbl;
+        editNote.note = nt;
+      } else {
+        if (selStart != null && selEnd != null && selEnd > selStart) {
+          _highlights.add(_Highlight(page: page, para: para, start: selStart, end: selEnd, color: color, label: lbl, note: nt, createdAt: DateTime.now().millisecondsSinceEpoch));
+        }
+        if (nt.isNotEmpty || lbl.isNotEmpty) {
+          _notes.add(_Note(page: page, note: nt, tag: lbl, color: color, createdAt: DateTime.now().millisecondsSinceEpoch));
+        }
+      }
+    });
+    _savePrefs();
+    _snack(isEdit ? '已更新标注' : '已保存标注');
+  }
+
+  void _confirmDeleteHighlight(_Highlight h) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除这条标注？'),
+        content: Text(h.memo.isEmpty ? '删除这条高亮。' : h.memo),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    ).then((ok) {
+      if (ok == true) {
+        setState(() => _highlights.removeWhere((x) => identical(x, h)));
+        _savePrefs();
+        _snack('已删除标注');
+      }
+    });
+  }
+
+  void _toggleBookmark() {
+    final exist = _bookmarks.where((b) => b.page == _page).toList();
+    setState(() {
+      if (exist.isNotEmpty) {
+        _bookmarks.removeWhere((b) => b.page == _page);
+        _snack('已取消本页书签');
+      } else {
+        _bookmarks.add(_Bookmark(_page, '第 ${_page + 1} 页', DateTime.now().millisecondsSinceEpoch));
+        _snack('已加书签');
+      }
+    });
+    _savePrefs();
+  }
+
+  /// 学习路线入口：这本书在哪些章里出现（主线主书 / 延伸阅读），点一下直接跳导读页。
+  void _openRouteSheet() {
+    final routes = {
+      for (final r in OfflineContent.routes)
+        (r['id'] ?? '').toString(): (r['title'] ?? '').toString(),
+    };
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        margin: EdgeInsets.only(top: MediaQuery.of(ctx).size.height * 0.25),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+                child: Text('《${widget.work}》在学习路线里',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.ink700)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+                child: Text('点一章直接进入该章导读',
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.ink400)),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: 10),
+                  itemCount: _routeRows.length,
+                  itemBuilder: (_, i) {
+                    final r = _routeRows[i];
+                    final isMain = (r['kind'] ?? '') == 'main';
+                    final sid = (r['section_id'] ?? '').toString();
+                    final title = (r['section_title'] ?? '').toString();
+                    final routeName = routes[(r['route_id'] ?? '').toString()] ?? '';
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(
+                        isMain ? Icons.flag_rounded : Icons.auto_stories_outlined,
+                        size: 18,
+                        color: isMain ? AppColors.brand : AppColors.ink400,
+                      ),
+                      title: Text(title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13.5, color: AppColors.ink700)),
+                      subtitle: Text(
+                        [
+                          if (routeName.isNotEmpty) routeName,
+                          isMain ? '本章主书' : '本章延伸阅读',
+                        ].join(' · '),
+                        style: const TextStyle(fontSize: 11.5, color: AppColors.ink400),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, size: 18, color: AppColors.ink400),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => ChapterGuideScreen(
+                            routeId: (r['route_id'] ?? '').toString(),
+                            sectionId: sid,
+                            sectionTitle: title,
+                          ),
+                        ));
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openToc() {
+    if (_doc == null) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _sheetScaffold('目录 · 书签 · 笔记', [
+        _sectionHeader('目录（${_doc!.toc.length}）'),
+        ..._doc!.toc.map(
+          (e) => ListTile(
+            dense: true,
+            leading: const Icon(Icons.menu_book, size: 18, color: AppColors.brand),
+            title: Text(e.title, style: const TextStyle(fontSize: 13.5)),
+            trailing: Text('第 ${e.page + 1} 页', style: const TextStyle(fontSize: 12, color: AppColors.ink400)),
+            onTap: () {
+              Navigator.pop(context);
+              _goto(e.page);
+            },
+          ),
+        ),
+        _sectionHeader('书签（${_bookmarks.length}）'),
+        if (_bookmarks.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Text('暂无书签', style: TextStyle(color: AppColors.ink400, fontSize: 12.5)),
+          )
+        else
+          ..._bookmarks.map(
+            (b) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.bookmark, size: 18, color: AppColors.gold),
+              title: Text(b.label),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline, size: 18),
+                onPressed: () {
+                  setState(() => _bookmarks.remove(b));
+                  _savePrefs();
+                  Navigator.pop(context);
+                },
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _goto(b.page);
+              },
+            ),
+          ),
+        _sectionHeader('笔记 / 标色（${_notes.length + _highlights.length}）'),
+        if (_notes.isEmpty && _highlights.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Text('暂无笔记', style: TextStyle(color: AppColors.ink400, fontSize: 12.5)),
+          )
+        else ...[
+          ..._notes.map(
+            (n) => ListTile(
+              dense: true,
+              leading: _swatch(n.color),
+              title: Text(n.note.isEmpty ? (n.tag.isEmpty ? '（标色）' : n.tag) : n.note, style: const TextStyle(fontSize: 13)),
+              subtitle: Text('第 ${n.page + 1} 页${n.tag.isNotEmpty ? ' · ${n.tag}' : ''}', style: const TextStyle(fontSize: 11.5)),
+              trailing: _noteActions(
+                onEdit: () {
+                  Navigator.pop(context);
+                  _editAnnotations(n.page, n.page >= 0 && n.page < _doc!.pages.length && _doc!.pages[n.page].paraIndexes.isNotEmpty ? _doc!.pages[n.page].paraIndexes.first : 0, editNote: n);
+                },
+                onDelete: () {
+                  setState(() => _notes.remove(n));
+                  _savePrefs();
+                  Navigator.pop(context);
+                  _snack('已删除笔记');
+                },
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _goto(n.page);
+              },
+            ),
+          ),
+          ..._highlights.map(
+            (h) => ListTile(
+              dense: true,
+              leading: _swatch(h.color),
+              title: Text(_hlExcerpt(h), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+              subtitle: Text('第 ${h.page + 1} 页${h.label.isNotEmpty ? ' · ${h.label}' : ''}${h.note.isNotEmpty ? ' · 有备注' : ''}', style: const TextStyle(fontSize: 11.5)),
+              trailing: _noteActions(
+                onEdit: () {
+                  Navigator.pop(context);
+                  _editAnnotations(h.page, h.para, editHighlight: h);
+                },
+                onDelete: () {
+                  setState(() => _highlights.removeWhere((x) => identical(x, h)));
+                  _savePrefs();
+                  Navigator.pop(context);
+                  _snack('已删除标注');
+                },
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _goto(h.page);
+              },
+            ),
+          ),
+        ],
+      ]),
+    );
+  }
+
+  Widget _noteActions({required VoidCallback onEdit, required VoidCallback onDelete}) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.brand),
+        tooltip: '修改',
+        onPressed: onEdit,
+      ),
+      IconButton(
+        icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+        tooltip: '删除',
+        onPressed: onDelete,
+      ),
+    ],
+  );
+
+  Widget _swatch(int color) => Container(
+    width: 18,
+    height: 18,
+    decoration: BoxDecoration(color: Color(color), borderRadius: BorderRadius.circular(4)),
+  );
+
+  String _hlExcerpt(_Highlight h) {
+    if (h.para < _paragraphs.length) {
+      final t = _paragraphs[h.para];
+      final s = h.start.clamp(0, t.length);
+      final e = h.end.clamp(s, t.length);
+      return t.substring(s, e);
+    }
+    return '划线';
+  }
+
+  Widget _sectionHeader(String t) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+    child: Text(
+      t,
+      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.brand),
+    ),
+  );
+
+  Widget _sheetScaffold(String title, List<Widget> children) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.94,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+              child: Row(
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.ink900),
+                  ),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(controller: controller, children: children),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _promptGoto() async {
+    if (_doc == null) return;
+    final ctl = TextEditingController(text: '${_page + 1}');
+    final total = _doc!.pages.length;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('跳转到页面'),
+        content: TextField(
+          controller: ctl,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(hintText: '1 - $total'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.brand),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('跳转'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      final n = int.tryParse(ctl.text.trim());
+      if (n != null) _goto(n - 1);
+    }
+  }
+
+  void _onSelectionChanged(SelectedContent? sel) {
+    final t = (sel?.plainText ?? '').trim();
+    if (t.isNotEmpty && t.length < 500) {
+      setState(() => _selected = t);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFBF7F5),
+      appBar: AppBar(
+        title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (_routeRows.isNotEmpty)
+            IconButton(
+              tooltip: '这本书在路线里的哪几章',
+              icon: const Icon(Icons.alt_route_rounded),
+              onPressed: _openRouteSheet,
+            ),
+          IconButton(tooltip: '目录 / 书签 / 笔记', icon: const Icon(Icons.list_alt_rounded), onPressed: _openToc),
+          // 朗读当前页（发音喇叭）
+          if (_doc != null && !_loading && _error == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              child: SpeakButton(id: 'reader-page-${widget.work}-$_page', text: _pageSpeech()),
+            ),
+          IconButton(tooltip: '会话（五模式精读）', icon: const Icon(Icons.forum_outlined), onPressed: () => _ask(_selected, 'explain')),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? _errorView()
+                : _paragraphs.isEmpty
+                ? const Center(
+                    child: Text('该著作暂无正文。', style: TextStyle(color: AppColors.ink500)),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final size = Size(constraints.maxWidth, constraints.maxHeight);
+                      final needBuild = _doc == null || _docSize != size;
+                      if (needBuild) {
+                        if (!_building) {
+                          _building = true;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) _buildDoc(size);
+                          });
+                        }
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      return _buildReader();
+                    },
+                  ),
+          ),
+          // 选中文字后的追问工具条：改成可任意拖动的浮动面板（不再固定右下角）。
+          if (_doc != null && !_loading && _error == null && _selected.isNotEmpty) MovableBox(key: ValueKey(_selected.length), bounds: MediaQuery.of(context).size, size: const Size(360, 120), initialOffset: Offset((MediaQuery.of(context).size.width - 360) / 2, MediaQuery.of(context).size.height - 280), child: _selectionFab()),
+        ],
+      ),
+      bottomNavigationBar: _doc == null || _loading || _error != null ? null : _buildBottomBar(),
+    );
+  }
+
+  Widget _errorView() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('加载失败：$_error', style: const TextStyle(color: AppColors.ink500)),
+        const SizedBox(height: 10),
+        OutlinedButton(onPressed: _load, child: const Text('重试')),
+      ],
+    ),
+  );
+
+  Widget _buildReader() {
+    final doc = _doc!;
+    return PageView.builder(
+      controller: _pc,
+      itemCount: doc.pages.length,
+      onPageChanged: (i) {
+        setState(() => _page = i);
+        _savePrefs();
+      },
+      itemBuilder: (context, i) => _AnnotatedPage(
+        page: i,
+        item: doc.pages[i],
+        style: _textStyle(),
+        padding: _padding,
+        highlights: _highlights.where((h) => h.page == i).toList(),
+        onCopy: _copyText,
+        onAsk: _ask,
+        onAnnotate: (para, s, e) => _editAnnotations(i, para, selStart: s, selEnd: e),
+        onSelectionChanged: _onSelectionChanged,
+        onEditHighlight: (h) => _editAnnotations(h.page, h.para, editHighlight: h),
+        onDeleteHighlight: (h) => _confirmDeleteHighlight(h),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    final total = _doc!.pages.length;
+    final fs = _fontSize;
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.line)),
+        ),
+        child: Row(
+          children: [
+            IconButton(tooltip: '上一页', icon: const Icon(Icons.chevron_left), onPressed: _page > 0 ? () => _goto(_page - 1) : null),
+            InkWell(
+              onTap: _promptGoto,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Text(
+                  '${_page + 1} / $total',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink700),
+                ),
+              ),
+            ),
+            IconButton(tooltip: '下一页', icon: const Icon(Icons.chevron_right), onPressed: _page < total - 1 ? () => _goto(_page + 1) : null),
+            const Spacer(),
+            IconButton(tooltip: '缩小字号', icon: const Icon(Icons.text_decrease), onPressed: fs > 13 ? () => _setFont(fs - 1) : null),
+            Text('${fs.toInt()}', style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
+            IconButton(tooltip: '放大字号', icon: const Icon(Icons.text_increase), onPressed: fs < 30 ? () => _setFont(fs + 1) : null),
+            IconButton(
+              tooltip: '加书签',
+              icon: Icon(_bookmarks.any((b) => b.page == _page) ? Icons.bookmark : Icons.bookmark_border, color: AppColors.gold),
+              onPressed: _toggleBookmark,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _selectionFab() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppShadows.soft),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _mini(Icons.copy_rounded, '复制', AppColors.ink700, () => _copyText(_selected)),
+              _mini(Icons.color_lens_rounded, '标色', AppColors.gold, () => _annotateSelection()),
+              _mini(Icons.checklist_rounded, '笔记', AppColors.info, () => _annotateSelection()),
+              // 朗读当前选中的文字（与全站 TTS 一致）
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: SpeakButton(id: 'reader-sel-${widget.work}-$_page-${_selected.length}', compact: true, text: _selected),
+              ),
+              const SizedBox(width: 2),
+              const _DragHint(),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: ChatMode.values.map((m) {
+              return ActionChip(
+                visualDensity: VisualDensity.compact,
+                label: Text(m.label, style: const TextStyle(fontSize: 11.5, color: Colors.white)),
+                backgroundColor: Color(m.color),
+                onPressed: () {
+                  final t = _selected;
+                  setState(() => _selected = '');
+                  _ask(t, m.name);
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 当前页纯文本（用于整页朗读）。
+  String _pageSpeech() {
+    if (_doc == null || _page >= _doc!.pages.length) return '';
+    final page = _doc!.pages[_page];
+    return page.text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  void _annotateSelection() {
+    final page = _doc!.pages[_page];
+    // 在当前页所有段落里找包含选中文本的段落 + 字符偏移，保证黄底高亮精确落在选中片段上
+    final candidates = page.paraIndexes.isNotEmpty ? page.paraIndexes : <int>[0];
+    for (final para in candidates) {
+      final pText = para < _paragraphs.length ? _paragraphs[para] : '';
+      final i = _selected.isEmpty ? -1 : pText.indexOf(_selected);
+      if (i >= 0) {
+        _editAnnotations(_page, para, selStart: i, selEnd: i + _selected.length);
+        return;
+      }
+    }
+    final para = candidates.first;
+    _editAnnotations(_page, para, selStart: 0, selEnd: _selected.length.clamp(0, (_paragraphs.length > para ? _paragraphs[para].length : 0)));
+  }
+
+  Widget _mini(IconData ic, String label, Color c, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(ic, size: 18, color: c),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 10.5, color: c)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────── 单页渲染 ───────────────────────────
+
+class _AnnotatedPage extends StatelessWidget {
+  final int page;
+  final ReaderPage item;
+  final TextStyle style;
+  final EdgeInsets padding;
+  final List<_Highlight> highlights;
+  final Future<void> Function(String) onCopy;
+  final void Function(String text, String mode) onAsk;
+  final void Function(int para, int start, int end) onAnnotate;
+  final void Function(SelectedContent?) onSelectionChanged;
+  final void Function(_Highlight h) onEditHighlight;
+  final void Function(_Highlight h) onDeleteHighlight;
+
+  const _AnnotatedPage({required this.page, required this.item, required this.style, required this.padding, required this.highlights, required this.onCopy, required this.onAsk, required this.onAnnotate, required this.onSelectionChanged, required this.onEditHighlight, required this.onDeleteHighlight});
+
+  int _paraForBlock(String block, List<int> paraIndexes, int order) {
+    // 每页的 block 顺序大致对应 paraIndexes 顺序；用长度匹配更稳
+    return order < paraIndexes.length ? paraIndexes[order] : (paraIndexes.isNotEmpty ? paraIndexes.first : 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final blocks = item.text.split('\n\n').where((b) => b.trim().isNotEmpty).toList();
+    final hlByPara = <int, List<_Highlight>>{};
+    for (final h in highlights) {
+      hlByPara.putIfAbsent(h.para, () => []).add(h);
+    }
+    final children = <Widget>[];
+    for (var k = 0; k < blocks.length; k++) {
+      final block = blocks[k];
+      final paraIdx = _paraForBlock(block, item.paraIndexes, k);
+      final hls = hlByPara[paraIdx] ?? const <_Highlight>[];
+      // 段落内含标注时，用可直接选中文字的 Text.rich 逐段渲染（黄底 + 下划线 + 悬停备注）
+      final Widget body = hls.isEmpty ? Text(block, style: style) : _richPara(block, paraIdx, hls);
+      children.add(
+        GestureDetector(
+          onLongPress: () => _showParaActions(context, block, paraIdx),
+          child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: ReaderPaginator.blockPaddingH, vertical: ReaderPaginator.blockPaddingV), child: body),
+        ),
+      );
+      if (k != blocks.length - 1) {
+        children.add(const SizedBox(height: ReaderPaginator.paraGap));
+      }
+    }
+    return SelectionArea(
+      onSelectionChanged: onSelectionChanged,
+      child: Padding(
+        padding: padding,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        ),
+      ),
+    );
+  }
+
+  /// 把段落按高亮区间切片，被标注的片段：淡黄底色 + 下划线，悬停浮出备注并可直接修改/删除。
+  Widget _richPara(String block, int paraIdx, List<_Highlight> hls) {
+    // 构造互不重叠的可渲染区间（后建覆盖前者）
+    final hs = [...hls]..sort((a, b) => a.start.compareTo(b.start));
+    final spans = <InlineSpan>[];
+    int cursor = 0;
+    for (final h in hs) {
+      final s = h.start.clamp(0, block.length);
+      final e = h.end.clamp(s, block.length);
+      if (e <= cursor) continue;
+      final start = s < cursor ? cursor : s;
+      if (start > cursor) {
+        spans.add(TextSpan(text: block.substring(cursor, start)));
+      }
+      final seg = block.substring(start, e);
+      final bg = Color(h.color == 0 ? 0xFFFFF3B0 : h.color).withValues(alpha: 0.42);
+      final mark = WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: _HlHover(
+          memo: h.memo,
+          onEdit: () => onEditHighlight(h),
+          onDelete: () => onDeleteHighlight(h),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            decoration: BoxDecoration(
+              color: bg,
+              border: const Border(bottom: BorderSide(color: AppColors.gold, width: 1.6)),
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: Text(seg, style: style),
+          ),
+        ),
+      );
+      spans.add(mark);
+      cursor = e;
+    }
+    if (cursor < block.length) {
+      spans.add(TextSpan(text: block.substring(cursor)));
+    }
+    return Text.rich(TextSpan(style: style, children: spans));
+  }
+
+  void _showParaActions(BuildContext context, String block, int paraIdx) {
+    final sel = block.length > 60 ? '${block.substring(0, 60)}…' : block;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                sel,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12.5, color: AppColors.ink500),
+              ),
+            ),
+            const Divider(height: 1),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text('复制本段'),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    onCopy(block);
+                  },
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.color_lens_rounded, size: 16, color: AppColors.gold),
+                  label: const Text('标色 / 标签 / 笔记'),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    onAnnotate(paraIdx, 0, block.length);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text('就本段唤起 AI 精读', style: TextStyle(fontSize: 12.5, color: AppColors.ink500)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: ChatMode.values.map((m) {
+                return ActionChip(
+                  label: Text(m.label, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                  backgroundColor: Color(m.color),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    onAsk(block, m.name);
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 小型「可拖动」提示图标，让用户一眼知道追问条可以移动。
+class _DragHint extends StatelessWidget {
+  const _DragHint();
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: '按住拖动',
+      child: Icon(Icons.drag_indicator, size: 16, color: AppColors.ink400),
+    );
+  }
+}
+
+/// 一条已标注片段的悬停交互：鼠标移上浮出备注浮层（可选「修改」「删除」）。
+/// 桌面/Web 用 MouseRegion.onEnter 控制；触屏无 hover，长按段落仍可走「标色/笔记」入口。
+class _HlHover extends StatefulWidget {
+  final String memo;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final Widget child;
+  const _HlHover({required this.memo, required this.onEdit, required this.onDelete, required this.child});
+  @override
+  State<_HlHover> createState() => _HlHoverState();
+}
+
+class _HlHoverState extends State<_HlHover> {
+  OverlayEntry? _overlay;
+  Timer? _hideTimer;
+
+  /// 光标从标注挪到卡片上要跨过一条 6px 的缝：给个缓冲，别一离开标注就把卡片收掉，
+  /// 否则「修改 / 删除」根本点不到。
+  void _scheduleHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(milliseconds: 220), _hide);
+  }
+
+  void _cancelHide() {
+    _hideTimer?.cancel();
+    _hideTimer = null;
+  }
+
+  void _show() {
+    if (_overlay != null) return;
+    final box = context.findRenderObject();
+    final mq = MediaQuery.of(context).size;
+    double dx = 0, dy = 0, mw = 0, mh = 0;
+    if (box is RenderBox && box.hasSize) {
+      final origin = box.localToGlobal(Offset.zero);
+      dx = origin.dx;
+      dy = origin.dy;
+      mw = box.size.width;
+      mh = box.size.height;
+    }
+    const gap = 6.0;
+    final maxW = mq.width - 24 < 300 ? mq.width - 24 : 300.0;
+    // 横向：默认与标注左对齐，靠右边缘会溢出就改成右对齐
+    final alignRight = dx + maxW > mq.width - 8;
+    // 纵向：下方放不下就翻到上方；用 bottom 定位，卡片高度随文本变也不会压住标注
+    final above = mq.height - (dy + mh) < 230;
+    final rightInset = mq.width - (dx + mw);
+    final memo = widget.memo;
+    _overlay = OverlayEntry(
+      builder: (_) => Positioned(
+        left: alignRight ? null : dx,
+        right: alignRight ? rightInset.clamp(8.0, mq.width - 8) : null,
+        top: above ? null : dy + mh + gap,
+        bottom: above ? mq.height - dy + gap : null,
+        child: MouseRegion(
+          onEnter: (_) => _cancelHide(),
+          onExit: (_) => _scheduleHide(),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              // 宽度跟着笔记文字走：短笔记就是一个小气泡，超过 maxW 才换行
+              constraints: BoxConstraints(minWidth: 96, maxWidth: maxW),
+              padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.gold.withValues(alpha: 0.7)),
+                boxShadow: AppShadows.soft,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 3),
+                        child: Icon(Icons.sticky_note_2_outlined, size: 16, color: AppColors.gold),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          memo.isEmpty ? '（无备注内容）' : memo,
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            height: 1.6,
+                            color: AppColors.ink900,
+                            fontFamily: 'Deng',
+                            fontFamilyFallback: ['Deng', 'Roboto', 'WarnSym'],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _act(Icons.edit_outlined, '修改', () {
+                        _hide();
+                        widget.onEdit();
+                      }),
+                      const SizedBox(width: 4),
+                      _act(Icons.delete_outline, '删除', () {
+                        _hide();
+                        widget.onDelete();
+                      }, danger: true),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  Widget _act(IconData ic, String label, VoidCallback onTap, {bool danger = false}) {
+    final c = danger ? AppColors.danger : AppColors.brand;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(ic, size: 14, color: c),
+            const SizedBox(width: 3),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11.5, color: c, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _hide() {
+    _cancelHide();
+    _overlay?.remove();
+    _overlay = null;
+  }
+
+  @override
+  void dispose() {
+    _hide();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) {
+        _cancelHide();
+        _show();
+      },
+      onExit: (_) => _scheduleHide(),
+      child: GestureDetector(onLongPress: widget.onEdit, child: widget.child),
+    );
+  }
+}

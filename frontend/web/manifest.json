@@ -1,0 +1,35 @@
+{
+    "name": "唯物 · 马哲精读",
+    "short_name": "马哲精读",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#960E12",
+    "theme_color": "#C8161D",
+    "description": "正统马哲深度学习系统 —— 三路线 · 逐章精读 · AI 测试",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

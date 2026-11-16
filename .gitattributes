@@ -1,0 +1,45 @@
+# ============================================================
+#  xxmz · .gitattributes
+#  目的只有两个：别把二进制当文本 diff（否则历史膨胀、合并冲突无意义），
+#  以及让 Windows（CRLF）/ macOS·Linux（LF）协作时的行尾问题可预期。
+#  注意：本仓库现有 .py 多为 CRLF，**不做**全仓行尾归一化，避免一次
+#  「改行尾」的巨型 diff 淹没真实改动。
+# ============================================================
+
+# ---- 二进制：禁止文本 diff / 合并 ----
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.mp3  binary
+*.mp4  binary
+*.wav  binary
+*.pdf  binary
+*.jks  binary
+*.keystore binary
+*.apk  binary
+*.aab  binary
+*.jar  binary
+*.zip  binary
+*.joblib binary
+*.pyc  binary
+
+# ---- 行尾：脚本与配置显式声明，减少跨平台噪音 ----
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.sh   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+Dockerfile text eol=lf
+
+# ---- 语言统计（GitHub 语种识别）----
+*.dart linguist-language=Dart
+sources/texts/*.txt linguist-documentation

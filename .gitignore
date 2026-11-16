@@ -1,0 +1,126 @@
+# ============================================================
+#  xxmz · .gitignore
+#  原则：凭据、构建产物、本机工作区一律不进仓库；
+#        原著正文库默认不进仓库（见文件末「内容库」一节，含切换方法）。
+# ============================================================
+
+# ---- 凭据／密钥（绝不可提交；泄露后必须立即吊销重签）----
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.example
+# 功能中心「LLM 大模型 API 配置」页保存的本机运行时配置（**含明文 API Key**）
+backend/.llm_config.json
+
+# Android 发布签名：keystore 与口令一旦公开，任何人都能给你的应用签恶意更新包
+frontend/android/key.properties
+frontend/android/keystore/
+*.jks
+*.keystore
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+credentials.json
+service-account*.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+backend/.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# ---- Flutter / Dart ----
+frontend/build/
+frontend/.dart_tool/
+frontend/.packages
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.idea/
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/local.properties
+frontend/android/app/debug/
+frontend/android/app/profile/
+frontend/android/app/release/
+frontend/ios/Pods/
+frontend/windows/flutter/ephemeral/
+frontend/linux/flutter/ephemeral/
+frontend/macos/Flutter/ephemeral/
+**/GeneratedPluginRegistrant.*
+
+# ---- 构建产物／二进制（体积大且可再生；发布走 GitHub Releases）----
+*.apk
+*.aab
+*.ipa
+*.zip
+唯物马哲精读-单机安卓版.apk
+
+# ---- 运行日志／临时工件 ----
+.logs/
+*.log
+tmp/
+*.tmp
+*.pid
+.xxmz-*
+
+# ---- 本机工作区（不属于项目代码）----
+# 过程截图（近 1 GB）
+.shots/
+# 临时脚本、基准测试、审计草稿、agent 协作频道
+.local/
+# agent 本地工作目录（含 memory / logs / reviews）
+.claude/
+# 本地 spec-kit 缓存
+.specify/
+# 进程状态
+.run/
+# OCR 中间产物
+.ocr/
+# 基准输出
+.benchmarks/
+# 字体备份
+.font_backup/
+# 本机路径速记
+路径.txt
+# 桌面快捷方式
+音乐.lnk
+
+# ---- 数据库／本地存储 ----
+*.sqlite
+*.db
+
+# ============================================================
+#  内容库（原著正文）
+#
+#  下面两处是**同一个决定**，必须一起开或一起关：
+#    ① sources/texts/*.txt            229 部原著正文（18 MB）
+#    ② frontend/assets/offline/       由 ① 派生的离线数据（23.6 MB）
+#       其中 chunks.json 内嵌全部 23,085 段原文，等价于 ① 的公开副本。
+#
+#  当前**默认不公开**（保守选择）。理由见 NOTICE.md 第四节：
+#  毛泽东（卒 1976-09-09）、周恩来（卒 1976-01-08）的著作按《著作权法》
+#  一般作品口径保护期至 2026-12-31 届满，此前公开到 GitHub（向不特定公众
+#  提供复制件）不属于个人学习的合理使用；且中央编译局译本的译者权、
+#  版式设计权、专有出版权是独立于原作者著作权的另一层权利。
+#
+#  想让克隆者拿到正文，两条路（推荐后者）：
+#    · 让使用者自己按 sources/texts/README.md 放入 .txt 与来源说明
+#    · 或发布一个「正文数据包」到 Releases / 网盘，仓库只放代码
+#
+#  ⚠️ 改这个决定必须**在第一次 commit 之前**定，git 历史里删不掉。
+#     确认要连正文一起公开时，删掉下面两行再提交：
+# ============================================================
+sources/texts/*.txt
+frontend/assets/offline/
+
+# 各轮的裁剪前备份（历史归档，与正文同性质）
+sources/_backup*/

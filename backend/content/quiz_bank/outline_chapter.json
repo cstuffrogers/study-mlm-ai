@@ -1,0 +1,297 @@
+{
+  "section_id": "sec_A_02",
+  "_note": "P0 提纲章节题库。每题必须带 source_chunk_id（溯源锚定，FR-022）。错误诊断题含故意错误项 exempt_marked=true（FR-023）。均经人工编写审定为 reviewed。",
+  "items": [
+    {
+      "id": "q_practice_def",
+      "node_id": "kn_practice",
+      "type": "concept_discrimination",
+      "stem": "在马克思主义哲学中，『实践』的正确定义是：",
+      "options": [
+        "人改造客观世界的感性的、对象性的物质活动",
+        "个人的道德践履与内心修养",
+        "纯粹的理论沉思与逻辑推演",
+        "日常生活中的偶然行为"
+      ],
+      "answer": "A",
+      "explanation": "实践是感性的、对象性的物质活动，指向客观世界的改造；其余选项分别落入道德主义、唯心主义理论观与庸俗经验主义。",
+      "difficulty": 0.35,
+      "source_chunk_id": "CH-MLTH-001",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_socialsum_text",
+      "node_id": "kn_socialsum",
+      "type": "text_location",
+      "stem": "『人的本质不是单个人所固有的抽象物，在其现实性上，它是一切社会关系的总和』出自：",
+      "options": [
+        "《关于费尔巴哈的提纲》第六条",
+        "《德意志意识形态》第一章",
+        "《共产党宣言》",
+        "《资本论》第一卷"
+      ],
+      "answer": "A",
+      "explanation": "该论断出自马克思《关于费尔巴哈的提纲》第六条，是人学从抽象人本学转向历史唯物主义的标志。",
+      "difficulty": 0.4,
+      "source_chunk_id": "CH-MLTH-005",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_truth_logic",
+      "node_id": "kn_cishixing",
+      "type": "logical_deduction",
+      "stem": "已知『人的思维是否具有客观真理性是一个实践的问题』，可推出的结论是：",
+      "options": [
+        "检验真理的标准在实践之中，离开实践争论思维现实性是经院哲学",
+        "真理是纯粹理论内部的自洽，无需实践检验",
+        "真理不可认识，人只能停留在彼岸",
+        "多数人的意见即为真理"
+      ],
+      "answer": "A",
+      "explanation": "由实践是真理标准，可推出检验真理须回到实践；B 是唯心主义真理观，C 是康德不可知论，D 是庸俗的多数决定论。",
+      "difficulty": 0.55,
+      "source_chunk_id": "CH-MLTH-002",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_error_machine",
+      "node_id": "kn_practice",
+      "type": "error_diagnosis",
+      "stem": "『意识是大脑的分泌物，就像胆囊分泌胆汁一样』这一说法属于：",
+      "options": [
+        "机械唯物主义（庸俗唯物主义），把人脑与意识的辩证关系还原为生理分泌",
+        "辩证唯物主义对意识本质的正确表述",
+        "唯心主义对意识的夸大",
+        "不可知论"
+      ],
+      "answer": "A",
+      "explanation": "该说法把人脑与意识的关系还原为生理分泌，是庸俗唯物主义的错误；辩证唯物主义认为意识是人脑的机能、客观世界的主观映象。",
+      "difficulty": 0.6,
+      "source_chunk_id": "CH-MLTH-001",
+      "authority_status": "reviewed",
+      "exempt_marked": true,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_civilsociety",
+      "node_id": "kn_civilsociety",
+      "type": "concept_discrimination",
+      "stem": "在马克思历史唯物主义语境中，『市民社会』主要指：",
+      "options": [
+        "与政治国家相对的物质生活关系总和（经济基础）",
+        "城市中的市民阶层及其生活方式",
+        "资产阶级的公共舆论空间",
+        "国家行政机关"
+      ],
+      "answer": "A",
+      "explanation": "马克思的『市民社会』指与政治国家相对的物质交往关系总和，是经济基础范畴；其余是字面误解或非马克思主义用法。",
+      "difficulty": 0.55,
+      "source_chunk_id": "CH-MLTH-009",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_changeworld_text",
+      "node_id": "kn_changeworld",
+      "type": "text_location",
+      "stem": "『哲学家们只是用不同的方式解释世界，问题在于改变世界』出自：",
+      "options": [
+        "《关于费尔巴哈的提纲》第十一条",
+        "《实践论》",
+        "《反杜林论》",
+        "《国家与革命》"
+      ],
+      "answer": "A",
+      "explanation": "出自提纲第十一条，是马克思新世界观革命性与实践性的浓缩表达。",
+      "difficulty": 0.35,
+      "source_chunk_id": "CH-MLTH-010",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_revprac_logic",
+      "node_id": "kn_rev_practice",
+      "type": "logical_deduction",
+      "stem": "『环境的改变和人的活动的一致，只能被理解为革命的实践』，这意味着：",
+      "options": [
+        "人在改造环境的实践中同时改造自身，二者统一于革命实践",
+        "环境单方面决定人，人只能被动适应",
+        "人单方面决定环境，环境无关紧要",
+        "教育与天才可以凌驾于社会之上改造人"
+      ],
+      "answer": "A",
+      "explanation": "革命实践使『改变环境』与『改变人』统一于同一过程；B 是机械决定论，C 是唯意志论，D 是天才史观/教育救国论的错误。",
+      "difficulty": 0.6,
+      "source_chunk_id": "CH-MLTH-004",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_error_abstract",
+      "node_id": "kn_humannature",
+      "type": "error_diagnosis",
+      "stem": "『人的本质就是单个人生来固有的、普遍的抽象人性』这一观点的错误在于：",
+      "options": [
+        "它脱离社会关系抽象地理解人，是费尔巴哈式抽象人性论",
+        "它正确揭示了人的本质",
+        "它否认了人的自然属性",
+        "它肯定了人的阶级性"
+      ],
+      "answer": "A",
+      "explanation": "该观点脱离社会关系、历史地把人理解为抽象『类』，正是提纲第六条所批判的抽象人性论；人的本质在其现实性上是一切社会关系的总和。",
+      "difficulty": 0.65,
+      "source_chunk_id": "CH-MLTH-005",
+      "authority_status": "reviewed",
+      "exempt_marked": true,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_intuition",
+      "node_id": "kn_intuition",
+      "type": "concept_discrimination",
+      "stem": "『直观』与『实践』的原则区别在于：",
+      "options": [
+        "直观是静观式地把握对象而不介入改造，实践是改造对象的感性活动",
+        "直观比实践更能把握真理",
+        "二者完全等同",
+        "实践是纯理论活动，直观是物质活动"
+      ],
+      "answer": "A",
+      "explanation": "直观是被动的认识方式，实践是能动的、改造世界的物质活动，这是新旧唯物主义的分水岭之一。",
+      "difficulty": 0.5,
+      "source_chunk_id": "CH-MLTH-005",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_feynman_practice",
+      "node_id": "kn_practice",
+      "type": "error_diagnosis",
+      "stem": "（论述/费曼）请用一句话说明『为什么说实践是检验真理的唯一标准』，并指出脱离实践谈真理的错误。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：真理是主观与客观相符合，只有在改造客观世界的实践中才能检验思维的现实性；脱离实践在纯理论范围内争论真理，是经院哲学（提纲第二条）。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-MLTH-002",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_app_practice",
+      "node_id": "kn_practice",
+      "type": "application",
+      "stem": "（应用/案例）某同学说：“只要在课堂上把‘实践’概念背熟，就算掌握了马克思主义实践观。”请运用马克思主义实践观指出这一说法的错误，并结合一个现实例子说明如何用实践检验认识。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：实践是感性的、对象性的物质活动（改造客观世界），掌握实践观不能停留于背诵；检验认识真理性必须在实践中证明思维的现实性与力量（提纲第二条）。应引入“实践”“感性”“对象性”“改造”等核心术语，并结合具体案例（如一项技术方案通过试点检验）展开论证，结论落到“改变世界”。",
+      "difficulty": 0.75,
+      "source_chunk_id": "CH-MLTH-002",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false,
+      "application": true
+    },
+    {
+      "id": "q_object_activity",
+      "node_id": "kn_object_activity",
+      "type": "concept_discrimination",
+      "stem": "马克思批评旧唯物主义『只是从客体的或者直观的形式去理解对象、现实、感性』，他强调应当把感性理解为：",
+      "options": [
+        "人的感性的、对象性的活动（实践），即主体能动地改造客体的活动",
+        "纯粹静观式的直观，不介入对对象的改造",
+        "主观内心的自省与道德修养",
+        "与人的活动无关的自在之物"
+      ],
+      "answer": "A",
+      "explanation": "提纲第一条的核心：旧唯物主义只从客体/直观理解对象，忘记了对象是人的感性活动、对象性活动的产物；强调实践即主体能动地改造客体的对象性活动。",
+      "difficulty": 0.45,
+      "source_chunk_id": "CH-MLTH-001",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_secbasis",
+      "node_id": "kn_secbasis",
+      "type": "logical_deduction",
+      "stem": "费尔巴哈把宗教世界归结于它的世俗基础，但马克思认为他还需进一步说明：",
+      "options": [
+        "世俗基础本身为何会自我分裂并产生出宗教世界，这只能用世俗基础的自我矛盾来说明",
+        "宗教是人心固有的永恒情感，无需社会说明",
+        "世俗基础是静止不变的，不产生任何矛盾",
+        "只要否定宗教观念即可消除宗教"
+      ],
+      "answer": "A",
+      "explanation": "提纲第四条：把宗教归结于世俗基础是进步，但必须进一步用世俗基础的自我分裂、自我矛盾来说明宗教的产生，从而把宗教批判引向对现实社会矛盾的批判。",
+      "difficulty": 0.55,
+      "source_chunk_id": "CH-MLTH-004",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_humansociety",
+      "node_id": "kn_humansociety",
+      "type": "concept_discrimination",
+      "stem": "马克思指出『新唯物主义的立脚点则是人的社会或社会的人类』。这里的『社会的人类』意味着：",
+      "options": [
+        "扬弃了资产阶级孤立个人的抽象预设，指向自由联合、社会化的人类",
+        "回到孤立的、生物学意义上的单个人",
+        "市民社会中的私人个体之和",
+        "凌驾于社会之上的精英群体"
+      ],
+      "answer": "A",
+      "explanation": "提纲第十条：新唯物主义的立脚点是社会化的人类，即扬弃了市民社会孤立个人、走向自由联合的人类，与旧唯物主义立足市民社会形成对照。",
+      "difficulty": 0.5,
+      "source_chunk_id": "CH-MLTH-009",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": false
+    },
+    {
+      "id": "q_standpoint",
+      "node_id": "kn_standpoint",
+      "type": "error_diagnosis",
+      "stem": "有人说：『哲学是超越阶级、纯客观的学问，谈不上什么立脚点。』这一说法的错误在于：",
+      "options": [
+        "否认了哲学的党性原则——新旧唯物主义的立脚点（市民社会 vs 人的社会）归根到底是阶级立场的对立",
+        "它正确地描述了哲学的纯粹客观性",
+        "它夸大了哲学的阶级性",
+        "它混淆了理论与实践的界限"
+      ],
+      "answer": "A",
+      "explanation": "提纲第十条体现哲学的党性原则：旧唯物主义立脚于市民社会（资产阶级社会），新唯物主义立脚于人的社会；标榜『超阶级』『纯客观』恰恰掩盖了其阶级立脚点。",
+      "difficulty": 0.6,
+      "source_chunk_id": "CH-MLTH-009",
+      "authority_status": "reviewed",
+      "exempt_marked": true,
+      "trial_only": false,
+      "subjective": false
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+Timeout (0:00:35)!
+Thread 0x00006e44 (most recent call first):
+  File "C:\Python314\Lib\concurrent\futures\thread.py", line 116 in _worker
+  File "C:\Python314\Lib\threading.py", line 1023 in run
+  File "C:\Python314\Lib\threading.py", line 1081 in _bootstrap_inner
+  File "C:\Python314\Lib\threading.py", line 1043 in _bootstrap
+
+Thread 0x00003e28 (most recent call first):
+  File "C:\Python314\Lib\selectors.py", line 305 in _select
+  File "C:\Python314\Lib\selectors.py", line 314 in select
+  File "C:\Python314\Lib\asyncio\base_events.py", line 2008 in _run_once
+  File "C:\Python314\Lib\asyncio\base_events.py", line 677 in run_forever
+  File "C:\Python314\Lib\asyncio\base_events.py", line 706 in run_until_complete
+  File "C:\Python314\Lib\asyncio\runners.py", line 127 in run
+  File "C:\Python314\Lib\asyncio\runners.py", line 204 in run
+  File "E:\xxmz\backend\services\tts_service.py", line 140 in synthesize
+  File "E:\xxmz\backend\api\tts_routes.py", line 42 in tts_speak
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anyio\_backends\_asyncio.py", line 986 in run
+  File "C:\Python314\Lib\threading.py", line 1081 in _bootstrap_inner
+  File "C:\Python314\Lib\threading.py", line 1043 in _bootstrap
+
+Thread 0x00006614 (most recent call first):
+  File "C:\Python314\Lib\selectors.py", line 305 in _select
+  File "C:\Python314\Lib\selectors.py", line 314 in select
+  File "C:\Python314\Lib\asyncio\base_events.py", line 2008 in _run_once
+  File "C:\Python314\Lib\asyncio\base_events.py", line 677 in run_forever
+  File "C:\Python314\Lib\asyncio\base_events.py", line 706 in run_until_complete
+  File "C:\Python314\Lib\asyncio\runners.py", line 127 in run
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anyio\_backends\_asyncio.py", line 2365 in run
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anyio\_core\_eventloop.py", line 75 in run
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anyio\from_thread.py", line 524 in run_blocking_portal
+  File "C:\Python314\Lib\threading.py", line 1023 in run
+  File "C:\Python314\Lib\threading.py", line 1081 in _bootstrap_inner
+  File "C:\Python314\Lib\threading.py", line 1043 in _bootstrap
+
+Thread 0x00005f10 (most recent call first):
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 59 in _connection_worker_thread
+  File "C:\Python314\Lib\threading.py", line 1023 in run
+  File "C:\Python314\Lib\threading.py", line 1081 in _bootstrap_inner
+  File "C:\Python314\Lib\threading.py", line 1043 in _bootstrap
+
+Thread 0x00006d1c (most recent call first):
+  File "C:\Python314\Lib\threading.py", line 369 in wait
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 445 in result
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anyio\from_thread.py", line 326 in call
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\starlette\testclient.py", line 353 in handle_request
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\httpx\_client.py", line 1014 in _send_single_request
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\httpx\_client.py", line 979 in _send_handling_redirects
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\httpx\_client.py", line 942 in _send_handling_auth
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\httpx\_client.py", line 914 in send
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\httpx\_client.py", line 825 in request
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\starlette\testclient.py", line 454 in request
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\httpx\_client.py", line 1144 in post
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\starlette\testclient.py", line 555 in post
+  File "E:\xxmz\backend\tests\test_tts.py", line 68 in test_speak_endpoint_returns_audio_when_online
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\python.py", line 166 in pytest_pyfunc_call
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\python.py", line 1720 in runtest
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\runner.py", line 179 in pytest_runtest_call
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\runner.py", line 245 in <lambda>
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\runner.py", line 353 in from_call
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\runner.py", line 244 in call_and_report
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\runner.py", line 137 in runtestprotocol
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\runner.py", line 118 in pytest_runtest_protocol
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\main.py", line 396 in pytest_runtestloop
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\main.py", line 372 in _main
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\main.py", line 318 in wrap_session
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\main.py", line 365 in pytest_cmdline_main
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\config\__init__.py", line 199 in main
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\_pytest\config\__init__.py", line 223 in console_main
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pytest\__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main
