@@ -14,6 +14,7 @@ import 'package:marxism_reader/offline/offline_content.dart';
 import 'package:marxism_reader/screens/source_browser_screen.dart';
 import 'package:marxism_reader/screens/work_reader_screen.dart';
 import 'package:marxism_reader/theme/app_theme.dart';
+import 'helpers/offline_assets_guard.dart';
 
 Future<void> _pump(WidgetTester tester) async {
   await tester.pumpWidget(MaterialApp(
@@ -24,6 +25,7 @@ Future<void> _pump(WidgetTester tester) async {
 }
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {

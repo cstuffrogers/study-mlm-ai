@@ -17,6 +17,7 @@ import 'package:marxism_reader/services/chat_service.dart';
 import 'package:marxism_reader/theme/app_theme.dart';
 import 'package:marxism_reader/widgets/floating_chat.dart';
 import 'package:marxism_reader/widgets/related_original_button.dart';
+import 'helpers/offline_assets_guard.dart';
 
 /// 取《大众哲学》中段的一个真实 L1 分片（保证不在首页，能验证「定位」确实生效）。
 Map<String, dynamic> _midChunk() {
@@ -124,6 +125,7 @@ Future<void> _pump(WidgetTester tester, Widget home) async {
 }
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {

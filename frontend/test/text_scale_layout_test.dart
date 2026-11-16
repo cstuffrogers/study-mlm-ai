@@ -22,6 +22,7 @@ import 'package:marxism_reader/services/chat_service.dart';
 import 'package:marxism_reader/services/sync_controller.dart';
 import 'package:marxism_reader/theme/app_theme.dart';
 import 'package:marxism_reader/widgets/anim.dart';
+import 'helpers/offline_assets_guard.dart';
 
 /// 模拟一台「状态栏 40 + 字号放大 7%」的手机
 Widget _phone(Widget child) {
@@ -44,6 +45,7 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
 }
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {

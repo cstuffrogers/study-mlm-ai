@@ -13,8 +13,10 @@ import 'package:marxism_reader/offline/local_insight.dart';
 import 'package:marxism_reader/offline/offline_content.dart';
 import 'package:marxism_reader/screens/analytics_dashboard.dart';
 import 'package:marxism_reader/theme/app_theme.dart';
+import 'helpers/offline_assets_guard.dart';
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {

@@ -8,8 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:marxism_reader/offline/offline_content.dart';
+import 'helpers/offline_assets_guard.dart';
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {

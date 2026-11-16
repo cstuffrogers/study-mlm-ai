@@ -7,8 +7,10 @@ import 'package:marxism_reader/offline/local_insight.dart';
 import 'package:marxism_reader/offline/local_mastery.dart';
 import 'package:marxism_reader/offline/local_quiz.dart';
 import 'package:marxism_reader/offline/offline_content.dart';
+import 'helpers/offline_assets_guard.dart';
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
