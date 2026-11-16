@@ -42,4 +42,10 @@ Dockerfile text eol=lf
 
 # ---- 语言统计（GitHub 语种识别）----
 *.dart linguist-language=Dart
+# ---- 原著正文：禁止任何行尾转换 ----
+# 228 个 txt 是纯 LF。若让 git 按平台转换（Windows checkout 会变成 CRLF），
+# 正文按空行切分的片数就会变（实测本地 23,085 → clone 后 23,086），
+# chunk id、offline manifest 的 fingerprint 全部漂移，克隆者数据与本机不一致。
+# `-text` = 关掉行尾转换，checkout 出的字节与入库时完全一致。
+sources/**/*.txt -text
 sources/texts/*.txt linguist-documentation
