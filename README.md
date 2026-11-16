@@ -302,8 +302,21 @@ Phase 6 测试套件（65 passed + 2 xfailed）：
 至 **2026-12-31** 才届满，公开托管不属于个人学习的合理使用；另有中央编译局译本的
 译者权、版式设计权与专有出版权需逐项核实。
 
-**没有正文时项目仍可运行**（`all_book_chunks()` 会跳过缺失文件），但书单为空、
-检索无结果，部分测试会失败。补齐方式二选一：
+**没有正文时项目能启动**，但只有代码骨架可用。实测（干净 clone 后）：
+
+| 能力 | 无正文 | 有正文 |
+|---|---|---|
+| 后端启动 / 路由挂载 | ✓ 19 组路由 | ✓ |
+| 学习路线 / 章节导读 / 题库 | ✓ 32 节 | ✓ |
+| 立场守门 / 离线学习闭环 | ✓ | ✓ |
+| 检索命中 | 0（书单空） | 23,041 分片 |
+| 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 696 passed / 5 skipped / 2 xfailed |
+| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 119 passed |
+
+依赖正文的用例都打了 `needs_texts` 标记（后端，见 `backend/conftest.py`）
+或调用 `skipWithoutOfflineAssets()`（前端，见 `frontend/test/helpers/`），
+无数据时自动跳过并给出补齐指引——不会把「缺数据」伪装成「代码坏了」。
+补齐后一切恢复全量。补齐方式二选一：
 
 ```bash
 # 方式 1：自己准备 txt（文件名/格式见 sources/texts/README.md 与 SOURCE_MANIFEST.md）
