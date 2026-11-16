@@ -1,5 +1,5 @@
 
-# 正统马哲深度学习系统 <img width="24" height="24" alt="icon-1024" src="https://github.com/user-attachments/assets/6b927710-56ee-42c2-a5e1-6b5d78c9176d" />
+# 正统马哲深度学习系统 <img width="50" height="50" alt="icon-1024" src="https://github.com/user-attachments/assets/6b927710-56ee-42c2-a5e1-6b5d78c9176d" />
 
 > MVP：学习者阅读《关于费尔巴哈的提纲》11 条，选中文本唤起 AI 五模式会话，防偏离三重机制守门，溯源卡片可查——端到端闭环跑通且不偏离正统立场。
 
