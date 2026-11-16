@@ -82,10 +82,25 @@ def apply_upgrades(extensions: dict[str, list[dict]]) -> dict[str, list[dict]]:
     """给已入库条目挂 local_work、更新 caution；其余条目原样保留。
 
     `extensions` 就地修改并返回同一对象（供 reading_extensions.py 在 merge 后调用）。
+
+    两种缺书要区别对待：
+      · **整库没有正文**（`sources/texts/` 为空，比如刚 clone 下来的开源仓库）
+        —— 不算错误，跳过全部升级并打 warning。否则后端连启动都做不到，
+        而「本仓库不随代码分发原著正文」是明确的设计（见 NOTICE.md 第四节）。
+      · **库里有正文但缺这一部** —— 说明升级表书名写错了，必须报错拦住。
     """
+    import logging
+
     from content.book_chunks import available_works
 
     works = set(available_works())
+    if not works:
+        logging.getLogger(__name__).warning(
+            "未发现任何原著正文（sources/texts/ 为空？），跳过 %d 条延伸阅读的 local_work 挂接；"
+            "书目与导读仍可用，但原文跳转与引文校验将不可用。补齐方式见 README。",
+            len(UPGRADES),
+        )
+        return extensions
     for sid, keyword, work, caution in UPGRADES:
         assert work in works, f"升级表指向未入库著作: {work}"
         hits = [it for it in extensions.get(sid, []) if keyword in it.get("title", "")]
