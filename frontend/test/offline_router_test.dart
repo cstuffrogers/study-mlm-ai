@@ -9,8 +9,10 @@ import 'package:marxism_reader/services/quiz_service_api.dart';
 import 'package:marxism_reader/services/recommendation_service_api.dart';
 import 'package:marxism_reader/services/review_service_api.dart';
 import 'package:marxism_reader/services/routes_service.dart';
+import 'helpers/offline_assets_guard.dart';
 
 void main() {
+  if (skipWithoutOfflineAssets()) return;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('路线/章节/导读/原文 端点可用', () async {
