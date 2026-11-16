@@ -371,9 +371,22 @@ cd backend && python -m pytest tests/test_d114_offline_assets_fresh.py -q
 
 ## 文档
 
-- `方案.md` — 完整方案（含 ljsk 工程骨架附录）
-- `specs/001-marxism-learning-system/spec.md` — 需求规格
-- `specs/002-learning-routes-mastery/` — 三路线学习与学情闭环（spec / plan / tasks / quickstart / contracts）
-  - 端到端演示：`cd backend && python demo_routes_flow.py`（无需 Docker，学习引擎默认内存 SQLite）
-- `plan.md` / `progress.md` / `findings.md` — 持久化规划（planning-with-files）
-- `学习顺序2.md` — 内容层 6 阶段结构 + 防偏离红线决策
+仓库只保留与运行、内容、权利相关的六份文档，其余设计过程记录不随仓库分发。
+
+| 文件 | 内容 |
+|---|---|
+| [`README.md`](README.md) | 本文件：能力、启动、架构、配置 |
+| [`原著入库清单.md`](原著入库清单.md) | 229 部正文的逐部判定：收录理由、取舍、红线决策 |
+| [`CONTENT-NOTICE.md`](CONTENT-NOTICE.md) | 正文的权利状态、来源、用途与异议处理 |
+| [`NOTICE.md`](NOTICE.md) | 项目性质、软件许可、已排除内容、隐私口径 |
+| [`sources/texts/SOURCE_MANIFEST.md`](sources/texts/SOURCE_MANIFEST.md) | 每部正文的镜像来源页面、字数、版本说明 |
+| [`sources/texts/README.md`](sources/texts/README.md) | 正文文件命名与格式规范 |
+
+代码即文档：路由在 `backend/api/`，业务编排在 `backend/services/`，
+检索/守门/提示词引擎在 `backend/core/`，学习路线内容在 `backend/content/`。
+
+端到端演示：
+
+```bash
+cd backend && python demo_routes_flow.py   # 无需 Docker，学习引擎默认内存 SQLite
+```
