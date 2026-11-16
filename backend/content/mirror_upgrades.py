@@ -86,7 +86,7 @@ def apply_upgrades(extensions: dict[str, list[dict]]) -> dict[str, list[dict]]:
     两种缺书要区别对待：
       · **整库没有正文**（`sources/texts/` 为空，比如刚 clone 下来的开源仓库）
         —— 不算错误，跳过全部升级并打 warning。否则后端连启动都做不到，
-        而「本仓库不随代码分发原著正文」是明确的设计（见 NOTICE.md 第四节）。
+        而「只取代码、不取正文」是使用者可以自己选的状态（见 CONTENT-NOTICE.md）。
       · **库里有正文但缺这一部** —— 说明升级表书名写错了，必须报错拦住。
     """
     import logging

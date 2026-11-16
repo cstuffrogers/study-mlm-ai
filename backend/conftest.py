@@ -30,10 +30,10 @@ def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
-# 「需要原著正文」的用例：本仓库按 NOTICE.md 第四节**不随代码分发正文**
-# （sources/texts/*.txt 与 frontend/assets/offline/ 均在 .gitignore 内），
-# 所以刚 clone 下来时没有任何分片。这类用例若照跑会一次红 278 个，
-# 看起来像项目坏了 —— 实际是数据缺失。这里统一 skip 并给出补齐指路。
+# 「需要原著正文」的用例。正文**默认随仓库分发**（见 CONTENT-NOTICE.md），
+# 所以正常 clone 下来是全量照跑；但有人可能只取代码、或删掉正文跑纯后端，
+# 那时这 28 个文件会一次红 278 个，看起来像项目坏了 —— 实际是数据缺失。
+# 因此仍保留这道守卫：sources/texts/ 无 .txt 时统一 skip 并给出补齐指路。
 #
 # 有正文时行为不变（全量照跑），因此不会掩盖真问题。
 # ---------------------------------------------------------------------------
@@ -57,8 +57,8 @@ def pytest_collection_modifyitems(config, items):
     import pytest
 
     marker = pytest.mark.skip(
-        reason="无原著正文（sources/texts/ 为空）：本仓库不随代码分发正文，"
-        "补齐方式见 README「原著正文数据（克隆后必读）」"
+        reason="未发现原著正文（sources/texts/ 为空）："
+        "补齐方式见 README「原著正文数据」一节"
     )
     for item in items:
         if "needs_texts" in item.keywords:
