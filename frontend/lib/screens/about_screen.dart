@@ -2,9 +2,8 @@
 //
 // 设计口径：
 // · 版本/名称/技术栈等有权威来源，直接展示（见 lib/config/app_meta.dart）。
-// · 项目自有文件里【没有】GitHub 仓库地址与作者署名（无 .git/remote、无 LICENSE、
-//   无 author 字段），因此不编造、不拿第三方仓库冒充；页面显示「未配置 / 未声明」，
-//   并允许用户在「编辑项目信息」里填入后保存在本机（shared_preferences）。
+// · 仓库地址与署名已固定（lib/config/app_meta.dart 的 githubUrl / releasesUrl / author），
+//   页面直接展示并可复制 / 跳转；「编辑项目信息」仅用于本机覆盖（fork 后指向自己的仓库）。
 // · 打开外链复用项目已有的 services/open_url.dart 门面（Web 新标签页），不新增依赖。
 // · 页面风格沿用功能中心 / LLM 配置页：AuroraBackground + GradientCard + 白卡。
 import 'dart:async' show unawaited;
@@ -144,6 +143,15 @@ class _AboutScreenState extends State<AboutScreen> {
     openExternal(_github);
   }
 
+  void _openReleases() => openExternal(AppMeta.releasesUrl);
+
+  void _copyReleases() {
+    Clipboard.setData(const ClipboardData(text: AppMeta.releasesUrl));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已复制下载页地址'), duration: Duration(seconds: 1)),
+    );
+  }
+
   void _copyGithub() {
     if (!AppMeta.isValidUrl(_github)) return;
     Clipboard.setData(ClipboardData(text: _github));
@@ -247,27 +255,40 @@ class _AboutScreenState extends State<AboutScreen> {
                           padding: EdgeInsets.zero,
                         )
                       : null),
+              _row('最新版本下载', AppMeta.releasesUrl.replaceFirst('https://', ''),
+                  trailing: IconButton(
+                    tooltip: '复制下载页地址',
+                    icon: const Icon(Icons.copy_all_outlined, size: 18, color: AppColors.brand),
+                    onPressed: _copyReleases,
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  )),
               _row('作者 / 版权', hasAuthor ? _author : '未声明'),
+              _row('软件许可', '${AppMeta.licenseName}（仅覆盖代码与自撰材料）'),
               const SizedBox(height: 8),
               Text(
-                hasGithub && hasAuthor
-                    ? '项目地址与署名可由下方「编辑项目信息」随时修改。'
-                    : '本仓库当前没有 .git / remote、LICENSE 或 author 字段，'
-                        '因此未编造仓库地址与署名；请点「编辑项目信息」补填真实值，'
-                        '或直接修改 lib/config/app_meta.dart 的默认常量。',
+                '本项目为个人非官方学习工具，与任何政党、政府机关、出版社或研究机构'
+                '均无隶属关系。仓库内 ${AppMeta.contentWorkCount} 部原著正文的著作权'
+                '不属于本项目，归各作者、译者与出版者；权利状态与异议处理见仓库根目录 '
+                '${AppMeta.contentNoticeDoc}。',
                 style: const TextStyle(fontSize: 11.5, height: 1.65, color: AppColors.ink500),
               ),
               const SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 FilledButton.icon(
-                  onPressed: _edit,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('编辑项目信息'),
+                  onPressed: _openReleases,
+                  icon: const Icon(Icons.system_update_alt, size: 18),
+                  label: const Text('下载最新安卓版'),
                 ),
                 OutlinedButton.icon(
                   onPressed: hasGithub ? _openGithub : null,
                   icon: const Icon(Icons.open_in_new, size: 18),
                   label: const Text('打开 GitHub'),
+                ),
+                TextButton.icon(
+                  onPressed: _edit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('自定义地址'),
                 ),
               ]),
             ]),

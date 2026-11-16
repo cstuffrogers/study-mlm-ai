@@ -4,15 +4,14 @@
 // · appName / productName / tagline 取自 lib/main.dart:32、web/manifest.json、根 README.md:1。
 // · clientVersion 取自 pubspec.yaml（1.2.0+9 单机版），**改版本号时两处必须同步**；
 //   serverVersion 取自离线内容资源导出版本（沿用 0.1.0-mvp）。二者是两套编号体系，页面分别标注。
-// · githubUrl / author：**项目自有文件里未找到权威值**（无 .git / remote、无 LICENSE、
-//   无 author 字段；随包 marxist.space-master.zip 是第三方 ProleSoft 项目，不是本项目仓库）。
-//   因此留空，由用户在「关于」页点「编辑项目信息」填入并保存；空值在页面上显示「未配置」。
-// · 若日后拿到真实仓库地址/署名，直接把下面两个默认值改掉即可（用户本地覆盖优先）。
+// · githubUrl / releasesUrl / author：仓库已上线，地址**固定**在这里（2026-11-16 建库）。
+//   用户仍可在「关于」页点「编辑项目信息」做本机覆盖（用于 fork 后指向自己的仓库）。
+// · 仓库：https://github.com/cstuffrogers/study-mlm-ai （public，默认分支 main）
 class AppMeta {
   static const appName = '唯物 · 马哲精读';
-  static const productName = '正统马哲深度学习系统（xxmz）';
+  static const productName = '正统马哲深度学习系统';
   static const tagline = '三路线 · 逐章精读 · AI 测试';
-  static const clientVersion = '1.2.0+9';
+  static const clientVersion = '1.2.1+10';
   static const serverVersion = '0.1.0-mvp';
   static const packageName = 'marxism_reader';
 
@@ -22,13 +21,21 @@ class AppMeta {
     return v.length == 2 ? '${v[0]} (build ${v[1]})' : clientVersion;
   }
 
-  /// 项目 GitHub 仓库地址。**未配置**：请在关于页「编辑项目信息」里填写，
-  /// 或把本常量改成真实地址（例如 `https://github.com/owner/repo`）。
-  static const githubUrl = '';
+  /// 项目 GitHub 仓库地址（权威值，已固定）。
+  static const githubUrl = 'https://github.com/cstuffrogers/study-mlm-ai';
 
-  /// 作者 / 版权 / 组织署名。**未声明**：请在关于页「编辑项目信息」里填写，
-  /// 或把本常量改成真实署名（有 LICENSE 时同步补齐）。
-  static const author = '';
+  /// 最新版本下载页（GitHub Releases）。关于页「下载最新安卓版」按钮指向这里。
+  static const releasesUrl =
+      'https://github.com/cstuffrogers/study-mlm-ai/releases/latest';
+
+  /// 作者 / 版权署名（与 LICENSE 的 `Copyright (c) 2026 xxmz contributors` 一致）。
+  static const author = 'xxmz contributors';
+
+  /// 软件许可（只覆盖代码与自撰辅助材料，不覆盖原著正文与译文）。
+  static const licenseName = 'MIT';
+
+  /// 正文权利声明的文件名（仓库根目录），关于页给出仓库内路径提示。
+  static const contentNoticeDoc = 'CONTENT-NOTICE.md';
 
   /// 技术栈与部署说明（来自 README.md，用于「关于」页如实描述系统构成）
   static const stack = 'Flutter 单机应用 · 内置 229 部原著正文库（无后端、无网络依赖）';
