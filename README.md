@@ -227,7 +227,7 @@ docker compose up --build
 让 `npm` 系工具（含 claude-scene 的 loop / review 门禁）有统一入口：
 
 ```bash
-npm test              # = cd frontend && flutter test        （当前 238 passed）
+npm test              # = cd frontend && flutter test        （当前 252 passed）
 npm run lint          # = scripts/lint_shim.js → flutter analyze lib/ test/（当前 No issues）
 npm run analyze       # 同上，直连 flutter analyze
 npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 735 passed + 2 xfailed）
@@ -347,7 +347,7 @@ Phase 6 核心套件（含在整个 735 passed 里）：
 | 立场守门 / 离线学习闭环 | ✓ | ✓ |
 | 检索命中 | 0（书单空） | 22,371 分片 |
 | 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 735 passed / 0 skipped / 2 xfailed |
-| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 238 passed |
+| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 252 passed |
 
 依赖正文的用例都打了 `needs_texts` 标记（后端 `backend/conftest.py`）或调用
 `skipWithoutOfflineAssets()`（前端 `frontend/test/helpers/`），缺数据时自动跳过并给出
