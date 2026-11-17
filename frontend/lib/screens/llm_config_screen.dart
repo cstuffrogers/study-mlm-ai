@@ -6,7 +6,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../offline/local_router.dart';
 import '../services/llm_config_api.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
@@ -29,7 +28,6 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
   final _maxTokensCtrl = TextEditingController();
 
   Map<String, dynamic>? _status;
-  Map<String, dynamic>? _stats;
   Map<String, dynamic>? _test;
   bool _disableThinking = true;
   bool _loading = true;
@@ -41,7 +39,6 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
   @override
   void initState() {
     super.initState();
-    _stats = LocalRouter.stats();
     _load();
   }
 
@@ -234,8 +231,6 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
                     const SizedBox(height: 12),
                     _testCard(_test!),
                   ],
-                  const SizedBox(height: 14),
-                  AnimatedEntrance(child: _localCard()),
                 ],
               ),
       ),
@@ -243,6 +238,9 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
   }
 
   // ---------------------------------------------------------- 分区
+  // 卡片里的 SwitchListTile 会自己画背景与水波纹，而水波纹只能画在最近的 Material 上：
+  // 直接放进带背景色的 Container 会遮住点击反馈（Debug 下 Flutter 会直接报错）。
+  // 因此统一在卡片内部垫一层透明 Material。
   Widget _card({required Widget child, Color? tint}) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -250,7 +248,7 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.line.withValues(alpha: 0.8)),
         ),
-        child: child,
+        child: Material(type: MaterialType.transparency, child: child),
       );
 
   Widget _modeBanner(bool configured, Map<String, dynamic> s) {
@@ -483,40 +481,4 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
       ]),
     );
   }
-
-  Widget _localCard() {
-    final stats = _stats ?? const <String, dynamic>{};
-    return _card(
-      tint: AppColors.brandSoft.withValues(alpha: 0.35),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: const [
-          Icon(Icons.storage_rounded, size: 18, color: AppColors.brand),
-          SizedBox(width: 6),
-          Text('本机数据', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-        ]),
-        const SizedBox(height: 10),
-        _kv('原著规模', '${stats['nodes'] ?? 0} 个知识点 / ${stats['sections'] ?? 0} 章节'),
-        _kv('掌握记录', '${stats['mastery_records'] ?? 0} 条'),
-        _kv('答题记录', '${stats['attempts'] ?? 0} 条'),
-        _kv('对话记录', '${stats['dialogues'] ?? 0} 段'),
-        const SizedBox(height: 10),
-        const Text(
-          '红线：无论本机引擎还是在线模型，回答都会过本机立场层；'
-          '引用必须来自库内真实原文，不伪造引文。断网或调用失败自动回落本机引擎。',
-          style: TextStyle(fontSize: 11.5, height: 1.6, color: AppColors.ink500),
-        ),
-      ]),
-    );
-  }
-
-  Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(children: [
-          SizedBox(width: 76, child: Text(k, style: const TextStyle(fontSize: 13))),
-          Expanded(
-            child: Text(v,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          ),
-        ]),
-      );
 }

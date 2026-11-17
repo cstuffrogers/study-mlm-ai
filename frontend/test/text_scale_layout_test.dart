@@ -16,7 +16,7 @@ import 'package:marxism_reader/offline/offline_content.dart';
 import 'package:marxism_reader/screens/analytics_dashboard.dart';
 import 'package:marxism_reader/screens/route_picker.dart';
 import 'package:marxism_reader/screens/source_browser_screen.dart';
-import 'package:marxism_reader/screens/study_home_screen.dart';
+import 'package:marxism_reader/screens/home_screen.dart';
 import 'package:marxism_reader/screens/tools_screen.dart';
 import 'package:marxism_reader/services/chat_service.dart';
 import 'package:marxism_reader/services/sync_controller.dart';
@@ -63,11 +63,11 @@ void main() {
           ChangeNotifierProvider(create: (_) => ChatService()),
           ChangeNotifierProvider(create: (_) => SyncController()),
         ],
-        child: _phone(const StudyHomeScreen()),
+        child: _phone(const HomeScreen()),
       ),
     );
     expect(tester.takeException(), isNull);
-    for (final tip in ['功能中心', '学习路线', '学习分析', '引导']) {
+    for (final tip in ['功能中心', 'LLM 大模型 API 配置', '学习分析', '引导']) {
       expect(find.byTooltip(tip), findsOneWidget);
     }
   });

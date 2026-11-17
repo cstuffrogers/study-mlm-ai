@@ -1,16 +1,16 @@
 // 正统马哲深度学习系统 — MVP 前端入口
-// 学习首页（路线/章节选择）+ 深入学习页 + 原文阅读器 + 溯源卡片
-// + 选中文本唤起五模式 AI 对话浮窗 + 学习路线闭环 + 离线断点续学
+// 首页（选学习路线）+ 路线地图 + 章节精读 + 原文阅读器 + 溯源卡片
+// + 选中文本唤起五模式 AI 对话浮窗 + 离线断点续学
 
 import 'package:flutter/material.dart';
 import 'offline/data_compat.dart';
 import 'offline/local_db.dart';
 import 'offline/offline_content.dart';
-import 'screens/study_home_screen.dart';
+import 'screens/home_screen.dart';
 import 'services/chat_service.dart';
 import 'services/tts.dart';
 import 'services/sync_controller.dart';
-import 'widgets/sync_notice.dart';
+import 'services/tts_autostop.dart';
 import 'theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
@@ -49,54 +49,17 @@ class MarxismReaderApp extends StatelessWidget {
           final scale = system.scale(1.0) <= 1.0
               ? 1.07
               : (system.scale(1.0) * 1.07).clamp(1.0, 1.25);
-          return MediaQuery.withClampedTextScaling(
-            minScaleFactor: scale,
-            maxScaleFactor: scale,
-            child: child ?? const SizedBox.shrink(),
+          return TtsAutoStopScope(
+            child: MediaQuery.withClampedTextScaling(
+              minScaleFactor: scale,
+              maxScaleFactor: scale,
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
+        navigatorObservers: [TtsStopOnRouteChange()],
         home: const HomeScreen(),
       ),
-    );
-  }
-}
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // 启动时合并离线暂存并拉取断点（断点续学）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SyncController>().flush();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sync = context.watch<SyncController>();
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 仅在有离线暂存或同步状态提示时显示
-            if (sync.pending > 0 || !sync.online)
-              SyncNotice(
-                message: sync.message.isNotEmpty ? sync.message : '离线暂存 ${sync.pending} 条进度',
-                offline: !sync.online,
-                onRetry: () => context.read<SyncController>().flush(),
-              ),
-            Expanded(child: const StudyHomeScreen()),
-          ],
-        ),
-      ),
-      // 入口（功能中心 / 学习路线 / 学习分析 / 引导）已移到首页头部图标：
-      // 右下浮动按钮会压住底部「深入学习」「查看原文」主操作。
     );
   }
 }

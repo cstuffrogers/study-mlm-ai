@@ -108,7 +108,8 @@ Future<void> showUsageGuide(BuildContext context) {
                       icon: Icons.tune_outlined,
                       title: '六、功能中心与大模型 API',
                       lines: [
-                        '· 首页右上四个图标即可进入：功能中心（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / LLM 大模型 API 配置 / 本机数据 / 关于）、学习路线、学习分析、本使用说明。',
+                        '· 首页就是「选学习路线」：三张路线卡片，点一张进入该路线的章节地图。',
+                        '· 首页右上四个图标：功能中心（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / LLM 大模型 API 配置 / 本机数据 / 关于）、LLM 大模型 API 配置、学习分析、本使用说明。',
                         '· 「关于」里可查看客户端版本、内容数据版本、项目地址与作者；地址与署名是代码内置的固定值，客户端不提供修改入口（改了不生效，需重新构建）。',
                         '· 「LLM 大模型 API 配置」里填写 API Key / Base URL / 模型名即可启用在线大模型（OpenAI 兼容端点）；可先点「测试连接」。',
                         '· 密钥只存在本机、不上传；保存后下一次提问即生效。不填密钥、断网或调用失败时自动回退本机引擎，回答上方会标出「本机引擎」还是「在线模型」。',
@@ -176,8 +177,12 @@ class _GuideSection extends StatelessWidget {
           Row(children: [
             Icon(icon, size: 17, color: AppColors.brand),
             const SizedBox(width: 7),
-            Text(title, style: const TextStyle(
-                fontSize: 14.5, fontWeight: FontWeight.w800, color: AppColors.ink700)),
+            // 标题可能很长（如「五、对话浮窗里的「批判性阅读」按钮　【重点】」），
+            // 窄屏 + 字号放大时必须换行，否则整行向右溢出。
+            Expanded(
+              child: Text(title, style: const TextStyle(
+                  fontSize: 14.5, fontWeight: FontWeight.w800, color: AppColors.ink700)),
+            ),
           ]),
           const SizedBox(height: 6),
           ...lines.map((l) => Padding(
