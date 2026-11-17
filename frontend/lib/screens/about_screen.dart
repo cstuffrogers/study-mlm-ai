@@ -11,14 +11,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/app_meta.dart';
+import '../services/app_update.dart';
 import '../services/open_url.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/guide_dialog.dart';
+import '../widgets/update_dialog.dart';
 import 'legal_screen.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  /// 手动「检查更新」的结果提示（null = 没在检查）。
+  ///
+  /// 口径：手动查时**必须有反馈**——查到新版本弹更新框，没查到时明确说
+  /// 「已是最新版本」，不能点了没动静（那和死按钮没区别）。
+  bool _checking = false;
+
+  Future<void> _checkUpdateManual() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    final info = await checkUpdate();
+    if (!mounted) {
+      _checking = false;
+      return;
+    }
+    setState(() => _checking = false);
+    if (info != null) {
+      await showUpdateDialog(context, info);
+      return;
+    }
+    final local = canSelfUpdate()
+        ? (await currentVersionName() ?? AppMeta.clientVersion.split('+').first)
+        : AppMeta.clientVersion.split('+').first;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(canSelfUpdate()
+            ? '已是最新版本（$local），或暂时连不上 GitHub'
+            : '当前版本 $local。自动更新只在安卓版提供，'
+                '其他平台请到下载页取最新安装包'),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
 
   void _openGithub(BuildContext context) {
     if (!AppMeta.isValidUrl(AppMeta.githubUrl)) return;
@@ -157,9 +198,20 @@ class AboutScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 FilledButton.icon(
+                  onPressed: _checking ? null : _checkUpdateManual,
+                  icon: _checking
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh, size: 18),
+                  label: Text(_checking ? '检查中…' : '检查更新'),
+                ),
+                OutlinedButton.icon(
                   onPressed: _openReleases,
                   icon: const Icon(Icons.system_update_alt, size: 18),
-                  label: const Text('下载最新安卓版'),
+                  label: const Text('去下载页'),
                 ),
                 OutlinedButton.icon(
                   onPressed: hasGithub ? () => _openGithub(context) : null,

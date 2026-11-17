@@ -62,7 +62,8 @@ void main() {
       ));
       await t.pump(const Duration(milliseconds: 300));
 
-      for (final label in ['下载最新安卓版', '打开 GitHub']) {
+      // D144：「下载最新安卓版」升级为应用内「检查更新」+「去下载页」两个按钮
+      for (final label in ['检查更新', '去下载页', '打开 GitHub']) {
         final btn = find.widgetWithText(OutlinedButton, label);
         final filled = find.widgetWithText(FilledButton, label);
         final found = btn.evaluate().isNotEmpty ? btn : filled;

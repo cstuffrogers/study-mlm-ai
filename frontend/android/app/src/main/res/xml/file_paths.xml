@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 应用内更新用：把缓存目录里的 APK 以 content:// 暴露给系统安装器。
+     Android 7+ 直接给 file:// URI 会抛 FileUriExposedException 崩掉，必须走 provider。 -->
+<paths>
+    <cache-path name="apk_cache" path="."/>
+    <files-path name="apk_files" path="."/>
+    <external-cache-path name="apk_ext_cache" path="."/>
+</paths>

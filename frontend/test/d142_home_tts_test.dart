@@ -132,10 +132,17 @@ void main() {
     });
   });
 
-  test('main.dart 真的挂上了两个自动停止钩子', () {
+  test('main.dart 真的挂上了自动停止钩子', () {
     final src = File('lib/main.dart').readAsStringSync();
-    expect(src.contains('navigatorObservers: [TtsStopOnRouteChange()]'), isTrue,
-        reason: '页面切换停朗读靠 navigatorObservers');
+    // D145：观察者从 1 个变 2 个 —— 换页面停（TtsStopOnRouteChange）
+    // + 弹层关闭停（TtsStopOnSheetClose）。断言改成「都在同一个
+    // navigatorObservers 列表里」，而不是钉死整串字面量。
+    final i = src.indexOf('navigatorObservers:');
+    expect(i, greaterThan(-1), reason: '页面切换停朗读靠 navigatorObservers');
+    final list = src.substring(i, src.indexOf(']', i));
+    expect(list.contains('TtsStopOnRouteChange()'), isTrue);
+    expect(list.contains('TtsStopOnSheetClose()'), isTrue,
+        reason: '弹层（相关原文）关闭也要停朗读，见 D145');
     expect(src.contains('TtsAutoStopScope('), isTrue,
         reason: '切后台停朗读靠 MaterialApp.builder 外层包一层');
     expect(src.contains('home: const HomeScreen()'), isTrue);

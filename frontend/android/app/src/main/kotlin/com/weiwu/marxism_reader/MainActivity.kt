@@ -1,11 +1,16 @@
 package com.weiwu.marxism_reader
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import androidx.core.content.FileProvider
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.util.Locale
 
 /**
@@ -22,6 +27,11 @@ import java.util.Locale
  * pitch 用于「温柔女声 / 广播员男声」这类风格预设（音色取决于装了哪些语音包，
  * 音调语速由 App 侧预设决定，见 lib/services/tts_settings.dart）。
  * 回调用 invokeMethod("done", id) 通知 Dart 侧朗读结束，用于熄灭喇叭高亮。
+ *
+ * 另一条通道 [xxmz/app]（应用内更新）：
+ *   installApk -> 参数 {path: String}，返回 Boolean（是否成功唤起系统安装器）。
+ *                 Android 7+ 只接受 content:// URI，这里用 FileProvider 转换；
+ *                 见 AndroidManifest.xml 的 <provider> 与 res/xml/file_paths.xml。
  *
  * 要点：
  *  · 单机版没有后端，朗读只能靠系统语音包，因此这条通道是「喇叭按钮」能否出现的关键；
@@ -81,6 +91,48 @@ class MainActivity : FlutterActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+
+        val appCh = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "xxmz/app")
+        appCh.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "installApk" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    result.success(installApk(path))
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /**
+     * 用 FileProvider 把缓存里的 APK 转成 content:// 再交给系统安装器。
+     *
+     * 三个易错点：
+     *  · Android 7+ 直接给 file:// 会抛 FileUriExposedException —— 必须走 provider；
+     *  · 必须带 FLAG_GRANT_READ_URI_PERMISSION，否则安装器读不到文件；
+     *  · Android 8+ 还要 REQUEST_INSTALL_PACKAGES 权限 + 用户允许「安装未知应用」，
+     *    缺权限时系统会抛 ActivityNotFoundException，这里兜住返回 false。
+     */
+    private fun installApk(path: String): Boolean {
+        if (path.isBlank()) return false
+        return try {
+            val file = File(path)
+            if (!file.exists() || file.length() == 0L) return false
+            val uri: Uri = FileProvider.getUriForFile(
+                this,
+                "$packageName.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

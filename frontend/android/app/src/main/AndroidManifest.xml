@@ -2,6 +2,9 @@
     <!-- 默认离线可用；若用户在「AI 对话引擎」里填入自己的大模型 API Key，
          对话需要访问该 https 端点（Key 只存本机，不上传到任何第三方服务）。 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 应用内更新：下载完 APK 后交给系统安装器装。Android 8+ 必须声明此权限，
+         否则安装器直接拒绝；用户仍需在系统里允许「安装未知应用」（本 App 不静默安装）。 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- 朗读用系统 TTS 引擎（Android 11+ 需要显式声明才能查询到已安装的语音引擎） -->
     <queries>
         <intent>
@@ -45,6 +48,17 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- 应用内更新把缓存里的 APK 交给系统安装器：Android 7+ 只接受 content:// URI，
+             直接给 file:// 会抛 FileUriExposedException。路径白名单见 res/xml/file_paths.xml。 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

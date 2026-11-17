@@ -60,9 +60,14 @@ void main() {
     final openBtn = find.widgetWithText(OutlinedButton, '打开 GitHub');
     expect(openBtn, findsOneWidget);
     expect(tester.widget<OutlinedButton>(openBtn).onPressed, isNotNull);
-    final dlBtn = find.widgetWithText(FilledButton, '下载最新安卓版');
+    // D144：主按钮改成「检查更新」（应用内直接下载装包），
+    // 「去下载页」退为次按钮 —— 两者都必须有回调，不能是死按钮。
+    final updBtn = find.widgetWithText(FilledButton, '检查更新');
+    expect(updBtn, findsOneWidget);
+    expect(tester.widget<FilledButton>(updBtn).onPressed, isNotNull);
+    final dlBtn = find.widgetWithText(OutlinedButton, '去下载页');
     expect(dlBtn, findsOneWidget);
-    expect(tester.widget<FilledButton>(dlBtn).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(dlBtn).onPressed, isNotNull);
     // 地址不可在客户端改（不接受「自定义地址」入口），但使用说明必须有
     expect(find.text('自定义地址'), findsNothing);
     expect(find.text('查看软件使用说明'), findsOneWidget);

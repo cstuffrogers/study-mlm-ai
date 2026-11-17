@@ -20,6 +20,7 @@ import '../offline/offline_content.dart';
 import '../services/chat_service.dart';
 import '../services/content_service_api.dart';
 import '../services/reader_paginator.dart';
+import '../services/tts.dart';
 import '../theme/app_theme.dart';
 import 'chapter_guide_screen.dart';
 import '../widgets/floating_chat.dart';
@@ -263,11 +264,22 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     });
   }
 
+  /// 翻页即停朗读。
+  ///
+  /// 喇叭 id 里带页码（`reader-page-<work>-<page>`），翻页后旧 id 的朗读
+  /// 仍在继续念上一页的内容，用户听到的和看到的对不上。所以只要页码变了就停，
+  /// 且**只在真的变了时停**——同一页重建、滚动、改字号都不该打断朗读。
+  void _stopSpeechIfPageChanged(int next) {
+    if (next == _page) return;
+    ttsStop();
+  }
+
   Future<void> _goto(int page) async {
     if (_doc == null) return;
     // 用户主动翻页 → 结束「相关原文」定位状态，之后按正常进度记忆
     _focusPara = null;
     final p = page.clamp(0, _doc!.pages.length - 1);
+    _stopSpeechIfPageChanged(p);
     await _pc?.animateToPage(p, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
     if (!mounted) return;
     setState(() => _page = p);
@@ -899,6 +911,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       controller: _pc,
       itemCount: doc.pages.length,
       onPageChanged: (i) {
+        // 左右滑动翻页也停朗读（用户实报：翻到下一页，上一页还在念）
+        _stopSpeechIfPageChanged(i);
         setState(() => _page = i);
         _savePrefs();
       },
