@@ -57,7 +57,7 @@
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
 - 体积从 72.06 MB 涨到 75.56 MB，增量在 `assets/flutter_assets`（离线数据 23 MB → 23.4 MB）。
 
-- **229 部原著 / 22,371 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本）。前端测试 **238** 项全绿、`flutter analyze` 零问题；后端 **735 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,371 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本）。前端测试 **259** 项全绿、`flutter analyze` 零问题；后端 **735 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
@@ -227,7 +227,7 @@ docker compose up --build
 让 `npm` 系工具（含 claude-scene 的 loop / review 门禁）有统一入口：
 
 ```bash
-npm test              # = cd frontend && flutter test        （当前 252 passed）
+npm test              # = cd frontend && flutter test        （当前 259 passed）
 npm run lint          # = scripts/lint_shim.js → flutter analyze lib/ test/（当前 No issues）
 npm run analyze       # 同上，直连 flutter analyze
 npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 735 passed + 2 xfailed）
@@ -347,7 +347,7 @@ Phase 6 核心套件（含在整个 735 passed 里）：
 | 立场守门 / 离线学习闭环 | ✓ | ✓ |
 | 检索命中 | 0（书单空） | 22,371 分片 |
 | 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 735 passed / 0 skipped / 2 xfailed |
-| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 252 passed |
+| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 259 passed |
 
 依赖正文的用例都打了 `needs_texts` 标记（后端 `backend/conftest.py`）或调用
 `skipWithoutOfflineAssets()`（前端 `frontend/test/helpers/`），缺数据时自动跳过并给出

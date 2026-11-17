@@ -112,10 +112,33 @@ class _FloatingChatState extends State<FloatingChat> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
+  /// 上一次参与布局的面板高度（高度变了就重新贴底）。
+  double? _lastPanelH;
+
   Offset _clamp(Offset p) {
     final maxX = (widget.bounds.width - widget.size.width - 8).clamp(0.0, double.infinity);
     final maxY = (widget.bounds.height - widget.size.height - 8).clamp(0.0, double.infinity);
     return Offset(p.dx.clamp(8.0, maxX), p.dy.clamp(8.0, maxY));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 浮窗每次打开都是**新建 State**：`_scroll` 偏移量从 0 开始，而 svc.turns 里
+    // 可能已经有一串历史（选中原文追问时，用户那句话甚至已经进了 turns）。
+    // 旧实现只在「条数变化」时才贴底，于是打开瞬间看到的是最早那几句，
+    // 得自己往下拖（用户实报）。这里首帧就贴底。
+    _pinToBottomSoon();
+  }
+
+  /// 连续几帧贴底：首帧就能拿到 maxScrollExtent，但 Markdown/「相关原文」卡片
+  /// 的高度常在后续帧才落定，只跳一次会停在倒数第二条。
+  void _pinToBottomSoon({int frames = 3}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      if (frames > 1) _pinToBottomSoon(frames: frames - 1);
+    });
   }
 
   @override
@@ -149,6 +172,11 @@ class _FloatingChatState extends State<FloatingChat> {
     final double panelH = insets <= 0
         ? widget.size.height
         : math.min(widget.size.height, math.max(availH - 24, 220.0));
+    if (_lastPanelH != panelH) {
+      // 键盘弹出/收起会改变可视高度：接着贴底，别让用户再拖一次。
+      _lastPanelH = panelH;
+      _pinToBottomSoon();
+    }
     double top = _pos.dy;
     if (insets > 0) {
       final double maxTop = math.max(availH - panelH - 8, 8.0);

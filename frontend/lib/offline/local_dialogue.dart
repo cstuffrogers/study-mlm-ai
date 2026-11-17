@@ -30,15 +30,23 @@ class LocalDialogue {
   //     改成句子级打分后只摘最有证据力的那 1—2 句（逐字，不改写）。
 
   /// 问句里的疑问/语气成分：整体删掉，不当检索词
-  static const String _questionNoise = '为什么|什么是|什么叫|怎么样|怎么|怎样|如何|'
+  // 长整块必须排在短整块前面：「如何」若先匹配，「如何理解矛盾的普遍性」就
+  // 只剩「理解矛盾的普遍性」，切出「理解矛盾」「理解」这种废词去检索，真正的
+  // 主词「矛盾」反被稀释（实测：问矛盾的普遍性与特殊性时首条依据跑到 1844 手稿）。
+  static const String _questionNoise = '如何理解|怎样理解|怎么理解|如何认识|如何把握|'
+      '怎么看待|如何看待|如何对待|怎样对待|'
+      '为什么|什么是|什么叫|怎么样|怎么|怎样|如何|'
       '是不是|能不能|可不可以|有没有|请解释|请说明|解释一下|讲讲|说一下|'
       '我想问|问一下|请问|谈谈|举例|举个例子|要不要|'
-      '如何理解|怎样理解|怎么理解|如何认识|如何把握|怎么看待|如何看待|'
+      // 「请就这段原文展开」：整句都是指令，没有内容词。以前「段原文展开」
+      // 会被当成问句主语，覆盖率判定永远失败，明明做答到了也报「没有直接回答」。
+      '这段原文|这段|原文|展开|说说|讲一讲|'
       '由什么|由谁|由哪些|由哪个|什么|哪些|哪种|哪个|谁|'
       '必须|应该|应当|需要|能否|可否|是否|到底|究竟|'
       // 这些是「提问动词」，不是内容词：以前「毛泽东如何看待调查研究」整块
       // 被当成检索词，全库零命中，白丢一次检索
-      '看待|认为|强调|指出|主张|提出|论述|讲过|说了';
+      '看待|认为|强调|指出|主张|提出|论述|讲过|说了|'
+      '理解|把握|阐述|讲解|解读|分析|说明|讨论|总结';
 
   /// 虚词（按字切分用）：这些字出现的位置就是词的边界
   static const String _stopChars =
@@ -93,6 +101,8 @@ class LocalDialogue {
   static final RegExp _questionEndRe = RegExp(r'[？?]\s*$');
   static final RegExp _strongAssertRe =
       RegExp(r'必须|只能|决定|归根到底|一切|绝不|唯一');
+  static final RegExp _nestedQuoteRe =
+      RegExp(r'(他说|写道|指出|所说|认为)[：:]?\s*[“「]');
   static final RegExp _turningRe = RegExp(r'但是|然而|相反|所以|因此|因为|竟然|恰恰');
   static final RegExp _methodRe = RegExp(r'方法|一般|同样|适用于|正如|对于一切');
   static final RegExp _defineRe = RegExp(r'所谓|就是|是指|意味着|本质');
@@ -178,23 +188,32 @@ class LocalDialogue {
     // 标准术语必须整词进检索：「实事求是」被「是」切成「实事求」，
     // 「人民民主专政」被切碎，「思想路线」剩「思想」——术语表（概念词典）里
     // 有的词只要在问句里出现，就整词保留，并去掉它被切出来的碎片。
-    // 问句的主语 = 第一个实词（后面还会往词表头部插术语整词，不能拿它判覆盖）
-    _lastSubject = out.isEmpty ? '' : out.first;
-    // 最多补 4 个整词：补进来的词只用来提高精度，不能把检索词表撑成一大串
-    var extraTerms = 0;
-    for (final g in _wholeTerms) {
-      if (extraTerms >= 4) break;
-      if (!text.contains(g)) continue;
-      if (out.contains(g)) continue;
+    // 补整词之前先把「用户自己的词」留一份：判「库里有答案」要用它们，
+    // 不能用补进来的术语整词——那会把没收录的长概念（社会主义初级阶段）
+    // 判成「答出来了」，只因为库里有「社会主义」。
+    final userTerms = [...out];
+    // 最多补 4 个整词：补进来的词只用来提高精度，不能把检索词表撑成一大串。
+    // **长的优先**插到最前面：问「实践唯物主义」时，先插短词「唯物主义」会让
+    // 主语落在泛词上，关键词提示、摘录排序全跟着偏。
+    final extras = <String>[
+      for (final g in [..._wholeTerms, ..._glossaryTerms()])
+        if (text.contains(g) && !out.contains(g)) g,
+    ]..sort((a, b) => b.length.compareTo(a.length));
+    for (final g in extras.take(4).toList().reversed) {
       out.insert(0, g);
-      extraTerms++;
     }
-    for (final g in _glossaryTerms()) {
-      if (extraTerms >= 4) break;
-      if (!text.contains(g)) continue;
-      if (out.contains(g)) continue;
-      out.insert(0, g);
-      extraTerms++;
+    // 问句的主语 = 用户词表里头一个**像样的实词**（碎片词跳过；只有全是碎片
+    // 时才退回补进来的术语整词）。以前取 out.first，用户把「请就这段原文展开」
+    // 连同选区一起发过来时，主语就成了「段原文展开」，覆盖率判定永远失败。
+    _lastSubject = '';
+    for (final t in userTerms) {
+      if (!_isCleanTerm(t)) continue;
+      _lastSubject = t;
+      break;
+    }
+    if (_lastSubject.isEmpty) {
+      _lastSubject =
+          userTerms.isNotEmpty ? userTerms.first : (out.isEmpty ? '' : out.first);
     }
     if (out.isEmpty) {
       // 全是虚词/单字（「它呢」「这个」）：退回 2-gram 兜底，别让检索空转
@@ -364,6 +383,14 @@ class LocalDialogue {
   /// 引文去重签名：去掉空白与标点后取前 16 字。
   /// （同一句话在分片里可能以「条目版」「正文版」各登一份，
   /// 标点/空格不同 —— 按原样比前 24 字会漏掉，回答里就印两遍。）
+  /// 出处串不能整段照印：解析章节标题时曾把「第X章…」整句正文当成章节名，
+  /// 于是出处变成「第一章第一节更加科学而严密地…」几百字，读者以为引文串行。
+  static String _shortLoc(String loc) {
+    final t = loc.trim();
+    if (t.length <= 18) return t;
+    return '${t.substring(0, 18)}…';
+  }
+
   static String _quoteSig(String s) {
     final t = s.replaceAll(RegExp(r'[^\u4e00-\u9fffA-Za-z0-9]'), '');
     return t.length >= 16 ? t.substring(0, 16) : t;
@@ -411,6 +438,108 @@ class LocalDialogue {
     return '';
   }
 
+  /// 原文层判定：只有 layer==1 的分片才是作者原话。
+  static bool _isOriginal(Map<String, dynamic> chunk) {
+    final l = chunk['layer'];
+    if (l == null) return true;
+    if (l is num) return l == 1;
+    return '$l'.trim() == '1';
+  }
+
+  /// 最常见的两字核心名词：概念词典只收「阶级斗争」不收「阶级」，
+  /// 只收「商品价值」类的复合词，光靠术语表会把「阶级」「劳动」判成碎片。
+  static const Set<String> _coreNouns = {
+    '阶级', '劳动', '资本', '商品', '价值', '货币', '工资', '利润', '市场',
+    '国家', '政权', '政党', '群众', '人民', '民族', '战争', '和平', '革命',
+    '历史', '社会', '意识', '认识', '真理', '自由', '平等', '剥削', '压迫',
+    '民主', '专政', '经济', '政治', '文化', '思想', '理论', '实践', '矛盾',
+    '物质', '运动', '时间', '空间', '原因', '结果', '规律', '科学', '技术',
+  };
+
+  /// 术语白名单：概念词典的标准名/同义词 + 固定搭配表。
+  static Set<String>? _knownTermsCache;
+  static Set<String> _knownTerms() {
+    final cached = _knownTermsCache;
+    if (cached != null) return cached;
+    final out = <String>{..._wholeTerms};
+    for (final c in OfflineContent.conceptList) {
+      final n = '${c['name'] ?? ''}'.trim();
+      if (n.isNotEmpty) out.add(n);
+      for (final e in ((c['equivalent_terms'] as List?) ?? const [])) {
+        final t = '$e'.trim();
+        if (t.isNotEmpty) out.add(t);
+      }
+    }
+    return _knownTermsCache = out;
+  }
+
+  /// 虚词/副词：词里出现它们，说明这是按虚词切开后剩下的碎片
+  /// （「旧唯物主义只」「段话」），不是能摆给读者看的关键词。
+  static const Set<String> _funcChars = {
+    '只', '也', '都', '就', '才', '又', '还', '而', '则', '其', '之', '者', '所',
+    '被', '把', '让', '使', '得', '地', '了', '着', '过', '很', '最', '更', '不',
+    '没', '要', '会', '能', '可', '应', '该', '在', '于', '与', '和', '及', '或',
+    '对', '向', '从', '为', '以', '并', '且', '若', '如', '虽', '但', '却', '即',
+    '乃', '将', '已', '未', '再', '吗', '呢', '吧', '啊', '的', '是', '有', '这',
+    '那', '哪', '谁', '怎', '么', '些', '个', '给', '同', '跟', '比', '越', '太',
+  };
+
+  /// 能不能当「关键词」摆出来：整词、够短、不含虚字；
+  /// 两字词还要在术语白名单里（「实践」「矛盾」进得去，「段话」进不去）。
+  static bool _isCleanTerm(String t) {
+    if (t.length < 2 || t.length > 8) return false;
+    if (t.codeUnits.any(_stopSet.contains)) return false;
+    // 只看首尾：中间的虚字很正常（社会主义、生产力、主观能动性），
+    // 按「含虚字就丢」会把「社会主义初级阶段」这种真概念判成碎片，
+    // 主语一丢，覆盖率判定就落到补进来的短词上，答非所问也报「答出来了」。
+    if (_funcChars.contains(t[0]) || _funcChars.contains(t[t.length - 1])) {
+      return false;
+    }
+    if (t.length >= 3) return true;
+    return _knownTerms().contains(t) || _coreNouns.contains(t);
+  }
+
+  /// 命中段落与用户选区之间有没有**逐字重合**的长串（去标点空白后 12 字）。
+  /// 用来回答「库里到底有没有他要问的那句话」，免得把真命中报成假警报。
+  static bool _sharesSpan(List<String> texts, String selection) {
+    const span = 12;
+    final sel = selection.replaceAll(RegExp(r'[^\u4e00-\u9fffA-Za-z0-9]+'), '');
+    if (sel.length < span) return false;
+    for (final t in texts) {
+      final hay = t.replaceAll(RegExp(r'[^\u4e00-\u9fffA-Za-z0-9]+'), '');
+      if (hay.length < span) continue;
+      for (var i = 0; i + span <= sel.length; i += 4) {
+        if (hay.contains(sel.substring(i, i + span))) return true;
+      }
+    }
+    return false;
+  }
+
+  /// 摘录开头的脚注标记。「［……］[20]实际上，而且对实践的唯物主义者……」这种
+  /// 句子逐字是逐字了，但编号对读者是噪声——只删开头的方括号块，不动正文。
+  static final RegExp _leadAnnotation = RegExp(
+      r'^\s*(?:[\[［〔【(（][^\]］〕】)）]{0,40}[\]］〕】)）]\s*)+');
+
+  /// 引号必须成对：`_quoteOf` 可能从「个人利益必须服从社会利益。」这种半个
+  /// 引号处起头，原样塞进「」里读者会以为原文排版出错。成对则原样返回。
+  static String _balanceQuote(String quote) {
+    const pairs = {'“': '”', '「': '」', '『': '』', '（': '）', '(': ')'};
+    var out = quote.trim();
+    for (final e in pairs.entries) {
+      var open = e.key.allMatches(out).length;
+      final close = e.value.allMatches(out).length;
+      while (open > close && out.startsWith(e.key)) {
+        out = out.substring(1).trimLeft();
+        open--;
+      }
+    }
+    final trimmed = out.trimRight();
+    if (trimmed.endsWith('，') || trimmed.endsWith('、')) {
+      out = '${trimmed.substring(0, trimmed.length - 1)}……';
+    }
+    return out.trim();
+  }
+
   /// 句子级逐字摘录：返回 (摘录, 该句得分)。一句都不命中时退回首句。
   /// 摘一句最有证据力的原文（逐字，不改写）。
   ///
@@ -441,15 +570,18 @@ class LocalDialogue {
         if (_hitAny(s, _needles(t))) sc += _termWeight(t);
       }
       if (sc <= 0) continue;
+      // 编者注 / 版本说明不是作者原话，摘进引文等于替编者代言；
+      // 问句更不是答案——教材常把小标题写成问句（「实践为什么是检验真理的
+      // 唯一标准呢？」），只打折的话整段就一句问话时还是会被摘出来当依据。
+      if (_noteRe.hasMatch(s) || _questionEndRe.hasMatch(s)) continue;
       if (fallbackScore < 0) {
         fallback = i;
         fallbackScore = sc;
       }
-      // 编者注 / 版本说明不是作者原话，摘进引文等于替编者代言
-      if (_noteRe.hasMatch(s)) continue;
-      // 问句不是答案句：「实践为什么是唯一标准呢？」这种摘进引文最误导人
-      if (_questionEndRe.hasMatch(s)) sc *= 0.3;
       if (preferDefine && _defineRe.hasMatch(s)) sc *= 1.8;
+      // 转引句压权：普列汉诺夫「他说：『……』」这类二手转述照样是本行原文，
+      // 但用户想看的往往是马克思本人那一条，别让别人的引用顶到最前面。
+      if (_nestedQuoteRe.hasMatch(s)) sc *= 0.7;
       if (defMark.isNotEmpty && s.contains(defMark)) sc *= 3;
       if (sc > bestScore) {
         bestScore = sc;
@@ -476,7 +608,7 @@ class LocalDialogue {
     if (quote.length > _maxQuote) {
       quote = '${quote.substring(0, _maxQuote)}……';
     }
-    return (quote, bestScore);
+    return (_balanceQuote(quote.replaceFirst(_leadAnnotation, '')), bestScore);
   }
 
   // 段落→章节反查表：以前每次提问都线性扫一遍全部章节节点（几千条），
@@ -686,6 +818,10 @@ class LocalDialogue {
       if (filterWork.isNotEmpty && src != filterWork) continue;
       // 长段不因字多占优
       if (defTerms.isNotEmpty && _defQuick(text, defTerms)) score *= 1.6;
+      // 注疏层（命题概括/术语注释/哲学解析）压权：它的字句最能对上问法，
+      // 于是常把真正的原文挤到后面，回答里「原文摘录」就只剩编者的话（甚至
+      // 一句可摘的都没有）。改编者的话当补充可以，当主证不行。
+      if (!_isOriginal(c)) score *= 0.55;
       if (defFrameRe != null && defFrameRe.hasMatch(text)) score *= 2.4;
       if (topic.length >= 2) {
         final at = text.indexOf(topic);
@@ -820,8 +956,13 @@ class LocalDialogue {
       if (text.length < 40) continue;
       final hits = hitsOf[e.key] ?? 1;
       if (_isIndexLike(src, text)) continue;
-      // 只靠一个两字词命中的，多半是巧合
-      if (hits == 1 && use.length > 1 && use.first.length < 3) continue;
+      // 注疏层（layer≥2）是编者的话，不能进「同一说法在别的著作里（逐字）」
+      if (!_isOriginal(c)) continue;
+      // 只靠一个词命中的，多半是巧合（实测「实践唯物主义」跨到《唯物主义和
+      // 经验批判主义》里讲记述心理学的 800 字长段：「同一说法」根本不存在）。
+      if (hits < 2 || hits < use.length - 1) continue;
+      // 「同一说法在别的著作里」得是能整句读的短命题，长段里凑齐两个词不算。
+      if (text.length > 400) continue;
       scored.add((e.value, c));
     }
     scored.sort((a, b) => b.$1.compareTo(a.$1));
@@ -862,25 +1003,9 @@ class LocalDialogue {
     }
     if (picked.isNotEmpty) return picked;
 
-    // ② 原文里反复出现的标准术语：只补一张，避免概念卡刷屏
-    final hay = chunks.map((c) => '${c['text'] ?? ''}').join(' ');
-    if (hay.isEmpty) return const [];
-    var bestName = '';
-    var bestCount = 0;
-    for (final c in OfflineContent.conceptList) {
-      var count = 0;
-      for (final a in aliasesOf(c)) {
-        count += a.allMatches(hay).length;
-      }
-      if (count >= 2 && count > bestCount) {
-        bestCount = count;
-        bestName = '${c['name']}';
-      }
-    }
-    if (bestName.isEmpty) return const [];
-    for (final c in OfflineContent.conceptList) {
-      if ('${c['name']}' == bestName) return [c];
-    }
+    // ② 不再按「命中段落里的词频」猜一张概念卡：问「矛盾的普遍性与特殊性」时
+    // 它把「人的本质」顶到「一句话答」的位置，是典型的答非所问。问句没点名
+    // 概念就不给概念卡，改为在引文后面按题型给拆解步骤。
     return const [];
   }
 
@@ -1297,8 +1422,9 @@ class LocalDialogue {
     String paragraphId,
     List<Map<String, dynamic>> chunks,
     List<Map<String, dynamic>> concepts,
-    bool criticalReading,
-  ) {
+    bool criticalReading, {
+    String selectedText = '',
+  }) {
     final b = StringBuffer();
     final terms = termsFor(question);
     if (criticalReading) {
@@ -1310,7 +1436,8 @@ class LocalDialogue {
 
     // 库里到底有没有直说这件事？最高分那一段对提问词的覆盖率低 → 只是字面擦边，
     // 老老实实标出来，别让擦边段落冒充答案（「有一段带这个词」≠「这段回答了问题」）。
-    final topText = chunks.isEmpty ? '' : '${chunks.first['text'] ?? ''}';
+    final topTexts = [for (final c in chunks.take(3)) '${c['text'] ?? ''}'];
+    final topText = topTexts.isEmpty ? '' : topTexts.first;
     // 只问一件事：最高分那一段里，提问的**主词**到底在不在？
     // （同义词别名不算分母——「实践」带三个别名，一算就永远是低覆盖）
     var coveredByTop = false;
@@ -1319,11 +1446,31 @@ class LocalDialogue {
       // 允许用**词尾**命中兜底：「反对本本主义」的主语，库里只写「本本主义」。
       // 但只认词尾不认词头——「社会主义初级阶段」的主语，不能被「资产阶级的
       // 社会主义」一句顶替，那是另一个概念。
-      coveredByTop = _hitAny(topText, _needles(head)) ||
-          terms.any((t) =>
-              t.length >= 2 && head.endsWith(t) && _hitAny(topText, _needles(t)));
+      // 看前 3 段而不是只看首段：首段常常只是擦边命中，第二段才是真正作答的
+      // 那一段，只盯首段会把「库里有答案」误报成「没有直接回答这个问题的段落」。
+      coveredByTop = topTexts.any((t) =>
+          _hitAny(t, _needles(head)) ||
+          terms.any((x) =>
+              x.length >= 2 && head.endsWith(x) && _hitAny(t, _needles(x))));
+    }
+    // 用户点名了原文（选中一段再问）时还有一条更硬的证据：命中段落里有没有和
+    // 选区**逐字重合**的长串。有，就说明他要问的那个说法确实在库里——此时主词
+    // 被切坏（选中「旧唯物主义只从客体方面理解现实」，主词成了「旧唯物主义只」）
+    // 而报警，是假警报。
+    if (!coveredByTop && selectedText.trim().isNotEmpty) {
+      coveredByTop = _sharesSpan(topTexts, selectedText);
     }
     final lowCoverage = topText.isNotEmpty && terms.isNotEmpty && !coveredByTop;
+
+    // 问句里没有能定位原著的实词（「这段话什么意思？」只剩「段话」「意思」这种
+    // 碎片）时，别从库里捞两段不相干的话冒充依据——那比承认检不到更误导。
+  /// 问句里没有能定位原著的实词（「这段话什么意思？」只剩「段话」「意思」这种
+  /// 碎片）时，别从库里捞两段不相干的话冒充依据——那比承认检不到更误导。
+    final noRealTerm = terms.isEmpty ||
+        !terms.any((t) =>
+            t.length >= 3 ||
+            _knownTerms().contains(t) ||
+            _coreNouns.contains(t));
 
     // 回复要适合「手机上一屏看完」：每个模式只给最必要的东西。
     final budget = _quoteBudget(mode);
@@ -1331,13 +1478,33 @@ class LocalDialogue {
       b.writeln('【说明】本机收录的是中文原著原文，英文或纯数字提问检不到原文；'
           '换成中文术语再问（如「实践」「矛盾」「国家」）。\n');
     }
-    if (lowCoverage) {
+    if (noRealTerm) {
+      b.writeln('【先定位】这句话里没有能定位原著的实词。'
+          '请选中原文里的一段再问（或换成「实践」「矛盾」这类术语），'
+          '本机才能逐字摘出依据。\n');
+    } else if (lowCoverage) {
       b.writeln('【先说清楚】本机收录的正文里没有直接回答这个问题的段落，'
           '下面按字面最接近的原句给出线索，请当作线索而不是答案。\n');
     }
+    // 引文只取**原文层**（layer==1）。提纲这类章节还会登记 layer 2（命题概括）/
+    // 3（注释）/4（解析），那些是编者转述而不是作者原话；把它们挂在
+    // 「原文摘录（逐字引用，非改写）」下面，等于替编者代言、也破了逐字门禁。
+    final srcChunks = [for (final c in chunks) if (_isOriginal(c)) c];
+    // 摘录再按「有没有命中主语」分两拨：问「实践唯物主义」时，《资本论》第二版跋
+    // 里「马克思是最大的唯心主义哲学家」只沾了「唯心主义」这个边词，却排在正主
+    // 《提纲》第 1 条前面被摘了出来。命中主语的先摘，其余垫后（组内保持原序）。
+    final headNeedles = head.length >= 2 ? _needles(head) : const <String>[];
+    final withHead = <Map<String, dynamic>>[];
+    final withoutHead = <Map<String, dynamic>>[];
+    for (final c in srcChunks) {
+      final onTopic = headNeedles.isNotEmpty &&
+          _hitAny('${c['text'] ?? ''}', headNeedles);
+      (onTopic ? withHead : withoutHead).add(c);
+    }
+    final quoteSrc = [...withHead, ...withoutHead];
     final quotes = <Map<String, dynamic>>[];
     final quotedWorks = <String>{};
-    if (chunks.isNotEmpty) {
+    if (srcChunks.isNotEmpty && !noRealTerm) {
       // 应试模式把依据句放在「得分点」里只出现一次，开头不再铺第二遍
       final showQuotes = mode != 'test';
       if (showQuotes) b.writeln('原文摘录（逐字引用，非改写）：');
@@ -1345,7 +1512,7 @@ class LocalDialogue {
       final seenQuote = <String>{};
       // 问「什么是X」时先给定义句；其余问法照常取证据句
       final preferDefine = _isDefinitionQuestion(question);
-      for (final c in chunks) {
+      for (final c in quoteSrc) {
         if (quotes.length >= budget) break;
         final (q, _) = _quoteOf(c, terms, preferDefine: preferDefine);
         if (q.isEmpty) continue;
@@ -1363,7 +1530,7 @@ class LocalDialogue {
         });
         if (showQuotes) {
           b.writeln('> $q');
-          b.writeln('—— 《$work》 ${c['source_location'] ?? ''}\n');
+          b.writeln('—— 《$work》 ${_shortLoc('${c['source_location'] ?? ''}')}\n');
         }
         printed = true;
       }
@@ -1372,14 +1539,15 @@ class LocalDialogue {
       }
     }
     final firstQuote = quotes.isEmpty ? '' : '${quotes.first['quote']}';
-    final firstText = quotes.isEmpty ? '' : '${quotes.first['text']}';
     final questions = _questionsFor(paragraphId, mode);
 
     /// 引文里出现过的最长关键词：追问、辩难都拿它当靶子，比模板变量精准
     String keyTermOf(String text) {
       var best = '';
       for (final t in terms) {
-        if (text.contains(t) && t.length > best.length) best = t;
+        if (!text.contains(t)) continue;
+        if (!_isCleanTerm(t)) continue;
+        if (t.length > best.length) best = t;
       }
       return best;
     }
@@ -1401,7 +1569,7 @@ class LocalDialogue {
         } else if (firstQuote.isNotEmpty) {
           final kw = keyTermOf(firstQuote);
           // 术语库没收录这个概念时：先给原文自己的定义句，没有就按题型拆解
-          final def = _definitionSentence(chunks, terms);
+          final def = _definitionSentence(srcChunks, terms);
           if (def.isNotEmpty) {
             b.writeln('**原文这样界定**（逐字）：\n> $def\n');
           }
@@ -1414,8 +1582,10 @@ class LocalDialogue {
             b.writeln('3. 边界：这条关系在什么范围内成立，超出范围会怎样。');
             b.writeln('三步都落到引文原句上，答案就不是自己编的。\n');
           } else {
-            b.writeln('**一句话答**：主张就在上面引文里；它的落点是'
-                '${kw.isEmpty ? '句中那几个实词' : '「$kw」这个词'}——'
+            // 术语库没收录这条，本机给不出「一句话答」；以前这里用一句模板
+            // （「主张就在上面引文里」）顶到答案位置，读起来像结论，其实是废话。
+            b.writeln('**怎么读这句**：先看它在反驳什么——'
+                '${kw.isEmpty ? '句中的实词' : '「$kw」'}是这句的落点，'
                 '把这个词抽掉，整句就不再成立。\n');
           }
         } else {
@@ -1466,17 +1636,15 @@ class LocalDialogue {
         // 靶子必须来自本轮命中的**陈述句**强断言。
         // 以前直接拿整段第一句，会把小标题当断言（「实践为什么是检验真理的唯一标准呢？」），
         // 反方等于在攻一个问句，下一句就崩。
+        // 只从**本轮引文**里挑靶子。以前把整段（firstText）也算进来，反方会去攻
+        // 读者根本看不到的一句话：正文说「反方会挑这一句下手」，指代当场落空，
+        // 靶子和摆在面前的论据也对不上。
         var strong = '';
-        for (final pool in [firstQuote, firstText]) {
-          if (strong.isNotEmpty || pool.isEmpty) continue;
-          for (final s in _sentences(pool)) {
-            if (s.replaceAll(_wsRe, '').length < 12) continue;
-            if (_questionEndRe.hasMatch(s)) continue;
-            if (_strongAssertRe.hasMatch(s)) {
-              strong = s;
-              break;
-            }
-          }
+        for (final s in _sentences(firstQuote)) {
+          if (strong.isNotEmpty) break;
+          if (s.replaceAll(_wsRe, '').length < 12) continue;
+          if (_questionEndRe.hasMatch(s)) continue;
+          if (_strongAssertRe.hasMatch(s)) strong = s;
         }
         final target = strong.isNotEmpty
             ? strong
@@ -1558,7 +1726,7 @@ class LocalDialogue {
             final (q, _) = _quoteOf(c, terms);
             if (q.isEmpty) continue;
             b.writeln('> $q');
-            b.writeln('—— 《${c['source']}》 ${c['source_location'] ?? ''}\n');
+            b.writeln('—— 《${c['source']}》 ${_shortLoc('${c['source_location'] ?? ''}')}\n');
           }
         } else if (chunks.isNotEmpty) {
           // 关键词太泛时诚实说明，不拿不相干的段落凑数
@@ -1685,7 +1853,7 @@ class LocalDialogue {
     if (chunks.isNotEmpty) {
       b.writeln('【可引用原文】');
       for (final c in chunks) {
-        b.writeln('· 《${c['source']}》 ${c['source_location'] ?? ''}：${_excerpt('${c['text']}')}');
+        b.writeln('· 《${c['source']}》 ${_shortLoc('${c['source_location'] ?? ''}')}：${_excerpt('${c['text']}')}');
       }
     } else {
       b.writeln('【可引用原文】（本机未检索到相关段落；涉及原文时必须说明需回原文核对）');
@@ -1828,7 +1996,7 @@ class LocalDialogue {
         if (verdict.blocked) {
           // 红线：模型输出的偏离表述不能展示；换成可用的本机回答并说明原因
           final formatOnly = _isMarkerFormatOnly(verdict);
-          final answer = '${_compose(mode, content, paragraphId, chunks, concepts, criticalReading)}'
+          final answer = '${_compose(mode, content, paragraphId, chunks, concepts, criticalReading, selectedText: sel)}'
               '\n\n（在线模型${formatOnly ? '这版回答的「反方观点/批判对象」标记没有成对闭合（格式问题，不是内容判定）' : '这段表述涉及与本课程立场不一致的框架（${verdict.hits.join('、')}）'}'
               '，已按防偏离规则拦截、未展示；以上为本机引擎回答。'
               '${formatOnly ? '再问一次通常就好——这次是模型漏写了闭合标记。' : '如确实要讨论该观点，可开启「批判性阅读」。'}）';
@@ -1872,7 +2040,8 @@ class LocalDialogue {
     }
 
     // ② 本机引擎（未配置 / 调用失败 / 超时）
-    final answer = _compose(mode, content, paragraphId, chunks, concepts, criticalReading);
+    final answer = _compose(mode, content, paragraphId, chunks, concepts, criticalReading,
+        selectedText: sel);
     _persist(dialogueId, content, mode, blocked: false, paragraphId: paragraphId,
         answer: answer,
         engineNote: engineNote,
