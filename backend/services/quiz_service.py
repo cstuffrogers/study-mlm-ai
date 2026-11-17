@@ -502,6 +502,9 @@ async def start_diagnostic(user_id: str, route_id: str) -> dict:
     items = []
     for sec in secs:
         its = await _items_for_section(sec["id"])
+        # 摸底测必须是能点选项的题：应用题/主观题没有选项（走三维 rubric 评分），
+        # 塞进摸底测里用户点进去就答不了（D142，与单机版同口径）。
+        its = [it for it in its if len(it.options or []) > 1]
         items.extend(its[:3])  # 每章抽 3 题
     if not items:
         # 无题库：返回空，调用方可选跳过

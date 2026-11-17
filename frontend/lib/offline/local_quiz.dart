@@ -185,6 +185,134 @@ class LocalQuiz {
     };
   }
 
+  // ------------------------------------------------------------ 摸底测
+  /// 摸底测出题 —— 与后端 `quiz_service.start_diagnostic()` 同口径：
+  /// 按路线章节顺序，每章取题库前 3 题，累计最多 12 题。
+  ///
+  /// 单机版原先直接回 `items: []`，界面就成了「点进去空的」：用户看不到一道题，
+  /// 只能跳过。题库（`assets/offline/quiz.json`）本来就随包发，没理由不出题。
+  static Future<Map<String, dynamic>> startDiagnostic(String routeId) async {
+    await OfflineContent.ensureMeta();
+    await OfflineContent.ensureQuiz();
+    final picked = <Map<String, dynamic>>[];
+    for (final sec in OfflineContent.sectionsOf(routeId)) {
+      final sid = '${sec['id'] ?? ''}';
+      if (sid.isEmpty) continue;
+      // 应用题/主观题没有选项（走三维 rubric），摸底测里点进去就答不了 —— 只出选择题。
+      final choice = OfflineContent.quizItems(sid)
+          .where((it) => ((it['options'] as List?) ?? const []).length > 1);
+      picked.addAll(choice.take(3));
+    }
+    if (picked.isEmpty) {
+      // 该路线确实没有题库：与后端一样返回空，由界面提示可跳过（不伪造题）。
+      return {
+        'diag_id': null,
+        'items': <Map<String, dynamic>>[],
+        'note': '该路线题库建设中，可跳过摸底直接选起点',
+      };
+    }
+    final chosen = picked.take(12).toList();
+    final ids = chosen.map((e) => '${e['id']}').toList();
+    return {
+      'diag_id': diagIdFor(routeId, ids),
+      'items': chosen.map(publicItem).toList(),
+    };
+  }
+
+  /// 单机版的「诊断测试记录」不落库，直接把路线与题号编进 id（同一台设备内自洽）。
+  /// 分隔符用 `~`：题号只含字母数字下划线，不会撞。
+  static String diagIdFor(String routeId, List<String> itemIds) =>
+      'local_diag_$routeId~${itemIds.join('~')}';
+
+  static (String, List<String>)? parseDiagId(String diagId) {
+    if (!diagId.startsWith('local_diag_')) return null;
+    final parts = diagId.substring('local_diag_'.length).split('~');
+    if (parts.length < 2) return null;
+    return (parts.first, parts.sublist(1));
+  }
+
+  /// 摸底判定 —— 与后端 `quiz_service.submit_diagnostic()` 同口径：
+  /// 逐章正确率 ≥ 解锁阈值（默认 0.8）判「可跳过」，否则为「需从该章开始」；
+  /// 无题数据的章视为需从该章开始；起点 = 第一张不可跳过的章。
+  static Future<Map<String, dynamic>> submitDiagnostic(
+      String diagId, List<Map<String, dynamic>> answers) async {
+    await OfflineContent.ensureMeta();
+    await OfflineContent.ensureQuiz();
+    final parsed = parseDiagId(diagId);
+    if (parsed == null) {
+      throw LocalApiException(404, '诊断测试不存在或已过期: $diagId');
+    }
+    final (routeId, itemIds) = parsed;
+    final ansById = {
+      for (final a in answers) '${a['item_id'] ?? ''}': '${a['answer'] ?? ''}'
+    };
+    // 题面（publicItem）不下发 section_id（与后端 `_public_item()` 一致），
+    // 所以按路线章节反查「题号 → 章号」。
+    final itemSec = <String, String>{};
+    for (final sec in OfflineContent.sectionsOf(routeId)) {
+      final sid = '${sec['id'] ?? ''}';
+      for (final it in OfflineContent.quizItems(sid)) {
+        itemSec['${it['id']}'] = sid;
+      }
+    }
+    final secCorrect = <String, List<int>>{};
+    final nodeCorrect = <String, List<int>>{};
+    for (final qid in itemIds) {
+      final it = OfflineContent.quiz(qid);
+      if (it == null) continue;
+      final ok =
+          normChoice(ansById[qid] ?? '') == normChoice('${it['answer'] ?? ''}')
+              ? 1
+              : 0;
+      final sid = itemSec[qid] ?? '';
+      if (sid.isNotEmpty) (secCorrect[sid] ??= <int>[]).add(ok);
+      final nid = '${it['node_id'] ?? ''}';
+      if (nid.isNotEmpty) (nodeCorrect[nid] ??= <int>[]).add(ok);
+    }
+    final threshold =
+        double.tryParse('${OfflineContent.config['unlock_threshold'] ?? 0.8}') ??
+            0.8;
+    String? recommendedStart;
+    final order = <String>[];
+    final skippable = <String>[];
+    final secs = OfflineContent.sectionsOf(routeId);
+    for (final sec in secs) {
+      final sid = '${sec['id'] ?? ''}';
+      final vals = secCorrect[sid];
+      if (vals == null) {
+        recommendedStart ??= sid;
+        order.add(sid);
+        continue;
+      }
+      final avg = vals.reduce((a, b) => a + b) / vals.length;
+      if (avg >= threshold) {
+        skippable.add(sid);
+      } else {
+        recommendedStart ??= sid;
+        order.add(sid);
+      }
+    }
+    final toReinforce = <Map<String, dynamic>>[];
+    nodeCorrect.forEach((nodeId, vals) {
+      final avg = vals.reduce((a, b) => a + b) / vals.length;
+      if (avg >= threshold) return;
+      final n = OfflineContent.node(nodeId);
+      toReinforce.add({
+        'node_id': nodeId,
+        'name': '${n?['name'] ?? nodeId}',
+        'reason': '摸底正确率偏低',
+      });
+    });
+    return {
+      'diag_id': diagId,
+      'recommended_start':
+          recommendedStart ?? (secs.isEmpty ? null : '${secs.first['id']}'),
+      'order': order,
+      'skippable': skippable,
+      'to_reinforce': toReinforce,
+    };
+  }
+
   // ------------------------------------------------------------ 判分
   /// 客观题选项归一化 —— **必须与后端 `quiz_service._norm_choice` 同口径**：
   /// 去掉首尾空白、转大写、取第一个字符。

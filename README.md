@@ -42,6 +42,7 @@
 | 18 | 「多余部分」清理：分片 60 字下限合并 + 选集目录剔除检索索引 | ✓（分片 28,660→23,041、短碎片 20%→0.33%、检索 1400ms→668ms、基准 top1/top3 16/19 不变；692 后端测试全绿） |
 | 19 | 合法合规加固（隐私政策/用户协议/免责声明/版权说明 + release 签名 + 立场守门误杀修复 + 后端加固） | ✓（新增「法律与隐私」页与 `NOTICE.md`；release keystore 替换 debug 签名；删「资产阶级」等误判词并加自指批判语境豁免；docker 端口绑回环 + 启动期安全告警；后端 696 全绿、前端 119 全绿） |
 | 20 | 首页改「选学习路线」+ 朗读自动停止 + 大模型页收敛（D142） | ✓（首页三张路线卡直达章节地图，头部=功能中心/LLM 配置/学习分析/使用说明；朗读随页面切换与退后台自动停；大模型配置页删掉重复的「本机数据」卡片；前端 288 项测试全绿、`flutter analyze` 零问题） |
+| 21 | 单机版「重新摸底测」不再点进去是空的（D142b） | ✓（单机 `LocalQuiz.startDiagnostic/submitDiagnostic` 补齐：按章节顺序每章抽 3 题、上限 12 题，全部带溯源锚点；判分与后端同口径逐章正确率 ≥0.8 判可跳过、起点=第一张未达标/无数据的章；两侧都**只出选项 ≥2 的题**（应用题/主观题没有选项，塞进摸底测就答不了）；结果页显示「阶段N · 标题」不再甩 `sec_A_03`；前端 297 项、后端 781 passed 全绿） |
 
 ### 构建信息（v2 重打，合规加固后）
 
@@ -58,7 +59,7 @@
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
 - 体积从 72.06 MB 涨到 75.56 MB，增量在 `assets/flutter_assets`（离线数据 23 MB → 23.4 MB）。
 
-- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **288** 项全绿、`flutter analyze` 零问题；后端 **773 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **297** 项全绿、`flutter analyze` 零问题；后端 **781 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
@@ -228,7 +229,7 @@ docker compose up --build
 让 `npm` 系工具（含 claude-scene 的 loop / review 门禁）有统一入口：
 
 ```bash
-npm test              # = cd frontend && flutter test        （当前 288 passed）
+npm test              # = cd frontend && flutter test        （当前 297 passed）
 npm run lint          # = scripts/lint_shim.js → flutter analyze lib/ test/（当前 No issues）
 npm run analyze       # 同上，直连 flutter analyze
 npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 735 passed + 2 xfailed）
@@ -358,7 +359,7 @@ Phase 6 核心套件（含在整个 735 passed 里）：
 | 立场守门 / 离线学习闭环 | ✓ | ✓ |
 | 检索命中 | 0（书单空） | 22,371 分片 |
 | 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 735 passed / 0 skipped / 2 xfailed |
-| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 288 passed |
+| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 297 passed |
 
 依赖正文的用例都打了 `needs_texts` 标记（后端 `backend/conftest.py`）或调用
 `skipWithoutOfflineAssets()`（前端 `frontend/test/helpers/`），缺数据时自动跳过并给出

@@ -117,11 +117,12 @@ class LocalRouter {
     final rid = rest[1];
     // /api/routes/diagnostic/{id}/submit
     if (rid == 'diagnostic') {
-      return {
-        'diagnostic_id': rest.length > 2 ? rest[2] : '',
-        'status': 'submitted',
-        'message': '单机版诊断已记录：将按答题情况直接生成学习建议。',
-      };
+      // 与后端同口径：按逐章正确率算起点 / 可跳过 / 需补强，不再只回一句「已记录」。
+      final answers = (body['answers'] as List?) ?? const [];
+      return LocalQuiz.submitDiagnostic(
+        rest.length > 2 ? rest[2] : '',
+        answers.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      );
     }
     // /api/routes/{rid}/sections
     if (rest.length == 3 && rest[2] == 'sections') {
@@ -129,11 +130,8 @@ class LocalRouter {
     }
     // /api/routes/{rid}/diagnostic
     if (rest.length == 3 && rest[2] == 'diagnostic' && method == 'POST') {
-      return {
-        'diagnostic_id': 'local_diag_${DateTime.now().millisecondsSinceEpoch}',
-        'items': <Map<String, dynamic>>[],
-        'message': '单机版跳过诊断题，直接按路线顺序学习。',
-      };
+      // 单机版原先直接回空 items（界面点进去空页）；题库随包发，按后端口径出题。
+      return LocalQuiz.startDiagnostic(rid);
     }
     // /api/routes/{rid}/select
     if (rest.length == 3 && rest[2] == 'select') {
