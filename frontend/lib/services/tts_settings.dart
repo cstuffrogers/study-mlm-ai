@@ -103,6 +103,7 @@ class TtsVoiceOption {
     required this.locale,
     this.network = false,
     this.chinese = true,
+    this.gender = '',
   });
 
   /// 引擎内部名（zh-cn-x-ccc-local 这类），切语音时用它。
@@ -119,6 +120,17 @@ class TtsVoiceOption {
 
   /// 是否为中文语音（Web 端会把非中文语音也列出来，供用户手选）。
   final bool chinese;
+
+  /// 引擎自报的性别特征：'male' / 'female' / ''（引擎不提供 → 界面显示「未知」）。
+  /// 注意这是**引擎报的标签**，不是 App 猜的；拿不到就留空，绝不按名字推断。
+  final String gender;
+
+  /// 展示用的性别前缀（男声/女声/空）。
+  String get genderLabel {
+    if (gender == 'male') return '男声';
+    if (gender == 'female') return '女声';
+    return '';
+  }
 }
 
 /// 朗读设置：风格预设 + 选中的语音包名（'' = 自动优选）。

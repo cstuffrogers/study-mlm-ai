@@ -87,6 +87,7 @@ Future<List<TtsVoiceOption>> ttsListVoices() async {
         label: '${m['label'] ?? ''}',
         locale: '${m['locale'] ?? ''}',
         network: m['network'] == true,
+        gender: '${m['gender'] ?? ''}',
       );
     }).where((v) => v.name.isNotEmpty).toList();
   } catch (e) {
@@ -117,6 +118,15 @@ Future<String?> _voiceForSlot(TtsVoiceSlot slot) async {
   if (slot.nativeHints.isEmpty) return null;
   final list = await ttsListVoices();
   if (list.isEmpty) return null;
+  // 引擎明确报了性别的，先按性别挑（比关键词可靠得多）
+  final wantGender = slot.nativeHints.contains('female')
+      ? 'female'
+      : (slot.nativeHints.contains('male') ? 'male' : '');
+  if (wantGender.isNotEmpty) {
+    for (final v in list) {
+      if (v.gender == wantGender) return v.name;
+    }
+  }
   for (final hint in slot.nativeHints) {
     final h = hint.toLowerCase();
     for (final v in list) {

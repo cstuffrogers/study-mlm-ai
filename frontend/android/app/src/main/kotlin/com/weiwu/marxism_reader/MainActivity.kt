@@ -15,7 +15,7 @@ import java.util.Locale
  *   init     -> {ready: Boolean, chinese: Boolean, engine: String?, voice: String?}
  *   speak    -> 参数 {text: String, id: String, rate: Double, pitch: Double}，返回 Boolean（引擎是否接受）
  *   stop     -> null
- *   voices   -> {voices: [{name, label, locale, quality, network}], current: String?}
+ *   voices   -> {voices: [{name, label, locale, quality, network, gender}], current: String?}
  *   setVoice -> 参数 {name: String}（空串 = 恢复引擎默认），返回 Boolean
  *
  * 「语音包设置」页（功能中心）靠 voices / setVoice 列出本机已装的中文语音并让用户挑选；
@@ -97,8 +97,13 @@ class MainActivity : FlutterActivity() {
         return try {
             engine.voices
                 ?.filter { v ->
+                    // 有的引擎把中文报成 und / zh-Hans / zh-Hant，只认 zh|cmn|yue 会整张表空掉
+                    // （用户就会觉得「APP 里一个语音包都没有」）。这里放宽到语言标签包含中文。
+                    val tag = v.locale.toLanguageTag().lowercase()
                     val lang = v.locale.language.lowercase()
-                    lang == "zh" || lang == "cmn" || lang == "yue"
+                    lang == "zh" || lang == "cmn" || lang == "yue" ||
+                        tag.startsWith("zh") || tag.contains("-cn") ||
+                        tag.contains("hans") || tag.contains("hant")
                 }
                 ?.map { v ->
                     // 中文引擎的语音名通常是 zh-cn-x-ccc-local / cmn-cn-x-ccc-local 这类内部名，
@@ -109,6 +114,8 @@ class MainActivity : FlutterActivity() {
                         "label" to v.locale.displayName,
                         "quality" to v.quality,
                         "network" to v.isNetworkConnectionRequired,
+                        // 引擎不提供性别时给 null，UI 显示「未知」——不猜、不编
+                        "gender" to genderOf(v),  // 已是 null 或 male/female
                     )
                 }
                 ?.sortedWith(compareBy({ it["network"] == true }, { "${it["name"]}" }))
@@ -116,6 +123,40 @@ class MainActivity : FlutterActivity() {
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    // ---------------- 语音性别标签（能查就标，查不到就「未知」，绝不按名字猜） ----------------
+    //
+    // 用户实报「APP 没有男声」：安卓只报一个 locale 显示名（都叫「中文」），
+    // 实际可能有男女两套音色，界面上看起来就像只有一个。
+    // Voice.getFeatures()（API 21+ 公开接口）在 Google 引擎里带 "gender=female|male"，
+    // 有就标出来；国产引擎大多不给，就标「未知」，并由 App 侧用音调语速做近似。
+
+    private val genderCache = HashMap<String, String>()
+
+    private fun genderOf(voice: android.speech.tts.Voice): String? {
+        val cached = genderCache[voice.name]
+        if (cached != null) return cached.ifEmpty { null }
+        val parsed = parseGender(voice)
+        genderCache[voice.name] = parsed
+        return parsed.ifEmpty { null }
+    }
+
+    /** 从 Voice.features 里取性别；取不到返回空串（= 引擎不提供）。 */
+    private fun parseGender(voice: android.speech.tts.Voice): String {
+        val features = try {
+            voice.features
+        } catch (_: Exception) {
+            null
+        } ?: return ""
+        for (f in features) {
+            val low = f.lowercase()
+            if (!low.startsWith("gender")) continue
+            val v = low.substringAfter("=", "").trim()
+            if (v.startsWith("f")) return "female"
+            if (v.startsWith("m")) return "male"
+        }
+        return ""
     }
 
     /** 切换语音包：空串 = 恢复引擎默认（setVoice(null)）。 */

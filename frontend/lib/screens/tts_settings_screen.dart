@@ -239,7 +239,9 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
         for (final v in _voices)
           _row(
             selected: current.isNotEmpty && current == v.name,
-            title: '${v.label.isEmpty ? v.name : v.label}${v.chinese ? '' : '（非中文）'}',
+            title: '${v.genderLabel.isEmpty ? '' : '${v.genderLabel} · '}'
+                '${v.label.isEmpty ? v.name : v.label}'
+                '${v.chinese ? '' : '（非中文）'}',
             subtitle: '${v.locale}${v.network ? ' · 需联网合成' : ' · 本机离线'} · ${v.name}',
             onTap: () => _pickVoice(v.name),
           ),

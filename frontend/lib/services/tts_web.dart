@@ -112,6 +112,18 @@ web.SpeechSynthesisVoice? _bestVoice() {
   return best;
 }
 
+/// 浏览器语音的性别。
+///
+/// 浏览器不提供性别字段，能用的线索只有语音名里的 female/male（Edge/Chrome 的
+/// "Microsoft Yunxi Online (Natural) - Chinese" 这类名字里就带）。名字里没有就返回空，
+/// 界面显示「未知」——不按音高去猜。
+String _genderOf(web.SpeechSynthesisVoice v) {
+  final low = v.name.toLowerCase();
+  if (low.contains('female') || low.contains(' woman')) return 'female';
+  if (low.contains('male') || low.contains(' man')) return 'male';
+  return '';
+}
+
 bool ttsHasChineseVoice() {
   _ensureVoices();
   if (_voices.isEmpty) _refreshVoices();
@@ -141,6 +153,7 @@ Future<List<TtsVoiceOption>> ttsListVoices() async {
       locale: v.lang,
       network: v.localService == false,
       chinese: _voiceScore(v) > 0,
+      gender: _genderOf(v),
     ));
   }
   // 中文在前，同组内保持引擎给的顺序
