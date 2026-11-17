@@ -44,7 +44,7 @@ CONCEPT_KEYWORDS: dict[str, dict] = {
         "misconceptions": ["抽象社会", "单个人直观"],
     },
     "kn_humansociety": {
-        "terms": ["人类社会", "社会的人类", "立脚点"],
+        "terms": ["人类社会", "社会的人类", "社会化了的人类", "立脚点"],
         "misconceptions": ["市民社会", "孤立个人"],
     },
     "kn_standpoint": {

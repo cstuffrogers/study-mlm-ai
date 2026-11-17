@@ -1521,6 +1521,18 @@ def _terms() -> tuple[str, ...]:
                     terms.add(t)
     except Exception:  # pragma: no cover - 词表缺失时退化为通用词
         pass
+    # 概念词典的标准术语必须进这张词表：既有约定是「词典里的标准词就是分片里的
+    # 原文用词」，但两套词表此前各写各的——「经济基础／上层建筑／认识／阶级斗争／
+    # 商品／自然辩证法／反映论／商品拜物教／无产阶级专政／辩证唯物主义」这 10 个
+    # 核心术语在 2 万多片里一次都没被标出过，概念召回对它们等于不存在。
+    try:
+        from core.rag.concept_dict import CONCEPT_MAP
+
+        for k in CONCEPT_MAP:
+            if k and len(k) >= 2:
+                terms.add(k)
+    except Exception:  # pragma: no cover - 词典缺失时退化
+        pass
     # 长词优先匹配
     return tuple(sorted(terms, key=len, reverse=True))
 

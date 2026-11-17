@@ -9,11 +9,97 @@
 """
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 
 TEXTS_DIR = Path(__file__).resolve().parent.parent.parent / "sources" / "texts"
+
+# 句末标点：硬换行还原时以「行尾是否落在句末」作为接续依据。
+_SENT_END = "。！？；：”』）】…!?"
+
+# 编注/说明行：单独成段，不要和前一行拼成一句（「说明：此文为发表时的原文。」）。
+_PARA_START = re.compile(r"^(说明|注释|按语|附记|编者|译者)[：:]")
+
+# 标题/条目行：即便行尾不是句末标点，也独立成段（章、节、编号条目、注释）。
+_HEADING = re.compile(
+    r"^("
+    r"第[一二三四五六七八九十百零\d]+[章节篇编讲部]"
+    r"|[一二三四五六七八九十]+[、．.]"
+    r"|\d+[、．.]"
+    r"|（[一二三四五六七八九十]+）"
+    r"|\([一二三四五六七八九十]+\)"
+    r"|附[录件]"
+    r"|注\s*释"
+    r")"
+)
+
+# 硬换行体判定：行尾多数不落在句末 + 行普遍很短。
+# 为什么要有这一步——镜像/OCR 文本常把一段话按固定列宽硬回车，行间再塞空行。
+# 若照「空行分段」读，每一行都成了一个段落：《苏联社会主义经济问题》被切成
+# 633 片、平均 73 字、93% 以半句结尾（《论列宁主义的几个问题》209 片 / 90%）。
+# 这种分片既读不通，也不能当检索单位，引用出来永远是半句话。
+_WRAP_NOEND_RATIO = 0.6
+_WRAP_AVG_CHARS = 90
+
+
+def is_hard_wrapped(text: str) -> bool:
+    """粗判一份原文是不是「硬换行 + 空行」体（只影响切分方式，不改字）。"""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if len(lines) < 20:
+        return False
+    no_end = sum(1 for ln in lines if ln[-1] not in _SENT_END) / len(lines)
+    avg = sum(len(ln) for ln in lines) / len(lines)
+    return no_end > _WRAP_NOEND_RATIO and avg < _WRAP_AVG_CHARS
+
+
+# 句末标点后仍可能跟着「收尾符号」：镜像把 」』）】 单独排到了下一行。
+# 拼句时要把它接回上一句，否则分段会以「”第二，…」「）这是…」开头。
+_LEAD_CLOSERS = "”』）】》〉"
+
+
+def reflow_hard_wraps(text: str) -> list[str]:
+    """把硬换行的行拼回句子级段落——只动换行，一字不改。
+
+    规则：一直往后拼，直到累计文本落在句末标点；标题/编号/注释行独立成段；
+    若某段以收尾符号（”』）】…）开头，说明它是上一句的尾巴，接回去。
+    """
+    paras: list[str] = []
+    cur = ""
+    for line in (ln.strip() for ln in text.splitlines()):
+        if not line:
+            continue
+        if _PARA_START.match(line) and len(line) < 40:
+            if cur:
+                paras.append(cur)
+                cur = ""
+            paras.append(line)
+            continue
+        if _HEADING.match(line) and len(line) < 40:
+            if cur:
+                paras.append(cur)
+                cur = ""
+            paras.append(line)
+            continue
+        cur = f"{cur}{line}" if cur else line
+        if cur[-1] in _SENT_END:
+            paras.append(cur)
+            cur = ""
+    if cur:
+        paras.append(cur)
+    # 收尾符号回到上一段末尾（只移动标点，不动字序）
+    merged: list[str] = []
+    for para in paras:
+        if merged and para and para[0] in _LEAD_CLOSERS:
+            k = 0
+            while k < len(para) and para[k] in _LEAD_CLOSERS:
+                k += 1
+            merged[-1] = merged[-1] + para[:k]
+            para = para[k:]
+            if not para:
+                continue
+        if para:
+            merged.append(para)
+    return merged
 
 
 class TextLoader:
@@ -51,12 +137,16 @@ class TextLoader:
         切分策略：
           - "第X章"/"第X节" 标记作 chapter_hint
           - 空行分隔的连续文本块作一个段落
+          - 硬换行体（镜像/OCR 按列宽硬回车）先把句子拼回段落，再按段落落片
           - 过短段落（<20 字）跳过
         """
         text = self.read(filename)
         paragraphs: list[dict] = []
-        # 按空行切段
-        raw_paras = re.split(r"\n\s*\n", text)
+        if is_hard_wrapped(text):
+            raw_paras = reflow_hard_wraps(text)
+        else:
+            # 按空行切段
+            raw_paras = re.split(r"\n\s*\n", text)
         current_chapter = ""
         for i, para in enumerate(raw_paras):
             para = para.strip()
