@@ -106,7 +106,10 @@ async def due_reviews(user_id: str, route_id: str, now: datetime | None = None) 
             "next_review_at": r.next_review_at.isoformat() if r.next_review_at else None,
             "_risk": round(risk, 4),
         })
-    out.sort(key=lambda x: x["_risk"], reverse=True)
+    # D136：**并列必须写死 tie-break**。`reverse=True` 的稳定排序只保证「同 risk 保持
+    # 输入顺序」，而输入顺序来自 SQL 无 ORDER BY 的结果 —— 同一份数据两次查询就可能换序，
+    # 单机侧（Map 迭代序）与后端更是两套顺序。风险相同时按 node_id 升序，两端同式。
+    out.sort(key=lambda x: (-x["_risk"], x["node_id"]))
     for x in out:
         x.pop("_risk", None)
     return out
@@ -171,6 +174,12 @@ async def review_status(user_id: str, route_id: str) -> dict:
             "review_count": r.review_count or 0,
             "next_review_at": r.next_review_at.isoformat() if r.next_review_at else None,
         })
+    # D136：`items` 原先按 SQL 返回序（无 ORDER BY）输出，同一份数据两次查询两种排法。
+    # 契约：**稳定度低的先复习**（`stability` 升序）→ 并列按 node_id。
+    # 不能用 `next_review_at` 排序：它是「写入时刻 + 间隔」，写入时刻由各端 wall clock
+    # 决定（两侧是不同进程、不同毫秒），稳定度相同时排序退化成「谁先写谁在前」，
+    # 同一份数据就能有两种排法。`stability` 是四舍五入到 4 位的纯数据列，两端逐字相同。
+    items.sort(key=lambda x: (x["stability"], x["node_id"]))
     due = await due_reviews(user_id, route_id)
     return {"route_id": route_id, "due_count": len(due), "due": due, "items": items}
 

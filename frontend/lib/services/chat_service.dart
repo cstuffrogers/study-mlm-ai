@@ -73,8 +73,16 @@ class ChatService extends ChangeNotifier {
   }
 
   ChatService({String? dialogueId})
-      : dialogueId = dialogueId ??
-            DateTime.now().millisecondsSinceEpoch.toRadixString(16);
+      : dialogueId = dialogueId ?? _defaultDialogueId();
+
+  /// 默认会话按**天**分段：同一个学习日的追问记在同一段里，
+  /// 历史页才不是一堆只含一两句话的碎片（以前每次启动都新建一个 id）。
+  static String _defaultDialogueId() {
+    final d = DateTime.now();
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return 'd-${d.year}$m$day';
+  }
 
   bool get connected => _connected;
   String get status => _status;
@@ -167,6 +175,9 @@ class ChatService extends ChangeNotifier {
       String selectedText = '',
       String paragraphId = ''}) {
     if (content.trim().isEmpty) return;
+    // 选中片段在**发出前**就按两端同口径净化：正文页全选整章会有几万字，
+    // 联网版后端也会截（`_safe_selected_text`），但没必要先把几十 KB 推过 WS。
+    selectedText = LocalDialogue.sanitizeSelection(selectedText);
     if (!_connected) connect();
     turns.add(ChatTurn(
       role: 'user',

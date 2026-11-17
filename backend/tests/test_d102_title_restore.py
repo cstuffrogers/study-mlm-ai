@@ -165,7 +165,7 @@ def test_d102_chunk_ids_unchanged_and_locations_improved():
     chunks = all_book_chunks()
     ids = [c["id"] for c in chunks]
     assert len(ids) == len(set(ids))
-    assert len(chunks) == 23041  # 2026-11 分片器加入 60 字下限合并（原 28660；短分片 20%→0.3%，检索指标不变）；此前： …D124 +342（克鲁普斯卡娅 10 篇）；D125 +776（按章节缺口补 13 篇）；D126 +277（周恩来民主革命期 12 篇）；D127 +2142（考茨基 4 篇）
+    assert len(chunks) == 22371  # 2026-11 分片器加入 60 字下限合并（原 28660；短分片 20%→0.3%，检索指标不变）+ 硬换行体句级还原（-670 片：苏联社会主义经济问题 633→286、论列宁主义的几个问题 209→84、湖南农民运动考察报告 93→76、马恩选集目录 362→128；半句结尾 13.0%→9.4%）；此前： …D124 +342（克鲁普斯卡娅 10 篇）；D125 +776（按章节缺口补 13 篇）；D126 +277（周恩来民主革命期 12 篇）；D127 +2142（考茨基 4 篇）
     assert len(BOOKS) == 229
     assert len(SECTIONS) == 32
     wp = [c for c in chunks if c["id"].startswith("CH-WP-")]

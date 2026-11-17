@@ -1,6 +1,6 @@
 """pytest 配置 — 把 backend/ 加入 sys.path，使 `from core...` / `from content...` 可导入。
 
-也把项目根目录加入 sys.path（dialogue_service 复用根目录的 prompt_sanitizer.py）。
+也把项目根目录加入 sys.path（部分脚本要读项目根的 prompt_engineering.yaml 等数据文件）。
 """
 import os
 import sys

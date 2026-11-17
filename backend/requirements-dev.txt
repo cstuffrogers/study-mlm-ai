@@ -1,0 +1,18 @@
+# 开发 / 测试 / 离线训练用的依赖（Docker 镜像不装这些，基础依赖见 requirements.txt）
+#
+#   pip install -r backend/requirements-dev.txt
+#
+# 同一份清单也写在 backend/pyproject.toml 的 [project.optional-dependencies].dev 里
+# （那边是给编辑器/静态检查工具看的，改动时两处一起改）
+#
+# 说明：
+#  * pytest      —— backend/tests/ 的唯一测试框架
+#  * openai      —— core/llm/cloud.py 真实云模型调用时才 import（函数内 try/except，缺失即回退）
+#  * scikit-learn / joblib —— ml/train_stance.py 训练立场分类器（离线跑，产物是 joblib）
+#  * websockets  —— demo_e2e.py 端到端自检脚本里连 /ws/dialogue
+-r requirements.txt
+pytest>=9.0
+openai>=1.30
+scikit-learn>=1.4
+joblib>=1.3
+websockets>=12.0

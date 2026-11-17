@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/message.dart';
+import '../offline/local_store_keys.dart';
 import '../offline/offline_content.dart';
 import '../services/chat_service.dart';
 import '../services/content_service_api.dart';
@@ -122,7 +123,9 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   /// 这本书在学习路线里出现在哪几章（离线索引 work_sections.json）。
   List<Map<String, dynamic>> _routeRows = const [];
 
-  String get _key => 'reader_${widget.work}';
+  // 键名取自登记处（local_store_keys.dart）：升级版本时键必须一字不变，
+  // 否则老用户的书签/笔记/划线/阅读进度会「凭空消失」。
+  String _k(String suffix) => LocalStoreKeys.reader(widget.work, suffix);
 
   @override
   void initState() {
@@ -194,10 +197,12 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
 
   Future<void> _loadPrefs() async {
     final sp = await SharedPreferences.getInstance();
-    _fontSize = sp.getDouble('${_key}_fs') ?? 18;
-    _bookmarks = _decode(sp.getString('${_key}_bm'), _Bookmark.fromJson);
-    _notes = _decode(sp.getString('${_key}_nt'), _Note.fromJson);
-    _highlights = _decode(sp.getString('${_key}_hl'), _Highlight.fromJson);
+    _fontSize = sp.getDouble(_k(LocalStoreKeys.readerFontSize)) ?? 18;
+    _bookmarks =
+        _decode(sp.getString(_k(LocalStoreKeys.readerBookmarks)), _Bookmark.fromJson);
+    _notes = _decode(sp.getString(_k(LocalStoreKeys.readerNotes)), _Note.fromJson);
+    _highlights = _decode(
+        sp.getString(_k(LocalStoreKeys.readerHighlights)), _Highlight.fromJson);
   }
 
   List<T> _decode<T>(String? raw, T Function(Map<String, dynamic>) f) {
@@ -211,11 +216,14 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
 
   Future<void> _savePrefs() async {
     final sp = await SharedPreferences.getInstance();
-    await sp.setDouble('${_key}_fs', _fontSize);
-    await sp.setString('${_key}_bm', jsonEncode(_bookmarks.map((e) => e.toJson()).toList()));
-    await sp.setString('${_key}_nt', jsonEncode(_notes.map((e) => e.toJson()).toList()));
-    await sp.setString('${_key}_hl', jsonEncode(_highlights.map((e) => e.toJson()).toList()));
-    await sp.setInt('${_key}_last', _page);
+    await sp.setDouble(_k(LocalStoreKeys.readerFontSize), _fontSize);
+    await sp.setString(_k(LocalStoreKeys.readerBookmarks),
+        jsonEncode(_bookmarks.map((e) => e.toJson()).toList()));
+    await sp.setString(_k(LocalStoreKeys.readerNotes),
+        jsonEncode(_notes.map((e) => e.toJson()).toList()));
+    await sp.setString(_k(LocalStoreKeys.readerHighlights),
+        jsonEncode(_highlights.map((e) => e.toJson()).toList()));
+    await sp.setInt(_k(LocalStoreKeys.readerLastPage), _page);
   }
 
   Future<void> _buildDoc(Size size) async {
@@ -224,7 +232,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     if (width <= 0 || height <= 0) return;
     final doc = ReaderPaginator.paginate(paragraphs: _paragraphs, width: width, height: height, style: _textStyle());
     final sp = await SharedPreferences.getInstance();
-    final last = sp.getInt('${_key}_last') ?? 0;
+    final last = sp.getInt(_k(LocalStoreKeys.readerLastPage)) ?? 0;
     // 定位优先级：本次要跳到的分片 > 重排前停留页 > 上次进度
     int? focusPage;
     final focusPara = _focusPara;
@@ -849,8 +857,17 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                     },
                   ),
           ),
-          // 选中文字后的追问工具条：改成可任意拖动的浮动面板（不再固定右下角）。
-          if (_doc != null && !_loading && _error == null && _selected.isNotEmpty) MovableBox(key: ValueKey(_selected.length), bounds: MediaQuery.of(context).size, size: const Size(360, 120), initialOffset: Offset((MediaQuery.of(context).size.width - 360) / 2, MediaQuery.of(context).size.height - 280), child: _selectionFab()),
+          // 选中文字后的追问工具条：可任意拖动的浮动面板；默认贴顶出现（
+          // 与深入学习页一致，避免浮框盖住刚选中的那句话）。
+          if (_doc != null && !_loading && _error == null && _selected.isNotEmpty)
+            MovableBox(
+              key: ValueKey(_selected.length),
+              bounds: MediaQuery.of(context).size,
+              size: const Size(360, 120),
+              initialOffset: Offset(
+                  (MediaQuery.of(context).size.width - 360) / 2, 10),
+              child: _selectionFab(),
+            ),
         ],
       ),
       bottomNavigationBar: _doc == null || _loading || _error != null ? null : _buildBottomBar(),
@@ -1068,6 +1085,9 @@ class _AnnotatedPage extends StatelessWidget {
       }
     }
     return SelectionArea(
+      // 屏蔽系统自带的「copy/share」工具条：本页选中即弹自己的追问浮框（复制/朗读/标色 + 五模式），
+      // 两套浮窗同时出现会互相遮挡，用户也分不清该点哪一个。
+      contextMenuBuilder: (context, state) => const SizedBox.shrink(),
       onSelectionChanged: onSelectionChanged,
       child: Padding(
         padding: padding,

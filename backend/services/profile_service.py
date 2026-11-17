@@ -14,8 +14,8 @@ from sqlalchemy import select
 from services.learning_db import session_scope
 from services import mastery_service as ms
 from services.knowledge_graph_service import get_kg
-from content.knowledge_graph import KNOWLEDGE_NODES, get_node
-from model.models_learning import LearningProfile, StruggleSignal
+from content.knowledge_graph import KNOWLEDGE_NODES
+from model.models_learning import LearningProfile
 
 _DIMS = ("materialism", "dialectics", "epistemology", "historical_materialism", "political_economy")
 
@@ -61,7 +61,9 @@ async def build_profile(user_id: str, route_id: str) -> dict:
             "blocking_sections": kg.blocking_sections(n["id"]),
             "_rank": round(key, 4),
         })
-    weak.sort(key=lambda x: x["_rank"], reverse=True)
+    # D136：并列按 node_id 升序落定（原先只有 `reverse=True`，同 rank 的先后取决于
+    # KNOWLEDGE_NODES 的定义顺序，单机侧则是 Map 迭代序 —— 同一份数据显示两种排法）。
+    weak.sort(key=lambda x: (-x["_rank"], x["node_id"]))
     for w in weak:
         w.pop("_rank", None)
 

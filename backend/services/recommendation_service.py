@@ -5,16 +5,14 @@ rec_type：start（起点）/ next_section（下一章）/ reinforce（回补）
 """
 from __future__ import annotations
 
-from datetime import datetime
 
-from sqlalchemy import select
 
 from services.learning_db import session_scope
 from services import mastery_service as ms
 from services.knowledge_graph_service import get_kg
 from content.routes import sections_for_route, get_section
 from content.knowledge_graph import KNOWLEDGE_NODES, get_node
-from model.models_learning import Recommendation, LearningProgress
+from model.models_learning import Recommendation
 
 
 def _is_async_session(s) -> bool:
@@ -72,8 +70,10 @@ async def next_step(user_id: str, route_id: str, current_section_id: str | None)
             return await _save(user_id, route_id, rec)
 
     # 1) 若有当前章：判断门控/完成度（统一 section_progress，兼容无题库占位章）
-    if current_section_id:
-        cur = get_section(current_section_id)
+    # D135：`current_section_id` 不存在（缓存过期 / 手输）时不能当「当前章」用，
+    # 否则下面会把它原样回显成 target_section_id，点进去是一张空页。
+    cur = get_section(current_section_id) if current_section_id else None
+    if cur:
         prog = await ms.section_progress(user_id, route_id, current_section_id, m_map)
         if prog["completed"]:
             nxt_id = next((x["id"] for x in secs
@@ -133,6 +133,9 @@ async def next_step(user_id: str, route_id: str, current_section_id: str | None)
 
 
 async def weak_top(user_id: str, route_id: str, n: int = 5) -> dict:
+    # D135：`n` 是外部入参，负值在 Python 里是「从尾部切片」（n=-1 → 除最后一条外
+    # 全部 105 条），与单机 `take(n)`（空表）语义相反。两端统一钳制。
+    n = max(0, min(n, 50))
     from services.profile_service import build_profile
     prof = await build_profile(user_id, route_id)
     weak = prof["weak_points"][:n]

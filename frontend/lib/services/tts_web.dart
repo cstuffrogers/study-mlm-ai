@@ -30,6 +30,16 @@ import 'tts_voice_pick.dart';
 /// 当前正在朗读的「条目 id」。null 表示空闲。全局同一时刻只朗读一段。
 final ValueNotifier<String?> ttsCurrent = ValueNotifier<String?>(null);
 
+/// 与原生实现保持 API 一致：Web 端不存在异步初始化，这里只在语音列表就绪时自增。
+final ValueNotifier<int> ttsReadyTick = ValueNotifier<int>(0);
+
+/// 启动时调用：预取浏览器语音列表（拿不到也会在首次朗读时重试）。
+Future<void> ttsInit() async {
+  _ensureVoices();
+  if (_voices.isEmpty) _refreshVoices();
+  ttsReadyTick.value++;
+}
+
 // 正在播放的 <audio>（神经语音路径）。
 html.AudioElement? _audio;
 Timer? _watchdog;

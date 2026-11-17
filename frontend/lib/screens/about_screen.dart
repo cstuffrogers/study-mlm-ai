@@ -2,15 +2,13 @@
 //
 // 设计口径：
 // · 版本/名称/技术栈等有权威来源，直接展示（见 lib/config/app_meta.dart）。
-// · 仓库地址与署名已固定（lib/config/app_meta.dart 的 githubUrl / releasesUrl / author），
-//   页面直接展示并可复制 / 跳转；「编辑项目信息」仅用于本机覆盖（fork 后指向自己的仓库）。
+// · 仓库地址与署名**只出自代码常量**（AppMeta），页面不提供修改入口：
+//   分发出去的客户端不应能把「项目地址」改成本机任意的网址，否则来源无法核验。
+//   fork 者请直接改 lib/config/app_meta.dart 后重新构建。
 // · 打开外链复用项目已有的 services/open_url.dart 门面（Web 新标签页），不新增依赖。
 // · 页面风格沿用功能中心 / LLM 配置页：AuroraBackground + GradientCard + 白卡。
-import 'dart:async' show unawaited;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_meta.dart';
 import '../services/open_url.dart';
@@ -19,142 +17,25 @@ import '../widgets/anim.dart';
 import '../widgets/guide_dialog.dart';
 import 'legal_screen.dart';
 
-class AboutScreen extends StatefulWidget {
+class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  @override
-  State<AboutScreen> createState() => _AboutScreenState();
-}
-
-class _AboutScreenState extends State<AboutScreen> {
-  String _github = AppMeta.githubUrl;
-  String _author = AppMeta.author;
-
-  final _formKey = GlobalKey<FormState>();
-  final _githubCtrl = TextEditingController();
-  final _authorCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _githubCtrl.dispose();
-    _authorCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    try {
-      final sp = await SharedPreferences.getInstance();
-      final g = sp.getString(AppMeta.prefGithubKey) ?? AppMeta.githubUrl;
-      final a = sp.getString(AppMeta.prefAuthorKey) ?? AppMeta.author;
-      if (!mounted) return;
-      setState(() {
-        _github = g;
-        _author = a;
-      });
-    } catch (_) {
-      // 非插件环境（如纯 VM 单测）：保留编译期默认值即可，不影响展示。
-    }
-  }
-
-  Future<void> _persist(String github, String author) async {
-    try {
-      final sp = await SharedPreferences.getInstance();
-      await sp.setString(AppMeta.prefGithubKey, github);
-      await sp.setString(AppMeta.prefAuthorKey, author);
-    } catch (_) {
-      // 本机偏好不可用时仅本次会话生效，不阻塞页面。
-    }
-  }
-
-  void _edit() {
-    _githubCtrl.text = _github;
-    _authorCtrl.text = _author;
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('编辑项目信息'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextFormField(
-                controller: _githubCtrl,
-                autofocus: true,
-                keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  labelText: 'GitHub 仓库地址',
-                  hintText: 'https://github.com/<owner>/<repo>',
-                ),
-                validator: (v) {
-                  final s = (v ?? '').trim();
-                  if (s.isEmpty) return null; // 留空 = 未配置
-                  return AppMeta.isValidUrl(s) ? null : '请填写完整的 http(s) 仓库地址';
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _authorCtrl,
-                decoration: const InputDecoration(
-                  labelText: '作者 / 组织 / 版权',
-                  hintText: '例如：某某（团队）；无 LICENSE 时请一并补齐',
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                '留空表示未配置；仅保存在本机，不会上传。也可直接改 '
-                'lib/config/app_meta.dart 里的默认常量。',
-                style: TextStyle(fontSize: 11.5, height: 1.6, color: AppColors.ink400),
-              ),
-            ]),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          FilledButton(
-            onPressed: () {
-              if (!(_formKey.currentState?.validate() ?? false)) return;
-              final g = _githubCtrl.text.trim();
-              final a = _authorCtrl.text.trim();
-              setState(() {
-                _github = g;
-                _author = a;
-              });
-              Navigator.pop(ctx);
-              unawaited(_persist(g, a));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已保存到本机'), duration: Duration(seconds: 1)),
-              );
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openGithub() {
-    if (!AppMeta.isValidUrl(_github)) return;
-    openExternal(_github);
+  void _openGithub(BuildContext context) {
+    if (!AppMeta.isValidUrl(AppMeta.githubUrl)) return;
+    openExternal(AppMeta.githubUrl);
   }
 
   void _openReleases() => openExternal(AppMeta.releasesUrl);
 
-  void _copyReleases() {
+  void _copyReleases(BuildContext context) {
     Clipboard.setData(const ClipboardData(text: AppMeta.releasesUrl));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已复制下载页地址'), duration: Duration(seconds: 1)),
     );
   }
 
-  void _copyGithub() {
-    if (!AppMeta.isValidUrl(_github)) return;
-    Clipboard.setData(ClipboardData(text: _github));
+  void _copyGithub(BuildContext context) {
+    Clipboard.setData(const ClipboardData(text: AppMeta.githubUrl));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已复制项目地址'), duration: Duration(seconds: 1)),
     );
@@ -195,8 +76,8 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasGithub = AppMeta.isValidUrl(_github);
-    final hasAuthor = _author.trim().isNotEmpty;
+    final hasGithub = AppMeta.isValidUrl(AppMeta.githubUrl);
+    final hasAuthor = AppMeta.author.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -245,12 +126,12 @@ class _AboutScreenState extends State<AboutScreen> {
             ]),
 
             _card('项目地址与作者', [
-              _row('项目地址（GitHub）', hasGithub ? _github : '未配置',
+              _row('项目地址（GitHub）', hasGithub ? AppMeta.githubUrl : '未配置',
                   trailing: hasGithub
                       ? IconButton(
                           tooltip: '复制项目地址',
                           icon: const Icon(Icons.copy_all_outlined, size: 18, color: AppColors.brand),
-                          onPressed: _copyGithub,
+                          onPressed: () => _copyGithub(context),
                           constraints: const BoxConstraints(),
                           padding: EdgeInsets.zero,
                         )
@@ -259,11 +140,11 @@ class _AboutScreenState extends State<AboutScreen> {
                   trailing: IconButton(
                     tooltip: '复制下载页地址',
                     icon: const Icon(Icons.copy_all_outlined, size: 18, color: AppColors.brand),
-                    onPressed: _copyReleases,
+                    onPressed: () => _copyReleases(context),
                     constraints: const BoxConstraints(),
                     padding: EdgeInsets.zero,
                   )),
-              _row('作者 / 版权', hasAuthor ? _author : '未声明'),
+              _row('作者 / 版权', hasAuthor ? AppMeta.author : '未声明'),
               _row('软件许可', '${AppMeta.licenseName}（仅覆盖代码与自撰材料）'),
               const SizedBox(height: 8),
               Text(
@@ -281,14 +162,9 @@ class _AboutScreenState extends State<AboutScreen> {
                   label: const Text('下载最新安卓版'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: hasGithub ? _openGithub : null,
+                  onPressed: hasGithub ? () => _openGithub(context) : null,
                   icon: const Icon(Icons.open_in_new, size: 18),
                   label: const Text('打开 GitHub'),
-                ),
-                TextButton.icon(
-                  onPressed: _edit,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('自定义地址'),
                 ),
               ]),
             ]),
@@ -329,16 +205,10 @@ class _AboutScreenState extends State<AboutScreen> {
               label: const Text('隐私政策 · 用户协议 · 免责声明'),
             ),
             const SizedBox(height: 8),
-            Text(
-              AppMeta.operatorConfigured
-                  ? '运营者：${AppMeta.operatorName}· ${AppMeta.operatorEmail}'
-                  : '运营者信息尚未配置（自用可用，上架应用商店前必须补齐）。',
-              style: const TextStyle(fontSize: 11.5, height: 1.6, color: AppColors.ink400),
-            ),
-            const SizedBox(height: 12),
             const Text(
-              '未配置的字段不会指向任何第三方链接或显示虚构署名。',
-              style: TextStyle(fontSize: 11.5, color: AppColors.ink400),
+              '项目地址与署名来自代码内置常量，客户端不提供修改入口；'
+              '若需指向其他仓库，请修改 lib/config/app_meta.dart 后重新构建。',
+              style: TextStyle(fontSize: 11.5, height: 1.6, color: AppColors.ink400),
             ),
           ],
         ),

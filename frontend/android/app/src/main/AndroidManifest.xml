@@ -2,10 +2,17 @@
     <!-- 默认离线可用；若用户在「AI 对话引擎」里填入自己的大模型 API Key，
          对话需要访问该 https 端点（Key 只存本机，不上传到任何第三方服务）。 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 朗读用系统 TTS 引擎（Android 11+ 需要显式声明才能查询到已安装的语音引擎） -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+    </queries>
     <application
         android:label="唯物·马哲精读"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

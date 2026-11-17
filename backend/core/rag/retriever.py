@@ -19,12 +19,11 @@ import logging
 import math
 import re
 from array import array
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from core.rag.concept_dict import ConceptDictionary
 from core.rag.filter import FiveLayerFilter, TextChunk as FilterChunk, UserQuery
-from core.guard.orthodoxy import OrthodoxyGuard
 from core.prompt.renderer import RAGContext, TextChunk, TermDefinition, Proposition
 
 logger = logging.getLogger(__name__)
@@ -330,10 +329,22 @@ class HybridRetriever:
     # 索引
     # --------------------------------------------------
     def index_chunks(self, chunks: list[dict]) -> None:
-        """建索引——向量 + 图 + chunk 缓存 + 概念集合"""
+        """建索引——向量 + 图 + chunk 缓存 + 概念集合
+
+        同一段正文可能被原文登记两次（《唯物主义和经验批判主义》每章末尾都有一个
+        「注释：」块，编者注从 [53] 起重排，两次入库文字完全相同；源站就这么排，
+        原文一字未改，所以清理点在索引侧而不是正文侧）：这样的分片只索引第一次出现，
+        否则召回里同一句原文占两个名额、引用框里刷两遍。id 仍登记进 `_chunks`，
+        题库/延伸阅读按 id 溯源照旧可用。
+        """
+        seen_text: set[str] = set()
         for c in chunks:
             cid = c["id"]
             self._chunks[cid] = c
+            key = re.sub(r"\s+", "", c.get("text") or "")
+            if key and key in seen_text:
+                continue
+            seen_text.add(key)
             # 词法索引按「分片序号」存倒排，序号顺序必须与 _chunk_ids 一致
             self._lexical.add(len(self._chunk_ids), c["text"])
             self._chunk_ids.append(cid)

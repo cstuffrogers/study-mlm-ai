@@ -15,3 +15,7 @@ numpy>=1.26
 
 # 神经语音朗读（微软 Edge 在线神经语音，后端合成 MP3；可选，缺失时前端回退浏览器语音）
 edge-tts>=7.3.1
+
+# 配置驱动：core/prompt/renderer.py 在**模块顶层** `import yaml`（无 try/except），
+# 缺 PyYAML 时后端起不来 —— 这不是可选依赖，必须写进基础依赖。
+PyYAML>=6.0

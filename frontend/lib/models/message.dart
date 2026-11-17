@@ -12,7 +12,26 @@ enum ChatMode {
 extension ChatModeX on ChatMode {
   String get label => const ['释义', '追问', '辩难', '关联', '应试'][index];
   String get name => const ['explain', 'dig', 'debate', 'connect', 'test'][index];
-  int get color => const [0xFFC8161D, 0xFF10B981, 0xFFD4A017, 0xFFF59E0B, 0xFFD4A017][index];
+  int get color => const [
+        0xFFC8161D, // 释义 · 党旗红
+        0xFF10B981, // 追问 · 翠绿
+        0xFFD4A017, // 辩难 · 扬金
+        0xFFF59E0B, // 关联 · 橙
+        0xFF2563EB, // 应试 · 靖蓝（NFR-019 五模式五色；曾与辩难同为扬金）
+      ][index];
+
+  /// 一句话说明「这个模式会给出什么」。
+  /// 必须与本机引擎 `_compose` 的真实产物一致——不能在界面上承诺它做不到的事。
+  String get desc => const [
+        '逐字引文当依据：概念界定、它不是什么、怎么自查',
+        '只提问不给答案，按原句递进追问三步',
+        '先摆反方质疑（基于本轮引文的强断言），再给回应要点',
+        '概念的上下位与对立关系，加上别部著作的逐字用例',
+        '应试答题架子，并预演一道题、标出得分点',
+      ][index];
+
+  /// 输入框的提示语：让用户发问前就知道当前用哪种方式回答。
+  String get inputHint => '以「$label」追问…';
 }
 
 // C→S 用户消息

@@ -1,7 +1,18 @@
 // 软件使用说明弹窗 — 首页「引导」按钮点击后弹出。
 // 纯 UI，不发网络请求；内容涵盖本系统的主要学习闭环与配置入口。
 import 'package:flutter/material.dart';
+import '../models/message.dart';
 import '../theme/app_theme.dart';
+
+/// 每种模式「什么时候用它」——模式本身（标签 + 会给什么）取自 ChatMode，
+/// 保证界面说明与引擎真实产物一致，不在两处各写一遍。
+const List<String> _whenUse = [
+  '读一段看不懂的原文，先要一个准确的界定和依据',
+  '想自己动脑：只要递进的问题，不要现成答案',
+  '准备跟人辩论，或要应付别人对这句话的质疑',
+  '写文章要找跨著作印证，或把概念和别的书串起来',
+  '临考前要能直接默写的答题骨架与得分点',
+];
 
 /// 弹出《软件使用说明》。可在任意有 BuildContext 的页面调用。
 Future<void> showUsageGuide(BuildContext context) {
@@ -38,8 +49,8 @@ Future<void> showUsageGuide(BuildContext context) {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _GuideSection(
+                  children: [
+                    const _GuideSection(
                       icon: Icons.play_circle_outline,
                       title: '一、开始学习',
                       lines: [
@@ -48,7 +59,7 @@ Future<void> showUsageGuide(BuildContext context) {
                         '3. 学完导读后可点「学完导读，开始章节测试」检验掌握度。',
                       ],
                     ),
-                    _GuideSection(
+                    const _GuideSection(
                       icon: Icons.record_voice_over_outlined,
                       title: '二、深入学习页',
                       lines: [
@@ -58,7 +69,7 @@ Future<void> showUsageGuide(BuildContext context) {
                         '· 「该读哪部分原文」：定位到正文导读段落，并按板块跳到相关原文。',
                       ],
                     ),
-                    _GuideSection(
+                    const _GuideSection(
                       icon: Icons.touch_app_outlined,
                       title: '三、选中文字 → AI 释义',
                       lines: [
@@ -69,10 +80,24 @@ Future<void> showUsageGuide(BuildContext context) {
                       ],
                     ),
                     _GuideSection(
+                      icon: Icons.fork_right_rounded,
+                      title: '四、五种对话模式各给什么　【重点】',
+                      lines: <String>[
+                        '入口：选中一段文字后浮出的小面板，或对话浮窗输入框左侧的彩色胶囊。点一下即可切换，切换后下一条提问才生效。',
+                        '每条回答上方都用文字标出用的是哪种模式（不只靠颜色区分），回答里的引文都带出处。',
+                        for (final m in ChatMode.values) '· ${m.label}：${m.desc}',
+                        '什么时候用哪个：',
+                        for (var i = 0; i < ChatMode.values.length && i < _whenUse.length; i++)
+                          '　　${ChatMode.values[i].label} —— ${_whenUse[i]}',
+                        '同一句原文换模式会拿到完全不同的产物：模式不是换皮，是换产物。拿不准就先看「释义」，它先给逐字引文和出处，再给界定。',
+                        '本机引擎（没配大模型）也照这套产出；配了在线模型则由模型作答，但同样要过立场层。',
+                      ],
+                    ),
+                    const _GuideSection(
                       icon: Icons.swap_horiz_rounded,
-                      title: '四、对话浮窗里的「批判性阅读」按钮　【重点】',
+                      title: '五、对话浮窗里的「批判性阅读」按钮　【重点】',
                       lines: [
-                        '· 位置：AI 对话浮窗顶部标题栏、模式下拉框右侧的双向箭头 ⇄ 按钮（红色高亮为「开」，白色为「关」）。',
+                        '· 位置：AI 对话浮窗顶部标题栏右侧的双向箭头 ⇄ 按钮（红色高亮为「开」，白色为「关」）。',
                         '· 用法：默认关闭；点一下开启后，再发送的问题才会按批判性阅读模式回答，已生成的回答不会变化。开关状态会保留（收起浮窗再打开、切换章节仍在），直到你再点一次关掉或重启应用。',
                         '· 作用：仅当需要涉及西方马克思主义、修正主义等非正统概念时才生效。系统不是把它们当作「另一种视角」中立介绍，而是以「指出其错误」的批判姿态呈现，并用【批判对象·非借鉴】…【/批判对象】标记包住，说明错在哪、与正统原理如何对立；标记外仍只用正统原理解释。',
                         '· 与「辩难」模式的区别：辩难模式是让你练习批判历史上的唯心主义/机械唯物主义；本按钮用于阅读非正统文本时的概念防火墙，二者互不等价。',
@@ -81,10 +106,10 @@ Future<void> showUsageGuide(BuildContext context) {
                     ),
                     _GuideSection(
                       icon: Icons.tune_outlined,
-                      title: '五、功能中心与大模型 API',
+                      title: '六、功能中心与大模型 API',
                       lines: [
-                        '· 首页右上四个图标即可进入：功能中心（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / LLM 大模型 API 配置 / 关于）、学习路线、学习分析、本使用说明。',
-                        '· 「关于」里可查看客户端版本、内容数据版本、项目地址与作者，并补填尚未配置的仓库链接或署名。',
+                        '· 首页右上四个图标即可进入：功能中心（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / LLM 大模型 API 配置 / 本机数据 / 关于）、学习路线、学习分析、本使用说明。',
+                        '· 「关于」里可查看客户端版本、内容数据版本、项目地址与作者；地址与署名是代码内置的固定值，客户端不提供修改入口（改了不生效，需重新构建）。',
                         '· 「LLM 大模型 API 配置」里填写 API Key / Base URL / 模型名即可启用在线大模型（OpenAI 兼容端点）；可先点「测试连接」。',
                         '· 密钥只存在本机、不上传；保存后下一次提问即生效。不填密钥、断网或调用失败时自动回退本机引擎，回答上方会标出「本机引擎」还是「在线模型」。',
                         '· 推理型模型建议保持「关闭思维链」开启，并把对话超时设为 30 秒以上，否则可能因响应过慢回退本机引擎。',
@@ -93,10 +118,20 @@ Future<void> showUsageGuide(BuildContext context) {
                     ),
                     _GuideSection(
                       icon: Icons.menu_book_outlined,
-                      title: '六、关于原文',
+                      title: '七、关于原文',
                       lines: [
                         '· 标「有原文」的章节，正文随安装包内置（构建期由 sources/texts 导出），阅读器中的文字均为原文照录。',
                         '· 内容库里没有逐条标注的导读型知识点，只提供「相关原文」入口，其中片段为关键词检索所得、非逐条权威溯源，绝不冒充权威溯源。',
+                      ],
+                    ),
+                    const _GuideSection(
+                      icon: Icons.shield_outlined,
+                      title: '八、升级与数据保留　【重点】',
+                      lines: [
+                        '· 覆盖安装新版本不会清空本机数据。对话记录、学习记录（答题流水与测验）、学情（掌握度与校准）、章节进度、原文笔记/书签/划线、原文阅读进度、大模型 API 设置全部原样保留——前提是安装官方包（包名与签名一致）。',
+                        '· 会丢数据的只有三种情况：卸载重装、换手机、在系统设置里「清除应用数据」。这三种请先到「功能中心 → 本机数据 → 复制备份」，把那段 JSON 存一份；新机上再「从剪贴板恢复」。',
+                        '· 恢复是合并式的：同名记录以备份为准，本机有而备份里没有的数据不会被删除。API Key 出于安全不进备份，换机恢复后到大模型配置页重填一次即可，其余设置一并回来。',
+                        '· 所有数据只存本机（不注册、不上传），卸载应用即一并删除，请自行留底。',
                       ],
                     ),
                   ],

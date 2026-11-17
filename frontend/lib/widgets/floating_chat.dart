@@ -222,42 +222,8 @@ class _FloatingChatState extends State<FloatingChat> {
                   style: TextStyle(
                       fontSize: 11, color: Colors.white.withValues(alpha: 0.9))),
             ),
-            // 模式下拉
-            Container(
-              height: 30,
-              padding: const EdgeInsets.only(left: 8, right: 2),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.85)),
-              ),
-              child: DropdownButton<ChatMode>(
-                value: widget.currentMode,
-                underline: const SizedBox(),
-                isDense: true,
-                dropdownColor: AppColors.brandDeep,
-                borderRadius: BorderRadius.circular(8),
-                iconSize: 20,
-                iconEnabledColor: AppColors.gold,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Deng',
-                    fontFamilyFallback: ['Deng', 'Roboto', 'WarnSym']),
-                items: ChatMode.values
-                    .map((m) => DropdownMenuItem(
-                        value: m,
-                        child: Text(m.label,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'Deng',
-                                fontFamilyFallback: ['Deng', 'Roboto', 'WarnSym']))))
-                    .toList(),
-                onChanged: (m) => m != null ? widget.onModeChanged(m) : null,
-              ),
-            ),
+            // 模式选择已移到输入框左侧（与「这次提问怎么回答」放在一起），
+            // header 只保留引擎状态与全局开关，避免两处都能改模式且窄屏互挤。
             // 批判性阅读开关：图标 + 文字 + 开/关状态，避免只靠 tooltip 才能看懂。
             // 点开后仅对「之后发送」的问题生效；再点一次关闭。
             Tooltip(
@@ -413,24 +379,45 @@ class _FloatingChatState extends State<FloatingChat> {
                   padding: EdgeInsets.only(top: 6),
                   child: Text(
                       '↔ 可点标题栏「批判 开」开启批判性阅读，再点「重试」重新提问；'
-                      '该模式会以指出错误的方式呈现非正统概念。',
+                      '该开关会以指出错误的方式呈现非正统概念。',
                       style: TextStyle(fontSize: 10.5, height: 1.4,
                           color: Color(0xFFB91C1C))),
                 ),
             ]),
           )
         else ...[
-          if (t.engine.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(children: [
+          // 每条回答都标明「这条是哪个模式生成的」：不能只靠左边细线的颜色去猜，
+          // 尤其辩难/应试曾经同色，用户根本分不出。
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Color(modeColor).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                    ChatMode.values
+                        .firstWhere((m) => m.name == t.mode,
+                            orElse: () => ChatMode.explain)
+                        .label,
+                    style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(modeColor),
+                        fontFamily: 'Deng',
+                        fontFamilyFallback: const ['Deng', 'Roboto', 'WarnSym'])),
+              ),
+              if (t.engine.isNotEmpty) ...[
+                const SizedBox(width: 5),
                 Icon(
                     t.engine.startsWith('cloud')
                         ? Icons.cloud_done_rounded
                         : Icons.offline_bolt_rounded,
                     size: 12,
                     color: AppColors.ink400),
-                const SizedBox(width: 4),
+                const SizedBox(width: 3),
                 Expanded(
                   child: Text(_engineLabel(t.engine, t.engineNote),
                       maxLines: 1,
@@ -438,8 +425,9 @@ class _FloatingChatState extends State<FloatingChat> {
                       style: const TextStyle(
                           fontSize: 10.5, color: AppColors.ink400)),
                 ),
-              ]),
-            ),
+              ],
+            ]),
+          ),
           Row(mainAxisAlignment: MainAxisAlignment.end, children: [
             SpeakButton(
               id: 'fc-ai-$index-${t.mode}',
@@ -475,6 +463,9 @@ class _FloatingChatState extends State<FloatingChat> {
     if (engine.startsWith('cloud:')) {
       return '在线模型 · ${engine.substring('cloud:'.length)}';
     }
+    // 联网版同一提问二次提问会命中服务端精确缓存，回答不重算但也不是本机答的
+    if (engine == 'cache') return '缓存回答（同一提问此前生成过）';
+    if (engine == 'cloud') return '在线模型';
     if (engine == 'local:guard-fallback') return '本机引擎（在线回答被立场层拦截）';
     if (note == 'not-configured') return '本机检索引擎 · 未配置 API Key（回答为原文摘录）';
     if (note == 'empty-reply') return '本机引擎（在线模型返回空正文）';
@@ -554,6 +545,78 @@ class _FloatingChatState extends State<FloatingChat> {
     return out;
   }
 
+  /// 输入区左侧的模式选择：模式决定「这次提问怎么回答」，必须与输入框同处一行，
+  /// 否则用户在底部打字时看不见当前模式，切换模式还得爬到顶部去找。
+  Widget _modeChip() {
+    final cur = widget.currentMode;
+    final color = Color(cur.color);
+    const fam = ['Deng', 'Roboto', 'WarnSym'];
+    return PopupMenuButton<ChatMode>(
+      initialValue: cur,
+      onSelected: (m) => widget.onModeChanged(m),
+      tooltip: '对话模式：${cur.label}｜${cur.desc}',
+      position: PopupMenuPosition.over,
+      itemBuilder: (_) => [
+        for (final m in ChatMode.values)
+          PopupMenuItem<ChatMode>(
+            value: m,
+            height: 46,
+            child: Row(children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration:
+                    BoxDecoration(color: Color(m.color), shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(m.label,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: m == cur
+                                ? Color(m.color)
+                                : AppColors.ink700,
+                            fontFamily: 'Deng',
+                            fontFamilyFallback: fam)),
+                    Text(m.desc,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 10.5, color: AppColors.ink400)),
+                  ],
+                ),
+              ),
+              if (m == cur) Icon(Icons.check_rounded, size: 16, color: color),
+            ]),
+          ),
+      ],
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.only(left: 8, right: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: color.withValues(alpha: 0.55)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(cur.label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                  fontFamily: 'Deng',
+                  fontFamilyFallback: fam)),
+          Icon(Icons.arrow_drop_down, size: 18, color: color),
+        ]),
+      ),
+    );
+  }
+
   Widget _inputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
@@ -562,12 +625,14 @@ class _FloatingChatState extends State<FloatingChat> {
         border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: Row(children: [
+        _modeChip(),
+        const SizedBox(width: 6),
         Expanded(
           child: TextField(
             controller: _input,
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
-              hintText: '输入追问...',
+              hintText: widget.currentMode.inputHint,
               isDense: true,
               filled: true,
               fillColor: AppColors.surface,

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass
@@ -19,3 +18,5 @@ class LLMResponse:
     text: str
     source: str                     # cache/mock/cloud
     cached: bool = False
+    model: str = ""                 # source=cloud 时的模型名（界面徽标用）
+    note: str = ""                  # source=mock 时降级原因：not-configured / failed:<原因>

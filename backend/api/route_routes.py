@@ -1,7 +1,7 @@
 """路线与导航 API"""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from services.learning_startup import ensure_learning_ready
@@ -50,7 +50,11 @@ async def start_diagnostic(route_id: str, body: SelectIn) -> dict:
 @router.post("/diagnostic/{diag_id}/submit")
 async def submit_diagnostic(diag_id: str, body: DiagnosticSubmitIn) -> dict:
     await ensure_learning_ready()
-    return await quiz_service.submit_diagnostic(diag_id, body.user_id, body.answers)
+    try:
+        return await quiz_service.submit_diagnostic(diag_id, body.user_id, body.answers)
+    except ValueError as e:
+        # D135：`diag` 查不到时原先是 `diag.route_id` → AttributeError（500）。
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/{route_id}/sections/{section_id}/gating")
@@ -68,6 +72,11 @@ async def section_guide(route_id: str, section_id: str) -> dict:
     的 source_chunk_id 为准，不改动任何知识点数据。
     """
     guide = guide_for(section_id)
+    if guide is None:
+        # D135：未知章节原先一路走到 `block_links(None, ...)` →
+        # `AttributeError: 'NoneType' object has no attribute 'get'`，生产上是 500。
+        # 章节导读没有兜底内容，给 404 才是事实（与 `/api/guide/{sid}` 不存在时一致）。
+        raise HTTPException(status_code=404, detail=f"章节不存在: {section_id}")
     nodes = nodes_for_section(section_id)
     sec = get_section(section_id) or {}
     local_work = (sec.get("local_work") or "").strip()

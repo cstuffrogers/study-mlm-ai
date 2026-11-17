@@ -193,6 +193,15 @@ class OfflineContent {
     return List<Map<String, dynamic>>.from(_chunksByWork[work] ?? const []);
   }
 
+  /// 只读视图：不做 List.from 拷贝。检索热路径（全库 2 万多段扫描）用它，
+  /// 调用方**不得修改**返回的 list 或其中的 map。
+  static List<Map<String, dynamic>> get allChunksView => _chunks;
+
+  static List<Map<String, dynamic>> chunksOfWorkView(String work) {
+    if (work == 'all' || work == '' || work == '_') return _chunks;
+    return _chunksByWork[work] ?? const [];
+  }
+
   static String workOfChunk(String chunkId) => chunk(chunkId)?['source'] as String? ?? '';
 
   static List<Map<String, dynamic>> chunksForParagraph(String paragraphId) =>

@@ -14,7 +14,6 @@ from sqlalchemy import select
 from core.config import QUIZ_SIZE_MIN, QUIZ_SIZE_MAX
 from services.learning_db import session_scope
 from services import mastery_service as ms
-from services.learning_db import session_scope as _ss
 from core.verify.triple_check import TripleCheck
 from core.guard.orthodoxy import OrthodoxyGuard
 from content.knowledge_graph import get_node
@@ -523,6 +522,8 @@ async def submit_diagnostic(diag_id: str, user_id: str, answers: list[dict]) -> 
     async with session_scope() as s:
         res = await _exec(s, select(DiagnosticTest).where(DiagnosticTest.id == diag_id))
         diag = res.scalars().first()
+        if diag is None:
+            raise ValueError(f"诊断测试不存在或已过期: {diag_id}")
         route_id = diag.route_id
         item_ids = diag.item_ids
         res = await _exec(s, select(QuizItem).where(QuizItem.id.in_(item_ids)))

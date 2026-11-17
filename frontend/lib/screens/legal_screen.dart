@@ -6,8 +6,9 @@
 // · 内容库含 229 部原著，需要如实交代来源与仍在保护期内的部分，不做模糊表述。
 //
 // 口径纪律（与本项目其他「如实展示」页面一致）：
-// · **不编造**运营者名称、邮箱、备案号。未配置就显示「未配置」并给出待办横幅，
-//   由运营者改 lib/config/app_meta.dart 填入真实值。
+// · **不编造**运营者名称、邮箱、备案号。有就如实展示；没有就不展示这几行，
+//   **不在用户可见页面写「未配置」待办**（那是开发方的事，不是使用者需要的信息）。
+//   需要补齐时改 lib/config/app_meta.dart，见 CONTENT-NOTICE.md。
 // · 版权到期日按《著作权法》一般作品口径（作者终生 + 死后 50 年，截止于第 50 年
 //   12 月 31 日）如实计算并写明；**具体法律结论请咨询专业人士**，页面不代替法律意见。
 import 'package:flutter/material.dart';
@@ -26,7 +27,6 @@ class LegalScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
         children: [
-          if (!AppMeta.operatorConfigured) _todoBanner(),
           _card('一、免责声明', [
             _p('本应用是**个人学习用途的非官方项目**，与人民出版社、中央编译局、'
                 '各级党校及任何政党、政府机构均无隶属、授权或合作关系。'),
@@ -47,7 +47,8 @@ class LegalScreen extends StatelessWidget {
             _bullet('偏好设置：字号、主题、朗读音色等'),
             _bullet('AI 大模型配置：你自行填写的 API Key、接口地址、模型名'),
             _p('以上数据全部保存在本机（SharedPreferences / 应用私有目录），'
-                '**不会上传**，卸载应用即随之删除。'),
+                '**不会上传**，也不参与系统自动云备份；卸载应用即随之删除。'
+                '换机或重装前，可到「功能中心 → 本机数据」把数据备份成一段文本带过去。'),
             _h('唯一可能的外发请求'),
             _p('只有当你**自己**在「AI 大模型 API 配置」里填好 API Key、接口地址、'
                 '模型名三项并主动提问时，应用才会把你输入的**问题文本**、'
@@ -94,7 +95,8 @@ class LegalScreen extends StatelessWidget {
             _p('本应用对上述正文**不主张任何权利**，也不能就正文向任何人授权；'
                 '正文的权利始终属于各作者、译者与出版者。'),
             _p('**异议处理**：著作权人、译者或出版者如认为本应用收录的作品'
-                '超出可接受范围，请通过下方联系方式告知作品名与权利依据；'
+                '超出可接受范围，请通过应用「关于」页所示的项目仓库提交 Issue'
+                '（或在页末联系方式中告知），并附作品名与权利依据；'
                 '收到有效通知后，本应用承诺在**七日内移除相关作品**。'),
             _p('**上述为事实说明，不构成法律意见。**'
                 '公开分发前请就具体书目咨询专业人士。'),
@@ -108,17 +110,21 @@ class LegalScreen extends StatelessWidget {
             _p('模型可能产生错误或虚构内容（俗称「幻觉」），'
                 '请勿把 AI 回答当作原著引文使用。'),
           ]),
-          _card('六、运营者与联系方式', [
-            _row('运营者', AppMeta.operatorName.isEmpty ? '未配置' : AppMeta.operatorName),
-            _row('联系邮箱', AppMeta.operatorEmail.isEmpty ? '未配置' : AppMeta.operatorEmail),
-            _row('APP 备案号', AppMeta.appFilingNo.isEmpty ? '未配置' : AppMeta.appFilingNo),
+          _card('六、版本与异议处理', [
+            // 未配置运营者时**不展示**「未配置」占位 —— 对使用者来说那是开发者待办，
+            // 不是需要他关心的信息。有配置就如实展示，没有就只说版本与异议渠道。
+            if (AppMeta.operatorConfigured) ...[
+              _row('运营者', AppMeta.operatorName),
+              if (AppMeta.operatorEmail.isNotEmpty) _row('联系邮箱', AppMeta.operatorEmail),
+              if (AppMeta.appFilingNo.isNotEmpty) _row('APP 备案号', AppMeta.appFilingNo),
+            ],
             _row('本页版本', AppMeta.contentNoticeVersion),
             const SizedBox(height: 8),
             Text(
-              AppMeta.operatorConfigured
+              AppMeta.operatorEmail.isNotEmpty
                   ? '如对本页内容有异议（含版权问题），请通过上述邮箱联系。'
-                  : '运营者信息尚未填写：请在 lib/config/app_meta.dart 里补齐 '
-                      'operatorName / operatorEmail / appFilingNo 后再发布。',
+                  : '如对本页内容有异议（含版权问题），请通过应用「关于」页所示的项目仓库'
+                      '提交 Issue，并附作品名与权利依据。',
               style: const TextStyle(fontSize: 11.5, height: 1.65, color: AppColors.ink500),
             ),
           ]),
@@ -126,29 +132,6 @@ class LegalScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _todoBanner() => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.goldSoft,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: AppColors.gold),
-        ),
-        child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.report_problem_outlined, size: 18, color: AppColors.warning),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              // 注意：这里是普通 Text，不经过 _Rich，所以不要写 **加粗** 标记
-              '运营者信息未配置：本页可用于自用与内部测试，但不能直接用于应用商店上架。'
-              '发布前请在 lib/config/app_meta.dart 填入 operatorName / operatorEmail / '
-              'appFilingNo（APP 备案号）。',
-              style: TextStyle(fontSize: 12, height: 1.6, color: AppColors.ink700),
-            ),
-          ),
-        ]),
-      );
 
   Widget _card(String title, List<Widget> children) => Container(
         margin: const EdgeInsets.only(bottom: 12),

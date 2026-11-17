@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Any, Optional
 
 
 class ClientMessageType(str, Enum):
@@ -101,6 +100,10 @@ class AiMessageOut(BaseModel):
     provenance: list[ProvenanceCard] = Field(default_factory=list)
     source_chunks: list[dict] = Field(default_factory=list)  # 结构化相关原文（非逐条权威溯源）
     instant_summary: dict = Field(default_factory=dict)  # US2 每轮即时小结+检验问题
+    # 作答引擎标注（与单机版同口径）：cloud:<模型> / local / cache
+    engine: str = ""
+    engine_note: str = ""   # source=mock 时：not-configured / failed:<原因>
+    llm_source: str = ""    # 原始路由层：cache / mock / cloud（排查用）
 
 
 class StruggleDetectedOut(BaseModel):

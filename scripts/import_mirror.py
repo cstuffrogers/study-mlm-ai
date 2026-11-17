@@ -32,7 +32,6 @@ import html
 import os
 import re
 import sys
-import unicodedata
 from pathlib import Path
 
 # 镜像根目录：默认指向本机下载的离线镜像，可用环境变量 XXMZ_MIRROR 覆盖。

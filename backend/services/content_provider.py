@@ -8,7 +8,7 @@
 
 本模块被 chunk 路由与阅读/溯源前端共用，保证轻量模式下不再 500。
 
-性能：全库约 1.8 万分片。原先 get_chunk / chunks_by_work / chunks_for_paragraph
+性能：全库约 2.2 万分片。原先 get_chunk / chunks_by_work / chunks_for_paragraph
 每次线性扫描全表（单次毫秒级、但阅读页/溯源卡一次请求会连查多次）。这里改为
 首次构建一次性索引（id 字典 + 按著作 + 按段落），后续 O(1)/O(k) 读取。
 索引与 _all_chunks 同为进程内只读缓存，构建后不再失效（数据是打包的静态内容）。
@@ -48,14 +48,58 @@ def _index_by_paragraph() -> dict[str, tuple[dict, ...]]:
     return {k: tuple(v) for k, v in idx.items()}
 
 
+# 我们自己写的注释层（第 3/4 层）不是原著，不该出现在「原著浏览」书单里。
+_NON_ORIGINAL_TYPES = frozenset({"annotation", "analysis"})
+
+
+@lru_cache(maxsize=1)
+def _original_works() -> frozenset[str]:
+    """分片全部是注释/解析层的「书」——是内部合成层，不是原著。"""
+    types: dict[str, set[str]] = {}
+    for c in _all_chunks():
+        s = c.get("source", "")
+        if not s:
+            continue
+        types.setdefault(s, set()).add(str(c.get("logical_type") or ""))
+    return frozenset(
+        w for w, ts in types.items() if ts and ts <= _NON_ORIGINAL_TYPES
+    )
+
+
 @lru_cache(maxsize=1)
 def _works() -> tuple[str, ...]:
+    hidden = _original_works()
     seen: list[str] = []
     for c in _all_chunks():
         s = c.get("source", "")
-        if s and s not in seen:
+        if s and s not in seen and s not in hidden:
             seen.append(s)
     return tuple(seen)
+
+
+def works_meta() -> list[dict]:
+    """书籍清单（含作者 / 分片数）——原著浏览页搜索、分组、跳转都用它。
+
+    作者只在已登记的正文文件（BOOKS）里带；《提纲》原文由 theses_raw 提供，
+    注释/解析层来自统编教材。查不到作者就留空（前端显示「作者未标注」），不猜。
+    """
+    from content.book_chunks import BOOKS
+    from content.theses_raw import WORK_TITLE
+
+    authors: dict[str, str] = {str(b.get("work", "")): str(b.get("author", "")) for b in BOOKS}
+    authors.setdefault(WORK_TITLE, "马克思")
+
+    out: list[dict] = []
+    for w in works():
+        items = chunks_by_work(w)
+        out.append({
+            "work": w,
+            "author": authors.get(w, ""),
+            "chunk_count": len(items),
+            "first_chunk_id": items[0]["id"] if items else "",
+            "is_book": w in authors,
+        })
+    return out
 
 
 @lru_cache(maxsize=1)

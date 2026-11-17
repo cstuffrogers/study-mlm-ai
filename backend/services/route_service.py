@@ -9,10 +9,8 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
-from services.learning_db import session_scope
 from services import mastery_service as ms
-from content.routes import ROUTES, sections_for_route, get_section, stage_label
-from model.models_learning import LearningRoute, RouteSection
+from content.routes import ROUTES, sections_for_route, stage_label
 
 
 async def list_routes() -> list[dict]:

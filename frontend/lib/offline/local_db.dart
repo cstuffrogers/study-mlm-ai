@@ -8,17 +8,19 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_config.dart';
+import 'local_store_keys.dart';
 
 class LocalDb {
   LocalDb._();
 
-  static const String _kMastery = 'off_mastery';
-  static const String _kProgress = 'off_progress';
-  static const String _kAttempts = 'off_attempts';
-  static const String _kTests = 'off_tests';
-  static const String _kDialogues = 'off_dialogues';
-  static const String _kSettings = 'off_settings';
-  static const String _kSignals = 'off_signals';
+  // 键名统一登记在 local_store_keys.dart：改键名等于把老用户数据丢在旧键里。
+  static const String _kMastery = LocalStoreKeys.mastery;
+  static const String _kProgress = LocalStoreKeys.progress;
+  static const String _kAttempts = LocalStoreKeys.attempts;
+  static const String _kTests = LocalStoreKeys.tests;
+  static const String _kDialogues = LocalStoreKeys.dialogues;
+  static const String _kSettings = LocalStoreKeys.settings;
+  static const String _kSignals = LocalStoreKeys.signals;
 
   static SharedPreferences? _prefs;
   static bool _memoryOnly = false;
@@ -157,5 +159,22 @@ class LocalDb {
     settings = {};
     signals = [];
     await flush();
+  }
+
+  /// 仅供测试：丢掉内存缓存并重新从本机读取（模拟「升级后重启应用」）。
+  /// 不会删除任何已存数据。
+  @visibleForTesting
+  static void reloadForTest() {
+    _prefs = null;
+    _memoryOnly = false;
+    _ready = false;
+    _loading = null;
+    mastery = {};
+    progress = {};
+    attempts = [];
+    tests = {};
+    dialogues = {};
+    settings = {};
+    signals = [];
   }
 }

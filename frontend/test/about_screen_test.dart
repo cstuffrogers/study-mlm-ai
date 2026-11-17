@@ -8,8 +8,11 @@ import 'package:marxism_reader/theme/app_theme.dart';
 void main() {
   test('元信息口径：版本号有权威来源；仓库地址与署名已固定且可校验', () {
     expect(AppMeta.appName, '唯物 · 马哲精读');
-    expect(AppMeta.clientVersion, '1.2.1+10');
-    expect(AppMeta.clientVersionLabel, contains('1.2.1'));
+    // 版本号本身不写死（改版本就报红没意义），只校验形态与两处同步，
+    // 真正的同步门禁在 version_sync_test.dart。
+    expect(AppMeta.clientVersion, matches(RegExp(r'^\d+\.\d+\.\d+\+\d+$')));
+    expect(AppMeta.clientVersionLabel,
+        contains(AppMeta.clientVersion.split('+').first));
     expect(AppMeta.serverVersion, '0.1.0-mvp');
     // 仓库已上线：地址固定、必须是合法 URL、且指向真实仓库（不是 example 占位）
     expect(AppMeta.githubUrl, 'https://github.com/cstuffrogers/study-mlm-ai');
@@ -46,7 +49,7 @@ void main() {
     expect(find.text('软件信息'), findsOneWidget);
     expect(find.text('项目地址与作者'), findsOneWidget);
     expect(find.text('唯物 · 马哲精读'), findsWidgets); // Hero 卡 + 软件信息行
-    expect(find.textContaining('1.2.1'), findsWidgets);
+    expect(find.textContaining(AppMeta.clientVersion.split('+').first), findsWidgets);
     expect(find.text('0.1.0-mvp（构建期导出 assets/offline）'), findsOneWidget);
     // 地址已固定：直接展示真实仓库、可复制、可跳转、可下载
     expect(find.textContaining('github.com/cstuffrogers/study-mlm-ai'),
@@ -60,16 +63,18 @@ void main() {
     final dlBtn = find.widgetWithText(FilledButton, '下载最新安卓版');
     expect(dlBtn, findsOneWidget);
     expect(tester.widget<FilledButton>(dlBtn).onPressed, isNotNull);
-    // 有自定义入口与使用说明
-    expect(find.text('自定义地址'), findsOneWidget);
+    // 地址不可在客户端改（不接受「自定义地址」入口），但使用说明必须有
+    expect(find.text('自定义地址'), findsNothing);
     expect(find.text('查看软件使用说明'), findsOneWidget);
+    // 关于页不再暴露「运营者信息未配置」这类待办提示
+    expect(find.textContaining('运营者信息尚未配置'), findsNothing);
     // 合规入口：隐私政策 / 用户协议 / 免责声明 必须能从关于页直接打开
     expect(find.text('隐私政策 · 用户协议 · 免责声明'), findsOneWidget);
 
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('自定义地址：改成本机覆盖值后仍生效（fork 场景）', (tester) async {
+  testWidgets('地址固定不可在客户端修改（无编辑入口、无表单）', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 1800));
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.build(),
@@ -79,23 +84,12 @@ void main() {
     await tester.tap(find.text('关于'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('自定义地址'));
-    await tester.pumpAndSettle();
-    expect(find.text('GitHub 仓库地址'), findsOneWidget);
-    expect(find.text('作者 / 组织 / 版权'), findsOneWidget);
-
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'GitHub 仓库地址'),
-        'https://github.com/example-owner/xxmz');
-    await tester.enterText(
-        find.widgetWithText(TextFormField, '作者 / 组织 / 版权'), '测试作者');
-    await tester.tap(find.widgetWithText(FilledButton, '保存'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('example-owner/xxmz'), findsWidgets);
-    expect(find.text('测试作者'), findsOneWidget);
-    expect(tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, '打开 GitHub')).onPressed, isNotNull);
+    // 没有任何可改为任意地址的控件
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    expect(find.textContaining('自定义'), findsNothing);
+    expect(find.byType(TextFormField), findsNothing);
+    // 展示的一律是代码常量
+    expect(find.textContaining(AppMeta.githubUrl), findsWidgets);
 
     await tester.binding.setSurfaceSize(null);
   });

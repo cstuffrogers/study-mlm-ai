@@ -2,7 +2,7 @@
 //
 // 口径说明（务必如实，不要拿第三方链接/署名冒充本项目）：
 // · appName / productName / tagline 取自 lib/main.dart:32、web/manifest.json、根 README.md:1。
-// · clientVersion 取自 pubspec.yaml（1.2.0+9 单机版），**改版本号时两处必须同步**；
+// · clientVersion 取自 pubspec.yaml，**改版本号时两处必须同步**（有测试盯着，见 version_sync_test.dart）；
 //   serverVersion 取自离线内容资源导出版本（沿用 0.1.0-mvp）。二者是两套编号体系，页面分别标注。
 // · githubUrl / releasesUrl / author：仓库已上线，地址**固定**在这里（2026-11-16 建库）。
 //   用户仍可在「关于」页点「编辑项目信息」做本机覆盖（用于 fork 后指向自己的仓库）。
@@ -11,7 +11,7 @@ class AppMeta {
   static const appName = '唯物 · 马哲精读';
   static const productName = '正统马哲深度学习系统';
   static const tagline = '三路线 · 逐章精读 · AI 测试';
-  static const clientVersion = '1.2.1+10';
+  static const clientVersion = '1.3.0+11';
   static const serverVersion = '0.1.0-mvp';
   static const packageName = 'marxism_reader';
 

@@ -13,7 +13,7 @@ import logging
 import re
 from typing import Any
 
-from core.guard.orthodoxy import OrthodoxyGuard, CRITICAL_OBJECTS
+from core.guard.orthodoxy import OrthodoxyGuard
 
 logger = logging.getLogger(__name__)
 

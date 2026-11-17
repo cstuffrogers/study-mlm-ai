@@ -24,17 +24,22 @@ class LocalInsight {
       radar[dim]?.add(score);
       final lv = rec == null ? 'unseen' : '${rec['level'] ?? 'unseen'}';
       dist[lv] = (dist[lv] ?? 0) + 1;
-      if (rec == null) continue;
+      // D136：与后端 `profile_service.build_profile()` 同口径 —— **未评估节点也算薄弱点**
+      // （score 默认 0.0，level 记 unseen）。原先 `if (rec == null) continue;` 让全新用户的
+      // 薄弱点整块空白，而联网侧有 106 条。
       if (score >= 0.8) continue;
       final examWeight = dnum(n['exam_weight'], 1.0);
       weak.add({
         'node_id': nodeId,
         'name': n['name'],
         'score': score,
-        'level': rec['level'],
+        'level': rec?['level'] ?? 'unseen',
         'section_id': n['section_id'],
-        'error_category':
-            '${((rec['basis'] as Map?) ?? const {})['error_category'] ?? ''}',
+        'error_category': rec == null
+            ? ''
+            : '${((rec['basis'] as Map?) ?? const {})['error_category'] ?? ''}',
+        // 后端 `profile_service.build_profile()` 也会给 reason（未读，但键要对齐）。
+        'reason': rec == null ? _weakReason(const {}) : _weakReason(rec),
         'blocking_sections': LocalMastery.blockingSections(nodeId),
         'dependents_count': LocalMastery.dependentsCount(nodeId),
         'impact': round4((1 - score) *
@@ -42,7 +47,12 @@ class LocalInsight {
             examWeight),
       });
     }
-    weak.sort((a, b) => dnum(b['impact']).compareTo(dnum(a['impact'])));
+    // D136：并列按 node_id 升序（后端同为 `(-_rank, node_id)`）。
+    // Dart `List.sort` 不稳定，只比 impact 时同分项顺序随实现漂移。
+    weak.sort((a, b) {
+      final c = dnum(b['impact']).compareTo(dnum(a['impact']));
+      return c != 0 ? c : '${a['node_id']}'.compareTo('${b['node_id']}');
+    });
     final ability = <String, dynamic>{};
     radar.forEach((dim, v) {
       if (v.isEmpty) return;
@@ -51,14 +61,35 @@ class LocalInsight {
     return {
       'route_id': routeId,
       'ability_radar': ability,
-      'weak_points': weak.take(6).toList(),
+      // D136：后端 `build_profile()` 回**全量**薄弱点（由 `weak_top(n)` 负责切片），
+      // 单机原先硬截 6 条 → `weak-top?n=50` 在线 50 条、单机永远 ≤6 条。
+      'weak_points': weak,
       'mastery_distribution': dist,
       'assessed_nodes': OfflineContent.allNodes
           .where((n) => mastery.containsKey('${n['id']}'))
           .length,
       'total_nodes': OfflineContent.allNodes.length,
       'summary': summaryText(weak),
+      // 与后端 `profile_service.build_profile()` 同键：档案编译时间。
+      'updated_at': nowIso(),
     };
+  }
+
+  static const Map<String, String> _errLabels = {
+    'stance_deviation': '立场偏差',
+    'concept_layer_confusion': '概念层次混淆',
+    'real_unknown': '知识盲点',
+    'concept_application': '应用迁移不足',
+    'term_misuse': '术语误用',
+  };
+
+  /// 与后端 `profile_service.build_profile()` 的 weak `reason` 同式。
+  static String _weakReason(Map<String, dynamic> rec) {
+    final cat = '${((rec['basis'] as Map?) ?? const {})['error_category'] ?? ''}';
+    final label = _errLabels[cat] ?? '';
+    return label.isEmpty
+        ? '掌握度低×依赖出度高×考频高'
+        : '$label×掌握度低×依赖出度高×考频高';
   }
 
   static String summaryText(List<Map<String, dynamic>> weak) {
@@ -106,23 +137,91 @@ class LocalInsight {
     };
   }
 
+  /// 节点详情。与后端 `/api/mastery/node/{id}` 同键（D134）：
+  ///  · `node_id` / `signals` / `definition` 原先缺 → 单机节点页「定义」永远空、
+  ///    证据信号区为空；
+  ///  · `prerequisites` / `dependents` 后端给的是**带掌握度的简要对象**（`node_id`/
+  ///    `name`/`section_id`/`level`/`score`），单机原先直传 id 字符串列表，界面
+  ///    会显示成 id（如果是按对象读则一片空白）。
   static Map<String, dynamic> nodeDetail(String nodeId, String routeId) {
     final node = OfflineContent.node(nodeId);
-    if (node == null) return {'error': 'not_found', 'node_id': nodeId};
-    final rec = LocalMastery.masteryMap(routeId)[nodeId] as Map<String, dynamic>?;
-    final prerequisiteSatisfied = ((node['prerequisites'] as List?) ?? const [])
+    if (node == null) {
+      // D135：后端 `mastery_routes.node_detail()` 对未知节点**不 404**，而是用默认值
+      // 拼出完整形状（name=nodeId、level=unseen、score=0.0）。单机原先只回
+      // `{error, node_id}`，节点页会静默少掉定义/前置/信号一整片；这里按后端同形状给。
+      return {
+        'error': 'not_found',
+        'node_id': nodeId,
+        'name': nodeId,
+        'definition': '',
+        'section_id': '',
+        'ability_dim': '',
+        'exam_weight': 0.0,
+        'source_chunk_id': '',
+        'level': 'unseen',
+        'score': 0.0,
+        'basis': <String, dynamic>{},
+        'signals': <dynamic>[],
+        'prerequisites': <dynamic>[],
+        'dependents': <dynamic>[],
+        'dependents_count': 0,
+      };
+    }
+    final mastery = LocalMastery.masteryMap(routeId);
+    final rec = mastery[nodeId] as Map<String, dynamic>?;
+
+    Map<String, dynamic> brief(String nid) {
+      final n = OfflineContent.node(nid);
+      final r = mastery[nid] as Map<String, dynamic>?;
+      return {
+        'node_id': nid,
+        'name': n?['name'] ?? nid,
+        'section_id': n?['section_id'] ?? '',
+        'level': r?['level'] ?? 'unseen',
+        'score': dnum(r?['score']),
+      };
+    }
+
+    // 节点定义：meta 里的节点不带 definition，概念词典里有 canonical_definition
+    // （导读包 section.json 也带，但不一定加载过；这里两路都试）。
+    String definition = '${node['definition'] ?? ''}';
+    if (definition.isEmpty) {
+      final concept = OfflineContent.concepts[nodeId];
+      definition = '${concept?.first['canonical_definition'] ?? ''}';
+    }
+    if (definition.isEmpty) {
+      for (final c in OfflineContent.conceptList) {
+        if ('${c['name'] ?? ''}' == '${node['name'] ?? ''}') {
+          definition = '${c['canonical_definition'] ?? ''}';
+          break;
+        }
+      }
+    }
+
+    final prereqIds = ((node['prerequisites'] as List?) ?? const [])
         .map((e) => '$e')
-        .every((p) => '${(LocalMastery.masteryMap(routeId)[p] as Map?)?['level'] ?? ''}'
-            .isNotEmpty);
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final dependentIds = ((node['dependents'] as List?) ?? const [])
+        .map((e) => '$e')
+        .where((e) => e.isNotEmpty)
+        .toList();
+
     return {
+      'node_id': nodeId,
       ...node,
+      'name': node['name'] ?? nodeId,
+      'definition': definition,
       'level': rec?['level'] ?? 'unseen',
       'score': dnum(rec?['score']),
       'basis': (rec?['basis'] as Map?) ?? const {},
+      'signals': (rec?['signals'] as List?) ?? const [],
       'source_flags': (rec?['source_flags'] as Map?) ?? const {},
+      'prerequisites': prereqIds.map(brief).toList(),
+      'dependents': dependentIds.map(brief).toList(),
       'dependents_count': LocalMastery.dependentsCount(nodeId),
       'blocking_sections': LocalMastery.blockingSections(nodeId),
-      'prerequisites_satisfied': prerequisiteSatisfied,
+      'prerequisites_satisfied': ((rec?['level'] ?? '') as String).isNotEmpty,
     };
   }
 
@@ -178,11 +277,14 @@ class LocalInsight {
       {'recommendation': nextRecommendation(routeId)};
 
   static Map<String, dynamic> weakTop(String routeId, {int n = 5}) {
+    // D135：与后端 `recommendation_service.weak_top()` 同式钳制 `max(0, min(n, 50))`。
+    // 负 n 在 Python 切片里是「除末条外全部」，Dart `take(-1)` 是空表，必须统一。
+    final lim = n.clamp(0, 50);
     final weak = ((profile(routeId)['weak_points'] as List?) ?? const [])
         .whereType<Map>()
         .map((e) => e.cast<String, dynamic>())
         .toList()
-        .take(n)
+        .take(lim)
         .toList();
     for (final w in weak) {
       w['statement'] = inum(w['blocking_sections']) > 0
@@ -232,8 +334,12 @@ class LocalInsight {
         : recent.where((a) => a['is_correct'] == true).length / recent.length;
     final mastery = LocalMastery.masteryMap(routeId);
     var mastered = 0;
+    var proficient = 0;
     for (final n in OfflineContent.allNodes) {
-      if ('${(mastery['${n['id']}'] as Map?)?['level'] ?? ''}' == 'mastered') {
+      final lv = '${(mastery['${n['id']}'] as Map?)?['level'] ?? ''}';
+      // 后端口径（`motivation_service`）：proficient = proficient + mastered。
+      if (lv == 'proficient' || lv == 'mastered') proficient++;
+      if (lv == 'mastered') {
         mastered++;
       }
     }
@@ -275,16 +381,25 @@ class LocalInsight {
         'achieved': attempts.length >= step,
       });
     }
+    // D136：后端 `_milestones()` 只回「最近 4 个已达成 + 下 2 个未达成」，
+    // 单机原先回全部 9 条 —— 同一份数据两种长度（界面里程碑列表直接可见）。
+    final achieved = milestones.where((m) => m['achieved'] == true).toList();
+    final pending = milestones.where((m) => m['achieved'] != true).toList();
+    final trimmed = <Map<String, dynamic>>[
+      ...achieved.skip(achieved.length > 4 ? achieved.length - 4 : 0),
+      ...pending.take(2),
+    ];
     return {
       'route_id': routeId,
       'frustration': {'level': level, 'score': frustration, 'drivers': drivers},
       'encouragement': _encourage(level, avgRecent, mastered),
       'avg_recent_accuracy': avgRecent == null ? null : round4(avgRecent),
       'mastered': mastered,
+      'proficient': proficient,
       'due_count': dueCount,
       'streak_days': streak,
       'total_attempts': attempts.length,
-      'milestones': milestones,
+      'milestones': trimmed,
       'next_best_action': _nextBest(level, mastery, dueCount, avgRecent),
     };
   }
@@ -401,6 +516,12 @@ class LocalInsight {
         weakestDim = dim;
       }
     });
+    // 形状与后端 `analytics_service.overview()` 对齐（D134）：`ability_radar`
+    // **恒定五维**（没测过的维度给 0.0），否则雷达图只有 1~2 个顶点、画不出来；
+    // 但「最弱维度」仍只在**已评估**的维度里选——没测过的维度不当短板。
+    final abilityFull = <String, dynamic>{
+      for (final d in kDims) d: ability[d] ?? 0.0,
+    };
     final avgScore =
         scores.isEmpty ? null : round4(scores.reduce((a, b) => a + b) / scores.length);
     final streak = streakOf(attempts);
@@ -451,7 +572,7 @@ class LocalInsight {
         'tip': cal['tip'],
       },
       'error_breakdown': errors,
-      'ability_radar': ability,
+      'ability_radar': abilityFull,
       'weakest_dim': {'dim': weakestDim, 'score': weakestScore},
       'total_attempts': attempts.length,
       'avg_score': avgScore,
@@ -462,7 +583,12 @@ class LocalInsight {
   }
 
   /// 元认知校准：自评把握度 vs 实测正确率
-  static Map<String, dynamic> calibration(String routeId) {
+  ///
+  /// 与后端 `calibration_service.calibration_report()` 同键：`user_id` / `n` /
+  /// `overall` / `verdict` / `by_confidence` / `tip`（`buckets`、`available`
+  /// 为单机版额外保留的兼容键）。
+  static Map<String, dynamic> calibration(String routeId,
+      {String userId = 'demo_user'}) {
     final calCfg =
         ((OfflineContent.config['calibration']) as Map?)?.cast<String, dynamic>() ??
             const {};
@@ -479,9 +605,11 @@ class LocalInsight {
         .toList();
     if (rows.isEmpty) {
       return {
+        'user_id': userId,
         'n': 0,
         'verdict': 'unknown',
-        'overall': {'expected': 0.0, 'actual': 0.0, 'gap': 0.0},
+        'overall': {'n': 0, 'expected': 0.0, 'actual': 0.0, 'gap': 0.0},
+        'by_confidence': <String, dynamic>{},
         'buckets': <String, dynamic>{},
         'tip': '先完成几次自评把握度的测验，这里会给出元认知校准建议。',
         'available': false,
@@ -525,9 +653,16 @@ class LocalInsight {
       tip = '自评与实测大体一致，元认知较准确，保持这种「知之为知之」的判断。';
     }
     return {
+      'user_id': userId,
       'n': n,
       'verdict': verdict,
-      'overall': {'expected': round4(exp), 'actual': round4(act), 'gap': round4(gap)},
+      'overall': {
+        'n': n,
+        'expected': round4(exp),
+        'actual': round4(act),
+        'gap': round4(gap),
+      },
+      'by_confidence': buckets,
       'buckets': buckets,
       'tip': tip,
       'available': true,

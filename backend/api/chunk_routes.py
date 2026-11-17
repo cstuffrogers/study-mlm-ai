@@ -14,8 +14,18 @@ router = APIRouter()
 
 @router.get("/works")
 async def list_works() -> dict:
-    """已入库著作清单。"""
-    return {"works": content_provider.works()}
+    """已入库著作清单。
+
+    `works`：著作名数组（旧口径，保持兼容）；
+    `items`：带作者 / 分片数 / 首片 id，原著浏览页的搜索与分组用（`is_book=False`
+    表示分片来自内部注释层而非某本原著）。
+    """
+    items = content_provider.works_meta()
+    return {
+        "works": [it["work"] for it in items],
+        "items": items,
+        "total": len(items),
+    }
 
 
 @router.get("/by_work/{work}")

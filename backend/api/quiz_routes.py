@@ -8,7 +8,7 @@ from sqlalchemy import select
 from services.learning_startup import ensure_learning_ready
 from services.learning_db import session_scope
 from services import quiz_service
-from model.models_learning import QuizAttempt, QuizItem, SectionTest
+from model.models_learning import QuizAttempt, QuizItem
 from content.routes import get_section
 
 router = APIRouter()
@@ -70,7 +70,11 @@ async def history(user_id: str = "demo_user", limit: int = 100,
         stmt = select(QuizAttempt).where(QuizAttempt.user_id == user_id)
         if only_wrong:
             stmt = stmt.where(QuizAttempt.is_correct == False)  # noqa: E712
-        stmt = stmt.order_by(QuizAttempt.created_at.desc()).limit(max(1, min(limit, 500)))
+        # D136：一次提交里所有小题的 `created_at` 完全相同（同一事务），只按时间倒序
+        # 等于没定义顺序 —— SQLite/PG 各自给一种，单机侧则是另一个不稳定排序。
+        # 并列按 quiz_id 升序（题内顺序），两端同式。
+        stmt = stmt.order_by(QuizAttempt.created_at.desc(),
+                             QuizAttempt.quiz_id.asc()).limit(max(1, min(limit, 500)))
         attempts = (await s.execute(stmt)).scalars().all()
         items = {q.id: q for q in (await s.execute(select(QuizItem))).scalars().all()}
 

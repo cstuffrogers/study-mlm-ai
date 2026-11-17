@@ -1,0 +1,7 @@
+# aislop 忽略清单（生成的/模板文件里「静态看不出来」的误报，不在这里豁免真代码）
+#
+# frontend/web/flutter_bootstrap.js 是 Flutter 的构建模板：文件开头的 {{flutter_js}} /
+# {{flutter_build_config}} 会在 `flutter build web` 时被替换成 flutter.js 与构建配置，
+# 于是源码里 flutter_js / _flutter / flutter_build_config 这三个全局量「必然未定义」——
+# eslint/no-undef 三条全是误报，不改本项目任何代码。
+frontend/web/flutter_bootstrap.js

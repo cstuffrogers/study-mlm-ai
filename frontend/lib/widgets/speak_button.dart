@@ -39,6 +39,15 @@ class SpeakButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 引擎初始化是异步的（安卓要先探测系统语音包）：就绪后 tick 自增一次，
+    // 这里重新求值，喇叭才不会「永远不出现」。
+    return ValueListenableBuilder<int>(
+      valueListenable: ttsReadyTick,
+      builder: (context, _, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     if (!ttsAvailable() || text.trim().isEmpty) return const SizedBox.shrink();
     final size = compact ? 15.0 : 17.0;
     final box = compact ? 24.0 : 30.0;

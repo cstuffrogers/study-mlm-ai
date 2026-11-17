@@ -1,4 +1,4 @@
-// 功能菜单页 — 汇聚全站入口（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / 大模型配置 / 关于 / 法律与隐私）
+// 功能菜单页 — 汇聚全站入口（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / 大模型配置 / 本机数据 / 关于 / 法律与隐私）
 import 'package:flutter/material.dart';
 import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
@@ -7,6 +7,7 @@ import 'analytics_dashboard.dart';
 import 'source_browser_screen.dart';
 import 'dialogue_history_screen.dart';
 import 'test_history_screen.dart';
+import 'data_backup_screen.dart';
 import 'llm_config_screen.dart';
 import 'about_screen.dart';
 import 'legal_screen.dart';
@@ -31,6 +32,9 @@ class ToolsScreen extends StatelessWidget {
       _ToolItem('LLM 大模型 API 配置', 'API Key · 端点 · 模型 · 立即生效',
           Icons.smart_toy_outlined, AppColors.brandDeep,
           (_) => const LlmConfigScreen()),
+      _ToolItem('本机数据', '升级不丢 · 备份恢复 · 数据体检',
+          Icons.backup_outlined, AppColors.info,
+          (_) => const DataBackupScreen()),
       _ToolItem('关于', '软件版本 · 项目地址 · 作者 · 使用说明',
           Icons.info_outline, AppColors.gold,
           (_) => const AboutScreen()),

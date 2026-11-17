@@ -10,7 +10,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from services.learning_db import session_scope
-from services import mastery_service as ms, quiz_service
+from services import mastery_service as ms
 from model.models_learning import LearningProgress, QuizAttempt
 
 _APPROVED_EVENTS = {"quiz_attempt", "progress", "struggle_signal", "section_complete"}
@@ -38,12 +38,24 @@ async def _flush(s):
 
 
 async def push(user_id: str, route_id: str, events: list[dict]) -> dict:
-    """客户端上行业务增量；按事件类型合并，冲突以服务端为准"""
+    """客户端上行业务增量；按事件类型合并，冲突以服务端为准。
+
+    **路线归属以事件自带的 `route_id` 为准**：离线队列可能混着用户切换路线前后的
+    事件（route_B 的章节测在离线时入队），统一按请求体的 route_id 落库会把进度
+    写到错误的路线。请求体的 route_id 只在事件没带时兜底。
+    """
+    from content.routes import ROUTES
+
+    known_routes = {r["id"] for r in ROUTES}
     applied, skipped = [], []
     for ev in events:
         et = ev.get("type")
         if et not in _APPROVED_EVENTS:
             skipped.append({"event": ev, "reason": "unknown_type"})
+            continue
+        ev_route = str(ev.get("route_id") or route_id or "route_A")
+        if ev_route not in known_routes:
+            skipped.append({"event": ev, "reason": f"unknown_route:{ev_route}"})
             continue
         try:
             if et == "struggle_signal":
@@ -59,9 +71,13 @@ async def push(user_id: str, route_id: str, events: list[dict]) -> dict:
                                       duration_ms=int(ev.get("duration_ms", 0)),
                                       error_category=ev.get("error_category", "")))
                     await _flush(s)
-            elif et == "progress":
-                await save_progress(user_id, route_id, ev.get("section_id", ""),
-                                    ev.get("last_position", 0), ev.get("status", "in_progress"))
+            elif et in ("progress", "section_complete"):
+                # section_complete 原先在允许集合里却没有分支：什么也没写却被计入
+                # applied（假成功）。这里落成 status=completed 的进度记录。
+                await save_progress(
+                    user_id, ev_route, ev.get("section_id", ""),
+                    ev.get("last_position", 0),
+                    "completed" if et == "section_complete" else ev.get("status", "in_progress"))
             applied.append(et)
         except Exception as e:  # 单条失败不影响整批
             skipped.append({"event": ev, "reason": str(e)})

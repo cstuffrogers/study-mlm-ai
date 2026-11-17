@@ -51,6 +51,34 @@ class OfflineGuard {
     return s;
   }
 
+  /// 豁免标记对（与后端 core/guard/orthodoxy.py 同名常量同字串）。
+  static const _exemptOpen = '【反方观点·仅供批判】';
+  static const _exemptClose = '【/反方观点】';
+  static const _criticalOpen = '【批判对象·非借鉴】';
+  static const _criticalClose = '【/批判对象】';
+
+  static final _exemptRe =
+      RegExp(r'【反方观点·仅供批判】[\s\S]*?【/反方观点】');
+  static final _criticalRe = RegExp(r'【批判对象·非借鉴】[\s\S]*?【/批判对象】');
+
+  /// 剥离标记段（这些段不参与立场校验）。
+  ///
+  /// 相当于后端的 `_strip_exempt_segments`：辩难模式允许 AI 摆反方观点，
+  /// 但只允许**被标记包裹的**那部分；标记外的内容仍按正统标准校验。
+  static String _stripMarkerSegments(String text) =>
+      text.replaceAll(_exemptRe, '').replaceAll(_criticalRe, '');
+
+  /// 标记是否成对。未闭合 → 返回该标记名，否则 null。
+  ///
+  /// 相当于后端的 `_has_unclosed_exempt_marker`：写一个开标记就整段免检，
+  /// 等于给了一个绕过校验的后门（未闭合标记防绕过）。
+  static String? _unclosedMarkerName(String text) {
+    int count(String sub) => sub.isEmpty ? 0 : text.split(sub).length - 1;
+    if (count(_exemptOpen) != count(_exemptClose)) return '辩难豁免';
+    if (count(_criticalOpen) != count(_criticalClose)) return '批判对象';
+    return null;
+  }
+
   static final Map<String, RegExp> _compiled = {};
   static List<String> _deviation = const [];
   static List<String> _criticalKeys = const [];
@@ -115,19 +143,34 @@ class OfflineGuard {
 
   /// 对一段文本做立场检查。
   /// [allowCritical] 为 true 时视为「批判语境」（第 6 阶段），命中批判对象只提示不拦截。
-  static GuardResult check(String text, {bool allowCritical = false}) {
+  /// [mode] 为 `debate` 时：标记段剥离后校验，标记未闭合直接判绕过。
+  ///   与后端 `OrthodoxyGuard.check(text, mode=...)` 同口径。
+  static GuardResult check(String text,
+      {bool allowCritical = false, String mode = 'explain'}) {
     _warm();
     final content = (text).trim();
     if (content.isEmpty) {
       return const GuardResult(status: 'pass', reason: '', hits: [], terms: []);
     }
+    // ① 未闭合标记 = 绕过尝试，优先于其它所有判定（不降级为正常校验）
+    final unclosed = _unclosedMarkerName(content);
+    if (unclosed != null) {
+      return GuardResult(
+        status: 'block',
+        reason: '$unclosed标记未闭合，疑似绕过立场校验',
+        hits: const ['unclosed_marker'],
+        terms: const [],
+      );
+    }
+    // ② 辩难模式：被标记包裹的反方/批判对象段不参与校验，其余照常校验
+    final scan = mode == 'debate' ? _stripMarkerSegments(content) : content;
     final hits = <String>[];
     final cited = <String>[];
     String reason = '';
     for (final entry in _compiled.entries) {
-      if (!entry.value.hasMatch(content)) continue;
+      if (!entry.value.hasMatch(scan)) continue;
       // 自指批判语境（用户在批判这个错误论调本身）→ 只记录，不拦截
-      if (_allMatchesCritical(entry.value, content)) {
+      if (_allMatchesCritical(entry.value, scan)) {
         cited.add(entry.key);
       } else {
         hits.add(entry.key);
@@ -140,15 +183,15 @@ class OfflineGuard {
     }
     final termHits = <String>[];
     for (final k in _criticalKeys) {
-      if (!content.contains(k)) continue;
+      if (!scan.contains(k)) continue;
       if (allowCritical) continue;
       // 批判语境标记必须**真的把这个术语包在里面**才算立场已表明，
       // 仅全文出现一次标记就全放行，等于给了个免费后门。
-      final open = content.indexOf('【批判对象·非借鉴】');
+      final open = scan.indexOf(_criticalOpen);
       final closed = open == -1
           ? -1
-          : content.indexOf('【/批判对象】', open + '【批判对象·非借鉴】'.length);
-      final termAt = content.indexOf(k);
+          : scan.indexOf(_criticalClose, open + _criticalOpen.length);
+      final termAt = scan.indexOf(k);
       final wrapped = open != -1 && closed != -1 && open < termAt && termAt < closed;
       if (wrapped) continue;
       termHits.add(k);

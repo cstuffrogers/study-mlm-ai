@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import '../offline/offline_content.dart';
+import 'local_api_exception.dart';
 import 'local_db.dart';
 
 const List<String> kDims = [
@@ -190,6 +191,14 @@ class LocalMastery {
     };
   }
 
+  /// 门控：本章是否达标可解锁下一章。
+  ///
+  /// 与后端 `route_service.gating()` **同口径**（D134 修正）：
+  ///  · 有题库章 → `unlocked = 已评估且章节分 ≥ 门槛`；
+  ///  · 无题库章（纯阅读章）→ `unlocked = 通读后标记完成`（后端专用分支，
+  ///    单机早先没实现，导致阅读章在单机永远解锁不了下一章）；
+  ///  · 键名 `need_reinforce`（后端口径）与 `blocking_nodes`（后端补充键）都出，
+  ///    旧键 `needs_reinforce` 保留兼容。
   static Map<String, dynamic> computeGating(
       Map<String, dynamic> mastery, String routeId, String sectionId) {
     final secs = OfflineContent.sectionsOf(routeId);
@@ -204,18 +213,31 @@ class LocalMastery {
         .toList();
     final assessed = nodes.where((n) => mastery.containsKey(n['id'])).length;
     final nextId = idx >= 0 && idx + 1 < secs.length ? secs[idx + 1]['id'] : null;
-    final unlocked = assessed > 0 && score >= threshold;
+    final bank = OfflineContent.sectionMeta(sectionId)?['has_bank'] == true;
+    final completed = sectionProgress(routeId, sectionId, mastery)['completed'] == true;
+    final unlocked = bank ? (assessed > 0 && score >= threshold) : completed;
     return {
       'section_id': sectionId,
       'section_score': score,
       'threshold': threshold,
       'assessed_nodes': assessed,
       'next_section_id': nextId,
-      'needs_reinforce': need,
       'next_section_unlocked': unlocked,
-      'reason': unlocked
-          ? '本章达标，可进入下一章'
-          : (assessed == 0 ? '尚无评估记录，先做本章测验' : '部分知识点未达门槛，建议专项回补'),
+      'unlocked': unlocked,
+      'bank': bank,
+      'blocking_nodes': need,
+      'need_reinforce': need,
+      'needs_reinforce': need,
+      // 后端 `route_service.gating()` 只在「无题库（阅读章）」分支补 `completed`；
+      // 单机原先从不给，阅读章的「已通读完成」状态在门控响应里读不到。
+      if (!bank) 'completed': completed,
+      'reason': !bank
+          ? (completed
+              ? '本章为阅读章，已标记完成'
+              : '本章为阅读章，通读全文后标记完成即可解锁下一章')
+          : (unlocked
+              ? '本章达标，可进入下一章'
+              : (assessed == 0 ? '尚无评估记录，先做本章测验' : '部分知识点未达门槛，建议专项回补')),
     };
   }
 
@@ -236,10 +258,14 @@ class LocalMastery {
     return math.pow(0.5, elapsedDays / hl).toDouble();
   }
 
+  /// 建议复习间隔（天）—— 与后端 `review_service.interval_days` 逐字同式：
+  /// `min(MAX, max(0.5, base × 2^(max(0,stability)/0.3)))`。
+  /// 少了下限 0.5 与负 stability 归零，两端口径会在极低稳定度下差半天。
   static double intervalDays(double stability) {
     final base = dnum(_cfg['base_interval_days'], 1);
     final maxDays = dnum(_cfg['max_interval_days'], 60);
-    return math.min(maxDays, base * math.pow(2, stability / 0.3)).toDouble();
+    final raw = base * math.pow(2, math.max(0.0, stability) / 0.3);
+    return math.min(maxDays, math.max(0.5, raw)).toDouble();
   }
 
   static String scheduleNext(double stability, {DateTime? now}) {
@@ -315,11 +341,28 @@ class LocalMastery {
         '_risk': (1 - keep) * (1 + dependentsCount(nodeId)),
       });
     });
-    scored.sort((a, b) => dnum(b['_risk']).compareTo(dnum(a['_risk'])));
+    // D136：并列写死 tie-break（`_risk` 相同再按 node_id 升序）。
+    // Dart 的 `List.sort` **不稳定**，只比一个键时同分项顺序由实现细节决定；
+    // 后端稳定排序也只能「保持 SQL 返回序」，SQL 本身没有 ORDER BY → 两套顺序。
+    scored.sort(_byRisk);
     for (final it in scored) {
       it.remove('_risk');
     }
     return scored;
+  }
+
+  /// 到期队列排序：风险降序 → node_id 升序（与后端 `due_reviews()` 同式）。
+  static int _byRisk(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final c = dnum(b['_risk']).compareTo(dnum(a['_risk']));
+    return c != 0 ? c : '${a['node_id']}'.compareTo('${b['node_id']}');
+  }
+
+  /// 复习概览排序：稳定度升序 → node_id 升序（与后端 `review_status()` 同式）。
+  /// 不按 `next_review_at`：它是「写入时刻 + 间隔」，写入时刻各端 wall clock 不同，
+  /// 稳定度相同时排序退化成写入序 —— 同一份数据会排出两种顺序。
+  static int _byStability(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final c = dnum(a['stability']).compareTo(dnum(b['stability']));
+    return c != 0 ? c : '${a['node_id']}'.compareTo('${b['node_id']}');
   }
 
   static Map<String, dynamic> reviewStatus(String routeId) {
@@ -344,9 +387,14 @@ class LocalMastery {
         'stability': round4(stability),
         'retention': round4(retention(elapsed, stability)),
         'elapsed_days': round4(elapsed),
+        // 与后端 `review_status()` 同键（D134）：缺它则“复习次数”两端口径不一。
+        'review_count': inum(rec['review_count']),
         'next_review_at': rec['next_review_at'],
       });
     });
+    // D136：`items` 契约与后端 `review_service.review_status()` 同式 ——
+    // 稳定度低的先复习（stability 升序）→ 并列按 node_id。
+    items.sort(_byStability);
     final due = dueReviews(routeId);
     return {
       'route_id': routeId,
@@ -356,9 +404,22 @@ class LocalMastery {
     };
   }
 
+  /// 复习结果回写。与后端 `review_service.apply_review()` 同口径（D134）：
+  ///  · 无掌握记录 → `applied: false` + `reason: '尚无掌握记录'`（不再凭空建档）；
+  ///  · 增益门槛 `correct_ratio >= 0.8`（旧实现是 `>= 0.999`，期 0.9 的“基本记得”
+  ///    在联网算增益、单机算衰减）；
+  ///  · 返回体补齐 `applied` / `reason` / `retention_now` / `review_count_delta`。
   static Future<Map<String, dynamic>> applyReview(
       String routeId, String nodeId, double correctRatio) async {
     await LocalDb.ensure();
+    final existing = LocalDb.masteryFor(routeId)[nodeId];
+    if (existing is! Map) {
+      return {
+        'node_id': nodeId,
+        'applied': false,
+        'reason': '尚无掌握记录',
+      };
+    }
     final rec = record(routeId, nodeId);
     final basis =
         (rec['basis'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
@@ -367,7 +428,8 @@ class LocalMastery {
     final base = dnum(basis['stability']) <= 0
         ? stabilitySeed(dnum(rec['score']))
         : dnum(basis['stability']);
-    final stability = (base + (correctRatio >= 0.999 ? gain : -regress)).clamp(0.0, 1.0);
+    final stability =
+        (base + (correctRatio >= 0.8 ? gain : -regress)).clamp(0.0, 1.0);
     final acc = dnum(basis['accuracy']);
     final out = await upsert(
       routeId,
@@ -381,24 +443,31 @@ class LocalMastery {
     );
     return {
       'node_id': nodeId,
+      'applied': true,
+      'stability': round4(stability),
+      'retention_now': round4(retention(0.0, stability)),
+      'next_review_at': out['next_review_at'],
+      'review_count_delta': 1,
       'level': out['level'],
       'score': out['score'],
-      'stability': round4(stability),
-      'next_review_at': out['next_review_at'],
     };
   }
 
   static List<Map<String, dynamic>> interleaved(String routeId, {int n = 8}) {
+    // D135：`n` 来自 query，负值会让 `take(n)` 抛
+    // `RangeError (end): Invalid value`（单机上表现为整页报错，联网侧只是回空表）。
+    // 与后端同式钳制。
+    final lim = n.clamp(0, 50);
     final cfg =
         ((OfflineContent.config['interleave']) as Map?)?.cast<String, dynamic>() ??
             const {};
     final mixRatio = dnum(cfg['mix_ratio'], 0.4);
     final picked = <Map<String, dynamic>>[];
     for (final it in dueReviews(routeId)) {
-      if (picked.length >= n) break;
+      if (picked.length >= lim) break;
       picked.add({...it, 'kind': 'due'});
     }
-    if (picked.length < n) {
+    if (picked.length < lim) {
       final extra = <Map<String, dynamic>>[];
       masteryMap(routeId).forEach((nodeId, value) {
         final rec = value as Map<String, dynamic>;
@@ -418,13 +487,37 @@ class LocalMastery {
           'kind': 'interleave',
         });
       });
-      final target = math.max(n, (n * mixRatio).round());
-      for (final it in extra) {
+      // D136：巩固池排序 + 跨小节轮转，与后端 `interleaved_reviews()` 逐字同式。
+      // 原先单机按 `masteryMap` 迭代序直接塞（无排序、无轮转），同一份数据两套队列。
+      extra.sort((a, b) {
+        final c = dnum(a['score']).compareTo(dnum(b['score']));
+        return c != 0 ? c : '${a['node_id']}'.compareTo('${b['node_id']}');
+      });
+      final rotated = _rotateBySection(extra);
+      final target = math.max(lim, (lim * mixRatio).round());
+      for (final it in rotated) {
         if (picked.length >= target) break;
         picked.add(it);
       }
     }
-    return _interleaveOrder(picked).take(n).toList();
+    return _interleaveOrder(picked).take(lim).toList();
+  }
+
+  /// 按小节轮转（与后端 `_rotate_by_section()` 同式）：不同小节的节点交替排列。
+  static List<Map<String, dynamic>> _rotateBySection(
+      List<Map<String, dynamic>> items) {
+    final buckets = <String, List<Map<String, dynamic>>>{};
+    for (final it in items) {
+      buckets.putIfAbsent('${it['section_id'] ?? ''}', () => []).add(it);
+    }
+    final out = <Map<String, dynamic>>[];
+    while (buckets.values.any((v) => v.isNotEmpty)) {
+      for (final k in buckets.keys.toList()) {
+        final b = buckets[k]!;
+        if (b.isNotEmpty) out.add(b.removeAt(0));
+      }
+    }
+    return out;
   }
 
   static List<Map<String, dynamic>> _interleaveOrder(
@@ -533,6 +626,12 @@ class LocalMastery {
       String routeId, String sectionId) async {
     await OfflineContent.ensureMeta();
     await LocalDb.ensure();
+    // D135：未知章节在后端是 404（原先那里还会 `AttributeError` 500）；
+    // 单机若照样回一张空导读，界面会显示「本章暂无导读」这种假事实。
+    await OfflineContent.ensureMeta();
+    if (OfflineContent.sectionMeta(sectionId) == null) {
+      throw LocalApiException(404, '章节不存在: $sectionId');
+    }
     final payload = await OfflineContent.sectionPayload(sectionId);
     markProgress(routeId, sectionId);
     final meta = OfflineContent.sectionMeta(sectionId) ?? const {};

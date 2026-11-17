@@ -16,9 +16,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 
-# backend/ 映射到 /app/backend，根目录 prompt_sanitizer.py 映射到 /app
+# backend/ 映射到 /app/backend（含 core/prompt/sanitizer.py，不再单独 COPY 根目录原型脚本）
 COPY backend/ ./backend/
-COPY prompt_sanitizer.py ./
+
+# 运行时数据（缺了会直接坏，别省这两行）：
+#   * prompt_engineering.yaml —— PromptRenderer.__init__ 里直接 open()，缺了则每次 WS 连接
+#     DialogueService() 都抛 FileNotFoundError（容器能起来，但一问就崩）。
+#   * sources/texts/*.txt     —— content/book_chunks.py 只扫这个目录，缺了原文分片为 0，
+#     RAG 检索、章节原文、题库溯源全部落空。
+# 只带正文，不带 sources/_backup*（裁剪前备份，14MB，运行时不读）。
+COPY prompt_engineering.yaml ./
+COPY sources/texts/ ./sources/texts/
 
 WORKDIR /app/backend
 

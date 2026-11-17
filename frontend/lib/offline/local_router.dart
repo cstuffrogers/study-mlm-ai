@@ -4,10 +4,13 @@ import '../offline/local_db.dart';
 import '../offline/offline_content.dart';
 import '../services/llm_client.dart';
 import '../services/llm_config_store.dart';
+import 'local_api_exception.dart';
 import 'local_dialogue.dart';
 import 'local_insight.dart';
 import 'local_mastery.dart';
 import 'local_quiz.dart';
+
+export 'local_api_exception.dart';
 
 class LocalRouter {
   LocalRouter._();
@@ -162,6 +165,8 @@ class LocalRouter {
                 'chunk_count':
                     (w['chunk_count'] as num?)?.toInt() ?? 0,
                 'first_chunk_id': '${w['first_chunk_id'] ?? ''}',
+                // 旧资产没有 is_book 字段：缺省按「是著作」处理（不误伤）
+                'is_book': w['is_book'] ?? true,
               })
           .toList();
       return {
@@ -182,6 +187,7 @@ class LocalRouter {
         'work_name': work,
         'items': list,
         'chunks': list,
+        'count': list.length,
         'total': list.length,
       };
     }
@@ -189,7 +195,13 @@ class LocalRouter {
     if (rest.length == 2) {
       await OfflineContent.ensureChunks();
       final c = OfflineContent.chunk(rest[1]);
-      if (c == null) throw LocalApiException(404, '分片不存在: ${rest[1]}');
+      // D135：后端 `chunk_routes.get_chunk()` 对不存在的分片回 200 +
+      // `{error: 'not_found', chunk_id}`，而 `widgets/chunk_tag.dart` 正是按
+      // `error == 'not_found'` 显示「未找到该分片」——单机抛 404 会让同一句提示
+      // 变成「Exception: 分片不存在」。按后端形状给。
+      if (c == null) {
+        return {'error': 'not_found', 'chunk_id': rest[1]};
+      }
       return c;
     }
     throw LocalApiException(404, '未知 chunks 接口');
@@ -311,11 +323,18 @@ class LocalRouter {
   ) async {
     if (rest.length > 1 && rest[1] == 'due') {
       final due = LocalMastery.dueReviews(routeId);
-      return {'due': due, 'count': due.length, 'route_id': routeId};
+      // `due_count` 与后端 `/api/review/due` 同键（`count` 保留兼容）。
+      return {
+        'route_id': routeId,
+        'due_count': due.length,
+        'count': due.length,
+        'due': due,
+      };
     }
     if (rest.length > 1 && rest[1] == 'interleaved') {
       final n = int.tryParse(query['n'] ?? '') ?? 8;
-      return {'items': LocalMastery.interleaved(routeId, n: n)};
+      final items = LocalMastery.interleaved(routeId, n: n);
+      return {'route_id': routeId, 'count': items.length, 'items': items};
     }
     if (rest.length > 1 && rest[1] == 'submit') {
       return LocalMastery.applyReview(
@@ -372,20 +391,69 @@ class LocalRouter {
     String routeId,
   ) async {
     if (rest.length > 1 && rest[1] == 'push') {
+      // 与后端 `sync_service.push()` 同口径（原先是三缺一）：
+      //  · 事件自带的 route_id 优先（离线队列可能混着切换路线前的事件）；
+      //  · 四种事件都落库，不能只认 progress（quiz_attempt / struggle_signal 原先静默丢，
+      //    section_complete 不写 completed）；
+      //  · 返回 **applied/skipped/details** 三键（前端 SyncController 读这三个），
+      //    原实现只回 accepted，导致单机模式文案永远「已合并 0 条」。
+      const approved = {
+        'quiz_attempt',
+        'progress',
+        'struggle_signal',
+        'section_complete',
+      };
       final events = ((body['events'] as List?) ?? const []).whereType<Map>();
+      final applied = <String>[];
+      final details = <Map<String, dynamic>>[];
       for (final e in events) {
         final type = '${e['type'] ?? ''}';
-        if (type == 'progress') {
+        if (!approved.contains(type)) {
+          details.add({'event': e, 'reason': 'unknown_type'});
+          continue;
+        }
+        final r = '${e['route_id'] ?? routeId}';
+        if (type == 'progress' || type == 'section_complete') {
           LocalMastery.markProgress(
-            '${e['route_id'] ?? routeId}',
+            r,
             '${e['section_id'] ?? ''}',
-            status: '${e['status'] ?? 'in_progress'}',
+            status: type == 'section_complete'
+                ? 'completed'
+                : '${e['status'] ?? 'in_progress'}',
             lastPosition: (e['last_position'] as num?)?.toInt() ?? 0,
           );
+        } else if (type == 'quiz_attempt') {
+          LocalDb.attempts.add({
+            'item_id': '${e['quiz_id'] ?? ''}',
+            'test_id': '${e['test_id'] ?? ''}',
+            'route_id': r,
+            'node_id': '${e['node_id'] ?? ''}',
+            'answer': '${e['answer'] ?? ''}',
+            'is_correct': e['is_correct'] == true,
+            'score': (e['score'] as num?)?.toDouble() ?? 0.0,
+            'duration_ms': (e['duration_ms'] as num?)?.toInt() ?? 0,
+            'error_category': '${e['error_category'] ?? ''}',
+            'created_at': nowIso(),
+          });
+        } else {
+          LocalDb.signals.add({
+            'node_id': '${e['node_id'] ?? ''}',
+            'signal_type': '${e['signal_type'] ?? 'offline'}',
+            'intensity': (e['intensity'] as num?)?.toDouble() ?? 0.3,
+            'source': 'offline',
+            'created_at': nowIso(),
+          });
         }
+        applied.add(type);
       }
       await LocalDb.flush();
-      return {'accepted': events.length, 'snapshot': LocalMastery.pullSnapshot(routeId)};
+      return {
+        'applied': applied.length,
+        'skipped': details.length,
+        'details': details,
+        'accepted': events.length, // 兼容旧读法
+        'snapshot': LocalMastery.pullSnapshot(routeId),
+      };
     }
     if (rest.length > 1 && rest[1] == 'pull') {
       return LocalMastery.pullSnapshot(routeId);
@@ -398,7 +466,16 @@ class LocalRouter {
         lastPosition: (body['last_position'] as num?)?.toInt() ?? 0,
       );
       await LocalDb.flush();
-      return {'saved': true, 'section_id': body['section_id'], 'progress': map};
+      // D135：后端 `sync_service.save_progress()` 回 `{section_id, last_position,
+      // status}`；单机原先只嵌套在 `progress` 里，界面读 `last_position`/`status`
+      // 得到的都是 null（续学锚点丢失）。平铺补齐，旧键保留。
+      return {
+        'saved': true,
+        'section_id': body['section_id'],
+        'last_position': map['last_position'],
+        'status': map['status'],
+        'progress': map,
+      };
     }
     throw LocalApiException(404, '未知 sync 接口');
   }
@@ -433,10 +510,3 @@ class LocalRouter {
   }
 }
 
-class LocalApiException implements Exception {
-  final int status;
-  final String detail;
-  LocalApiException(this.status, this.detail);
-  @override
-  String toString() => detail;
-}

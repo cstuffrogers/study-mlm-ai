@@ -1,0 +1,12 @@
+{
+  "name": "xxmz",
+  "version": "1.3.0",
+  "private": true,
+  "description": "唯物马哲精读 —— Flutter 前端 + FastAPI 后端。本文件只为 npm 系工具（claude-scene 的 loop/review/测试门禁）提供统一入口：项目本身不是 Node 工程，真正的工具链是 flutter / python，不装任何 npm 依赖。",
+  "scripts": {
+    "test": "cd frontend && flutter test",
+    "lint": "node scripts/lint_shim.js",
+    "analyze": "cd frontend && flutter analyze lib/ test/",
+    "test:backend": "cd backend && python -m pytest tests/ -q"
+  }
+}

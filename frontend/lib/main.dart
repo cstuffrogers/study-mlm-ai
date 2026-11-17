@@ -3,10 +3,12 @@
 // + 选中文本唤起五模式 AI 对话浮窗 + 学习路线闭环 + 离线断点续学
 
 import 'package:flutter/material.dart';
+import 'offline/data_compat.dart';
 import 'offline/local_db.dart';
 import 'offline/offline_content.dart';
 import 'screens/study_home_screen.dart';
 import 'services/chat_service.dart';
+import 'services/tts.dart';
 import 'services/sync_controller.dart';
 import 'widgets/sync_notice.dart';
 import 'theme/app_theme.dart';
@@ -17,7 +19,11 @@ Future<void> main() async {
   // 单机版：启动时先装载轻量元数据与本地学习档案；
   // 14MB 的原文分片与题库在进入相关页面前再懒加载，避免拖慢冷启动。
   await LocalDb.ensure();
+  // 升级兼容闸门：只补字段、只登记数据版本，绝不删除/改名用户数据。
+  await DataCompat.run();
   await OfflineContent.ensureMeta();
+  // 初始化朗读引擎（安卓走系统 TTS；Web 预取浏览器语音）。不等待结果，避免拖慢冷启动。
+  ttsInit();
   runApp(const MarxismReaderApp());
 }
 

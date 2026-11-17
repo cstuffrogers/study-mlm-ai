@@ -30,9 +30,10 @@ def _load_quiz_items() -> list[dict]:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         for it in data.get("items", []):
-            # 缺省用顶层 section_id 回填
-            if not it.get("section_id") and data.get("section_id"):
-                it["section_id"] = data["section_id"]
+            # 缺省用顶层 section_id 回填（键存在但值为 null 时也要回填：
+            # `outline_chapter.json` 的题逐条写了 "section_id": null）
+            if not it.get("section_id"):
+                it["section_id"] = data.get("section_id") or it["section_id"]
             items.append(it)
     return items
 
@@ -81,7 +82,7 @@ async def seed_all() -> None:
             if it["id"] in existing_q:
                 continue
             s.add(QuizItem(
-                id=it["id"], section_id=it.get("section_id", "sec_A_02"), node_id=it["node_id"],
+                id=it["id"], section_id=it.get("section_id") or "sec_A_02", node_id=it["node_id"],
                 type=it["type"], stem=it["stem"], options=it.get("options", []),
                 answer=it.get("answer", ""), explanation=it.get("explanation", ""),
                 difficulty=it.get("difficulty", 0.5),

@@ -5,6 +5,10 @@
 =====================================================
 从 ljsk 项目移植（backend/security/sanitizer.py），适配马哲场景。
 
+位置：backend/core/prompt/sanitizer.py（原在项目根 prompt_sanitizer.py，作为原型脚本；
+后来 services/dialogue_service.py 才是唯一调用方，于是移进包内，去掉 sys.path 注入，
+Dockerfile 也不再单独 COPY 一个根目录文件）。
+
 为什么需要这个文件：
   xxmz 的防偏离机制（MetaRuleEngine）只防"内容偏离"——AI 生成
   了非正统表述。但它完全没防"Prompt 注入"——用户可以通过
@@ -79,6 +83,19 @@ _MAX_INPUT_LENGTH = 2000
 def _normalize(text: str) -> str:
     """NFKC 归一化：防全角字符/零宽字符/同形异义绕过。"""
     return unicodedata.normalize("NFKC", text)
+
+
+def scan_injection_patterns(text: str) -> List[Dict]:
+    """只按**正则**判定注入痕迹（不查关键词表）。
+
+    用于「用户选中的原文片段」：那段文字是马克思恩格斯的原文，按关键词表查会误伤
+    （实测全库 22415 片里 4 片含「现在你是」「扮演一个」，全是原文引语），
+    而正则表在同一批原文里 0 命中。
+    """
+    if not isinstance(text, str) or not text:
+        return []
+    norm = _normalize(text)
+    return [{"type": "pattern", "value": m.group()} for p in DANGEROUS_PATTERNS if (m := p.search(norm))]
 
 
 class PromptSanitizer:

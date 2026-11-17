@@ -40,7 +40,10 @@ async def test_weak_points_sorted_by_rank():
     def rank(w):
         n = get_node(w["node_id"])
         return (1 - w["score"]) * (1 + kg.dependents_count(w["node_id"])) * n["exam_weight"]
-    ranks = [rank(w) for w in prof["weak_points"]]
+    # D136：排序键是**四舍五入到 4 位的 rank**（`_rank = round(key, 4)`），并列时再按
+    # node_id 升序。所以断言要用「舍入后的 rank 非递增」——两个未舍入值不同、舍入后相同
+    # 的节点会被 tie-break 换成 node_id 序，未舍入序列就不再严格递减。
+    ranks = [round(rank(w), 4) for w in prof["weak_points"]]
     assert ranks == sorted(ranks, reverse=True)
 
 

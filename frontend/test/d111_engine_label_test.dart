@@ -59,6 +59,12 @@ void main() {
     expect(find.textContaining('在线模型 · qwen-plus'), findsOneWidget);
   });
 
+  testWidgets('命中服务端缓存：说明是缓存回答，别说成本机引擎', (t) async {
+    await t.pumpWidget(_host(_ai('cache')));
+    expect(find.textContaining('缓存回答'), findsOneWidget);
+    expect(find.textContaining('本机引擎'), findsNothing);
+  });
+
   test('ChatTurn 默认 engineNote 为空，旧记录不受影响', () {
     expect(ChatTurn(role: 'ai', content: 'x').engineNote, '');
   });

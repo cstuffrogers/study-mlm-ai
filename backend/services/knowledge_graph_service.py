@@ -10,7 +10,7 @@
 """
 from __future__ import annotations
 
-from content.knowledge_graph import KNOWLEDGE_NODES, PREREQUISITES, get_node
+from content.knowledge_graph import KNOWLEDGE_NODES, PREREQUISITES
 
 
 class KnowledgeGraphService:

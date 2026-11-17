@@ -356,9 +356,11 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                     key: ValueKey('sel-${widget.sectionId}-${selectedText.length}'),
                     bounds: bodySize,
                     size: const Size(360, 118),
+                    // 浮框贴顶部出现：选中位置多半在正文中段，浮框放中间会把
+                    // 刚选中的那句话盖住；贴顶既让开正文，也不会被键盘挡住。
                     initialOffset: Offset(
                       ((bodySize.width - 360) / 2).clamp(8.0, double.infinity),
-                      (bodySize.height - 300).clamp(8.0, double.infinity),
+                      10,
                     ),
                     child: SelectionAskPanel(
                       text: selectedText,
@@ -431,6 +433,9 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
     final chapterLink = (links['chapter'] as Map?)?.cast<String, dynamic>() ?? const {};
 
     return SelectionArea(
+      // 屏蔽系统自带的「复制/分享/全选」工具条：本页自带浮框（复制/朗读/标色 + 五种模式）。
+      // 两套浮窗一起弹出会互相遮挡，系统工具条还常盖在选中文字上。
+      contextMenuBuilder: (context, state) => const SizedBox.shrink(),
       // 选中任意导读正文 → 浮出「释义/追问」浮框（与原文阅读器一致的交互）
       onSelectionChanged: _onSelectionChanged,
       child: ListView(
@@ -703,7 +708,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: tint,
                 ),
@@ -712,7 +717,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 13.5,
                   height: 1.5,
                   color: AppColors.ink700,
                 ),
@@ -818,7 +823,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           child: Text(
             t,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               color: AppColors.ink700,
             ),
@@ -842,7 +847,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
         Text(
           text,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             height: 1.75,
             color: AppColors.ink700,
           ),
@@ -892,7 +897,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           Text(
             desc,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               height: 1.6,
               color: AppColors.ink700,
             ),
@@ -925,7 +930,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                 child: Text(
                   heading,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: AppColors.ink700,
                   ),
@@ -937,7 +942,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           Text(
             body,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               height: 1.8,
               color: AppColors.ink700,
             ),
@@ -967,7 +972,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 13.5,
+                  fontSize: 14.5,
                   height: 1.6,
                   color: AppColors.ink700,
                 ),
@@ -1175,7 +1180,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14.5,
+              fontSize: 15.5,
               fontWeight: FontWeight.w800,
               color: isContested ? const Color(0xFF991B1B) : AppColors.ink700,
             ),
@@ -1185,7 +1190,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 author,
-                style: const TextStyle(fontSize: 11.5, color: AppColors.ink400),
+                style: const TextStyle(fontSize: 12.5, color: AppColors.ink400),
               ),
             ),
           const SizedBox(height: 8),
@@ -1208,7 +1213,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                     child: Text.rich(
                       TextSpan(
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           height: 1.55,
                           color: AppColors.ink500,
                           fontFamily: 'Deng',
@@ -1222,7 +1227,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                           ...extensionMarkupSpans(
                             howto,
                             const TextStyle(
-                              fontSize: 12,
+                              fontSize: 13,
                               height: 1.55,
                               color: AppColors.ink500,
                               fontFamily: 'Deng',
@@ -1249,7 +1254,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                     child: Text.rich(
                       TextSpan(
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12.5,
                           height: 1.5,
                           color: color,
                           fontFamily: 'Deng',
@@ -1258,7 +1263,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                         children: extensionMarkupSpans(
                           caution,
                           TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 12.5,
                             height: 1.5,
                             color: color,
                             fontFamily: 'Deng',

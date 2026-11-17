@@ -4,6 +4,7 @@
 // 主观题/应用题走三维 rubric 给建议不代写。
 import 'dart:math' as math;
 
+import '../offline/local_api_exception.dart';
 import '../offline/local_guard.dart';
 import '../offline/offline_content.dart';
 import 'local_db.dart';
@@ -85,9 +86,10 @@ class LocalQuiz {
 
     for (final it in items) {
       final type = '${it['type'] ?? ''}';
-      if (type == 'application' ||
-          it['subjective'] == true ||
-          type == 'error_diagnosis') {
+      // 与后端 `quiz_service._select_items()` 同口径：特殊题型 = 应用题 / 主观题。
+      // 早先这里还把 `error_diagnosis` 当特殊题型必选，后端并不如此——题库一旦
+      // 超过 12 题就会被裁时，两端的选题集合不同，同一章两边出的题不一样。
+      if (type == 'application' || it['subjective'] == true) {
         add(it);
       }
     }
@@ -106,10 +108,12 @@ class LocalQuiz {
 
   static List<Map<String, dynamic>> interleaveItems(
       List<Map<String, dynamic>> items) {
+    if (items.length <= 2) return List<Map<String, dynamic>>.from(items);
     final byNode = <String, List<Map<String, dynamic>>>{};
     for (final it in items) {
       (byNode['${it['node_id'] ?? ''}'] ??= []).add(it);
     }
+    if (byNode.length <= 1) return List<Map<String, dynamic>>.from(items);
     final out = <Map<String, dynamic>>[];
     var idx = 0;
     while (out.length < items.length) {
@@ -123,22 +127,45 @@ class LocalQuiz {
       if (!progressed) break;
       idx++;
     }
-    return out.length == items.length ? out : List<Map<String, dynamic>>.from(items);
+    if (out.length != items.length) return List<Map<String, dynamic>>.from(items);
+    // 与后端 `_interleave_items()` 同口径：轮转后若仍有相邻同节点（某节点题多时
+    // 会出现），做一次局部交换修正。早先缺这段，两端同题不同序。
+    String nodeOf(Map<String, dynamic> it) => '${it['node_id'] ?? ''}';
+    for (var i = 1; i < out.length; i++) {
+      if (nodeOf(out[i]) != nodeOf(out[i - 1])) continue;
+      for (var j = i + 1; j < out.length; j++) {
+        final okLeft = nodeOf(out[j]) != nodeOf(out[i - 1]);
+        final okRight = j + 1 >= out.length || nodeOf(out[j + 1]) != nodeOf(out[i]);
+        if (okLeft && okRight) {
+          final tmp = out[i];
+          out[i] = out[j];
+          out[j] = tmp;
+          break;
+        }
+      }
+    }
+    return out;
   }
 
   static Future<Map<String, dynamic>> start(
       String sectionId, String routeId) async {
     await OfflineContent.ensureQuiz();
     await LocalDb.ensure();
-    final items = OfflineContent.quizItems(sectionId)
-        .where((it) => '${it['source_chunk_id'] ?? ''}'.isNotEmpty)
-        .toList();
+    final raw = OfflineContent.quizItems(sectionId);
+    // 与后端 `_public_item()` 同红线：无溯源 chunk_id 的题**拒绝出题**，
+    // 不得静默过滤后照常开考（那等于悄悄放行未溯源题）。
+    for (final it in raw) {
+      if ('${it['source_chunk_id'] ?? ''}'.isEmpty) {
+        throw LocalApiException(422,
+            '题目 ${it['id']} 缺少溯源 chunk_id，拒绝出题');
+      }
+    }
+    final items = List<Map<String, dynamic>>.from(raw);
     if (items.isEmpty) {
-      return {
-        'test_id': '',
-        'items': <Map<String, dynamic>>[],
-        'reason': '本章暂无可用题库（可先读导读与原文）',
-      };
+      // D135：无题库章在联网侧是 409（`OrthodoxyViolation` → HTTPException(409)），
+      // 单机原先回 200 + 空 items，界面于是开出一张没有题的测验；对齐成抛 409。
+      throw LocalApiException(
+          409, '章节 $sectionId 暂无题库，降级为按段落学习 + 简化测试');
     }
     final selected = interleaveItems(selectItems(items));
     final testId = 'local_${DateTime.now().microsecondsSinceEpoch}';
@@ -159,8 +186,15 @@ class LocalQuiz {
   }
 
   // ------------------------------------------------------------ 判分
-  static String normChoice(String s) =>
-      s.replaceAll(RegExp(r'[\s\.、。]'), '').toUpperCase();
+  /// 客观题选项归一化 —— **必须与后端 `quiz_service._norm_choice` 同口径**：
+  /// 去掉首尾空白、转大写、取第一个字符。
+  ///
+  /// 曾经这里是把所有空白和「. 、 。」删干净再整串比：用户答「A．」（全角点）
+  /// 或「A、因为…」时后端判对、单机版判错——同一道题两个结论。
+  static String normChoice(String s) {
+    final t = s.trim().toUpperCase();
+    return t.isEmpty ? '' : t[0];
+  }
 
   static List<String> termsFor(String nodeId) {
     final t = OfflineContent.nodeTerms(nodeId)['terms'];
@@ -338,9 +372,15 @@ class LocalQuiz {
     await OfflineContent.ensureQuiz();
     await LocalDb.ensure();
     final raw = LocalDb.tests[testId];
-    if (raw is! Map) throw Exception('测试不存在或已被清理');
+    // D135：这两处原来抛裸 `Exception`，界面上拿不到状态码，只能显示
+    // 「Exception: …」；后端是 404（测试不存在）/ 409（重复提交），这里对齐。
+    if (raw is! Map) {
+      throw LocalApiException(404, '测试不存在');
+    }
     final test = raw.cast<String, dynamic>();
-    if (test['status'] == 'submitted') throw Exception('该测试已提交，请勿重复提交');
+    if (test['status'] == 'submitted') {
+      throw LocalApiException(409, '该测试已提交，请勿重复提交');
+    }
     final sectionId = '${test['section_id'] ?? ''}';
     final routeId = '${test['route_id'] ?? LocalDb.routeId}';
     final itemIds =
@@ -569,8 +609,16 @@ class LocalQuiz {
         .map((e) => e.cast<String, dynamic>())
         .toList();
     if (onlyWrong) rows = rows.where((r) => r['is_correct'] != true).toList();
-    rows.sort((a, b) => '${b['created_at']}'.compareTo('${a['created_at']}'));
-    if (rows.length > limit) rows = rows.sublist(0, limit);
+    // D136：一次提交里所有小题的 `created_at` 相同，只按时间倒序等于没定义顺序
+    // （后端原为 SQL 无 tie-break，单机为不稳定排序）。并列按 quiz_id 升序，两端同式。
+    rows.sort((a, b) {
+      final c = '${b['created_at']}'.compareTo('${a['created_at']}');
+      return c != 0 ? c : '${a['quiz_id']}'.compareTo('${b['quiz_id']}');
+    });
+    // D135：与后端 `quiz_routes.history()` 同式钳制 `max(1, min(limit, 500))`。
+    // 原先 limit<=0 时单机回空表、联网回 1 条（同一次点击两种结果）。
+    final lim = limit.clamp(1, 500);
+    if (rows.length > lim) rows = rows.sublist(0, lim);
     final enriched = rows.map((r) {
       final test = LocalDb.tests['${r['test_id']}'] as Map?;
       final node = OfflineContent.node('${r['node_id']}');

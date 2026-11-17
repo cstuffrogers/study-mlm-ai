@@ -58,7 +58,7 @@ class CloudLayer:
         """interactive=True（WebSocket 对话）：用更短的超时并关闭重试。"""
         self._refresh()
         if not self.enabled:
-            return self._mock(req, self._missing_reason())
+            return self._mock(req, self._missing_reason(), note="not-configured")
 
         try:
             return await self._call(
@@ -68,8 +68,11 @@ class CloudLayer:
             )
         except Exception as e:
             logger.warning("云 LLM 调用失败，降级 Mock: %s", e)
-            reason = f"真实模型调用失败（{type(e).__name__}: {e}），已降级"
-            return self._mock(req, reason)
+            # 正文保留真实原因（运维靠它判断「配置成功却仍 Mock」），但只留一行且截断。
+            return self._mock(
+                req, f"真实模型调用失败（{_brief(e)}），已降级",
+                note=f"failed:{_brief(e)}",
+            )
 
     def _missing_reason(self) -> str:
         missing = [n for n, v in (
@@ -150,7 +153,7 @@ class CloudLayer:
                     if text.strip():
                         if name != variants[0][0]:
                             logger.info("云 LLM 用兼容参数 %s 成功返回正文", name)
-                        return LLMResponse(text=text, source="cloud")
+                        return LLMResponse(text=text, source="cloud", model=self.model)
                     # 正文为空：预算被 reasoning_content 吃光。同一参数重试几乎
                     # 必然还是空，直接换下一组兼容策略（不能把思维链当答案）。
                     reason_len = len(getattr(msg, "reasoning_content", "") or "")
@@ -170,14 +173,26 @@ class CloudLayer:
         hint = "（推理型模型思维链吃满 max_tokens）" if empty_body else ""
         raise RuntimeError(f"云 LLM 所有兼容参数均失败{hint}: {detail}")
 
-    def _mock(self, req: LLMRequest, reason: str = "") -> LLMResponse:
-        """Mock 占位 — 回退时说明真实原因，保持防偏离链路可联调"""
-        prompt_tail = req.prompt[-80:].replace("\n", " ")
+    def _mock(self, req: LLMRequest, reason: str = "", note: str = "") -> LLMResponse:
+        """Mock 占位 —— 只回一句人话。
+
+        历史实现会把 `prompt[-80:]` 拼进正文，而那 80 字通常正是系统提示词和召回
+        到的原著片段，等于把内部链路回显给用户；`reason` 里还带
+        `APIConnectionError: ...` 之类的异常串。排查信息由上面的 logger.warning
+        完整承担，正文不再泄漏。`req` 保留是为了调用点签名稳定。
+        """
         text = (
-            f"【Mock LLM】{reason or '真实国产模型未启用'}。"
-            f"收到 prompt 末尾: …{prompt_tail}"
+            f"【未接入真实模型】{reason or '真实国产模型未启用'}。"
+            "联网版需在服务端配置 LLM_API_KEY；单机版请用 App 内置引擎作答。"
         )
-        return LLMResponse(text=text, source="mock")
+        return LLMResponse(text=text, source="mock", note=note)
+
+
+def _brief(e: BaseException, limit: int = 60) -> str:
+    """异常压成一行短因 —— 正文要能看出「为什么降级」，但不要三百字异常链。"""
+    msg = f"{type(e).__name__}: {e}".splitlines()[0].strip()
+    return msg if len(msg) <= limit else msg[:limit] + "…"
+
 
 
 def _env_int(name: str, default: int) -> int:

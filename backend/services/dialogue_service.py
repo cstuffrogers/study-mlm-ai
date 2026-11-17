@@ -12,15 +12,14 @@ MVP 编排流：
 from __future__ import annotations
 
 import logging
-import sys
-import os
+import re
 import threading
 from functools import lru_cache
 from typing import Any
 
-# 复用现有原型脚本（在项目根目录）
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from prompt_sanitizer import PromptSanitizer  # noqa: E402
+# 输入侧防注入：从项目根的 prompt_sanitizer.py 移进包内（backend/core/prompt/sanitizer.py），
+# 以前靠 `sys.path.insert(项目根)` + 裸 import，Docker 里还得单独 COPY 一个文件。
+from core.prompt.sanitizer import PromptSanitizer  # noqa: E402
 from core.guard.orthodoxy import OrthodoxyGuard  # noqa: E402
 from core.prompt.renderer import (  # noqa: E402
     PromptRenderer, UserContext, RAGContext,
@@ -42,6 +41,27 @@ def _digest(text: str) -> str:
     """用户输入的不可逆短摘要（8 位）——用于日志定位，不泄露原文。"""
     import hashlib
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+
+
+# 寒暄/致谢/纯语气词：没有任何知识诉求。以前这类输入会照字面召回——「晚上好」匹配到
+# 《资本论（第一卷节选）》第二十三章，挂一张完全无关的溯源卡片，还白付一次召回成本。
+_SMALL_TALK_CHARS = set(
+    "你我您好早上下晚中安再见拜谢多明白了知的了呀啊哦嗯吗哈喽嗨老师辛请"
+)
+_SMALL_TALK_WORDS = {
+    "hello", "hi", "hey", "thanks", "thankyou", "ok", "okay",
+}
+
+
+def _is_small_talk(text: str) -> bool:
+    """判断是否为寒暄/致谢（不看内容只看形式：去掉标点后全是招呼字）。"""
+    t = re.sub(r"[\W_]+", "", text or "")
+    if not t:
+        return True
+    if t.lower() in _SMALL_TALK_WORDS:
+        return True
+    # 招呼字组成、且不超过 8 字（"你好呀" / "谢谢老师了"）；再长就可能是真问题
+    return len(t) <= 8 and all(ch in _SMALL_TALK_CHARS for ch in t)
 
 
 @lru_cache(maxsize=1)
@@ -119,6 +139,86 @@ def warm_dialogue_service() -> None:
     _load_stance_classifier()
 
 
+NUL = chr(0)
+_MAX_SELECTED_TEXT = 1200
+
+
+@lru_cache(maxsize=128)
+def _is_genuine_original(raw_text: str) -> bool:
+    """这段字能不能在库内原著里逐字查到（归一化后按 40 字探针搜索）。
+
+    给「关键词命中」做二次判断：`DANGEROUS_KEYWORDS` 里有「现在你是」「扮演一个」
+    这类词，而恩格斯/马克思原文里确实会这么写（《唯物主义和经验批判主义》
+    《雾月十八日》）。判定线沿用本项目一贯口径——
+    **能在原著里查到就是原文，查不到才当注入话术**。
+    """
+    text = raw_text.strip()
+    # 探针从长到短试：长探针更抗「碰巧命中」，短探针能容忍选区跨分片边界
+    for n in (40, 24, 12, 8):
+        needle = text[:n]
+        if len(needle) < 8:
+            continue
+        if needle in _corpus_blob():
+            return True
+    return False
+
+
+@lru_cache(maxsize=1)
+def _corpus_blob() -> str:
+    """全库正文拼接（约 580 万字），只作「这段字是不是原文」的子串检索面。
+
+    为什么不逐片比：逐片 NFKC 归一化 2.2 万片要 4s 以上；拼成一条用 NUL 分隔，
+    首次几毫秒、之后 `in` 微秒级。**不做 NFKC**——中文原文归一化前后一致，
+    归一化只会把全角 ASCII 变半角，反而与库内原文对不上。
+    """
+    from services import content_provider as cp
+
+    return NUL.join(c["text"] for c in cp.all_chunks())
+
+
+def _safe_selected_text(u) -> str:
+    """净化用户选中的原文片段（进 prompt 前）。"""
+    import re
+
+    raw = getattr(u, "selected_text", "") or ""
+    if not raw.strip():
+        return ""
+    from core.prompt.sanitizer import DANGEROUS_KEYWORDS, _normalize, scan_injection_patterns
+
+    # ① 正则命中 → 一定是注入话术（全库 22415 片原文里 0 命中）
+    if hits := scan_injection_patterns(raw):
+        logger.warning("选中片段含注入指令（正则），已丢弃: %s", hits[0]["value"][:40])
+        return ""
+    # ② 关键词命中 → 也可能是原文引语（实测「现在你是」「扮演一个」马恩原文里就有），
+    #    再查一次库：这段字真能逐字查到就按原文放行。
+    norm = _normalize(raw)
+    kw = [k for k in DANGEROUS_KEYWORDS if k.lower() in norm.lower()]
+    if kw and not _is_genuine_original(raw):
+        logger.warning("选中片段含注入指令（关键词 %s），已丢弃", kw[0])
+        return ""
+    # 控制字符（含 NUL）一律去掉：有些嵌入会带出来，模型侧只会变成噪音
+    clean = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", "", raw).strip()
+    if len(clean) > _MAX_SELECTED_TEXT:
+        clean = clean[:_MAX_SELECTED_TEXT] + "……（选中过长，已截断）"
+    return clean
+
+
+def _engine_of(resp) -> str:
+    """作答引擎名（前端浮窗徽标的显示口径，必须与单机版一致）。
+
+    cloud:<模型名> —— 真实在线模型答的
+    local          —— 本机引擎答的（后端这里是 Mock 占位；原因见 engine_note）
+    cache          —— 同一提问此前生成过，直接命中精确缓存
+    """
+    src = (getattr(resp, "source", "") or "").strip()
+    if src == "cloud":
+        model = (getattr(resp, "model", "") or "").strip()
+        return f"cloud:{model}" if model else "cloud"
+    if src == "cache":
+        return "cache"
+    return "local"
+
+
 class DialogueService:
     """对话编排服务"""
 
@@ -135,6 +235,9 @@ class DialogueService:
 
     async def chat(self, u: UserMessageIn) -> dict[str, Any]:
         """核心对话流程"""
+        # 选中片段同样要净化：它是唯一没走注入防护的输入口，且长度不受控
+        # （正文页 SelectionArea 全选就是整章）。不拦提问，只是不上送可疑片段。
+        u = u.model_copy(update={"selected_text": _safe_selected_text(u)})
         # === 输入侧：Prompt 注入防护 ===
         check = self.sanitizer.check(u.content)
         if not check["is_safe"]:
@@ -237,6 +340,9 @@ class DialogueService:
             "provenance": provenance,
             "source_chunks": source_chunks,
             "llm_source": resp.source,
+            # 前端浮窗「作答引擎」徽标与单机版同口径（cloud:<模型> / local / cache）
+            "engine": _engine_of(resp),
+            "engine_note": getattr(resp, "note", ""),
             "instant_summary": instant,
         }
 
@@ -256,7 +362,11 @@ class DialogueService:
 
         默认 in-memory store（无 Docker 依赖）；
         Docker 起来后由 _build_retriever() 注入 PgvectorStore + Neo4jGraphStore。
+
+        寒暄/致谢直接返回空上下文：不挂无关原文，也不必为「晚上好」跑三路召回。
         """
+        if _is_small_talk(u.content):
+            return RAGContext(term_definitions=[], propositions=[], text_chunks=[], meta_rules=[])
         return self.retriever.retrieve(u)
 
     def _build_provenance(self, rag_context: RAGContext) -> list[dict]:

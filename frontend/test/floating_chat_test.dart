@@ -38,8 +38,9 @@ void main() {
     await tester.pump();
 
     expect(find.text('已连接 · 释义'), findsOneWidget);
-    // 模式下拉显示当前模式标签
-    expect(find.text(ChatMode.explain.label), findsOneWidget);
+    // 模式标签出现在两处：输入区的选择器 + 每条回答的模式标记
+    expect(find.text(ChatMode.explain.label), findsWidgets);
+    expect(find.byType(PopupMenuButton<ChatMode>), findsOneWidget);
 
     // 找到浮窗左上角，拖动头部
     final before = tester.getTopLeft(find.byType(FloatingChat));
@@ -120,6 +121,125 @@ void main() {
     final clamped = tester.getTopLeft(find.byKey(const Key('box')));
     expect(clamped.dx, lessThanOrEqualTo(600 - 200));
     expect(clamped.dy, lessThanOrEqualTo(800 - 80));
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  // 回归：模式选择曾放在标题栏，输入框在底部，中间隔着消息列表——
+  // 用户在底部打字时看不见当前模式，切模式要跑到顶部找。
+  testWidgets('模式选择与输入框同处一行（不再与对话框脱离）', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 900));
+    await tester.pumpWidget(host(FloatingChat(
+      turns: const <ChatTurn>[],
+      status: '已连接 · 释义',
+      currentMode: ChatMode.explain,
+      criticalReading: false,
+      onModeChanged: (_) {},
+      onToggleCritical: () {},
+      onSend: (_) {},
+      onClear: () {},
+      onClose: () {},
+      initialOffset: const Offset(60, 60),
+      bounds: const Size(800, 900),
+      size: const Size(372, 520),
+    )));
+    await tester.pump();
+
+    final modeBtn = find.byType(PopupMenuButton<ChatMode>);
+    expect(modeBtn, findsOneWidget, reason: '模式选择只有输入区这一处入口');
+
+    final modeRect = tester.getRect(modeBtn);
+    final inputRect = tester.getRect(find.byType(TextField));
+    // 同一水平带（中心线对齐），且在输入框左侧
+    expect((modeRect.center.dy - inputRect.center.dy).abs(), lessThan(8));
+    expect(modeRect.right, lessThanOrEqualTo(inputRect.left + 1));
+
+    // 输入框提示语体现当前模式
+    expect(find.text('以「释义」追问…'), findsOneWidget);
+
+    // 展开菜单：5 个模式都在，且带说明
+    await tester.tap(modeBtn);
+    await tester.pumpAndSettle();
+    for (final m in ChatMode.values) {
+      expect(find.text(m.label), findsWidgets, reason: '菜单缺模式 ${m.label}');
+      expect(find.text(m.desc), findsOneWidget, reason: '菜单缺说明 ${m.label}');
+    }
+
+    // 选「辩难」关掉菜单（无回调也不应报错）
+    await tester.tap(find.text(ChatMode.debate.label).last);
+    await tester.pumpAndSettle();
+    expect(find.text(ChatMode.debate.desc), findsNothing, reason: '选完应关闭菜单');
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('选模式会回调 onModeChanged（含 5 个选项）', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 900));
+    final picked = <ChatMode>[];
+    await tester.pumpWidget(host(FloatingChat(
+      turns: const <ChatTurn>[],
+      status: '已连接 · 释义',
+      currentMode: ChatMode.explain,
+      criticalReading: false,
+      onModeChanged: picked.add,
+      onToggleCritical: () {},
+      onSend: (_) {},
+      onClear: () {},
+      onClose: () {},
+      initialOffset: const Offset(60, 60),
+      bounds: const Size(800, 900),
+      size: const Size(372, 520),
+    )));
+    await tester.pump();
+
+    await tester.tap(find.byType(PopupMenuButton<ChatMode>));
+    await tester.pumpAndSettle();
+    expect(find.text(ChatMode.values.last.desc), findsOneWidget);
+    await tester.tap(find.text(ChatMode.test.label).last);
+    await tester.pumpAndSettle();
+    expect(picked, [ChatMode.test]);
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  test('五模式必须五色（NFR-019）', () {
+    final colors = ChatMode.values.map((m) => m.color).toSet();
+    expect(colors.length, ChatMode.values.length, reason: '存在同色模式：$colors');
+  });
+
+  test('每个模式都有说明，且不是空话', () {
+    for (final m in ChatMode.values) {
+      expect(m.desc.trim().length, greaterThan(6), reason: '${m.label} 缺说明');
+      expect(m.inputHint, contains(m.label));
+    }
+  });
+
+  testWidgets('窄屏 360 下输入区不溢出：模式 chip / 输入框 / 发送同排', (tester) async {
+    const vp = Size(360, 700);
+    await tester.binding.setSurfaceSize(vp);
+    await tester.pumpWidget(host(FloatingChat(
+      turns: const <ChatTurn>[],
+      status: '本机引擎 · 已就绪',
+      currentMode: ChatMode.connect,
+      criticalReading: true,
+      onModeChanged: (_) {},
+      onToggleCritical: () {},
+      onSend: (_) {},
+      onClear: () {},
+      onClose: () {},
+      initialOffset: const Offset(8, 40),
+      bounds: vp,
+      size: const Size(296, 480), // (360-64).clamp(280,372)
+    )));
+    await tester.pump();
+    expect(tester.takeException(), isNull, reason: '窄屏出现布局溢出');
+
+    final input = tester.getRect(find.byType(TextField));
+    final mode = tester.getRect(find.byType(PopupMenuButton<ChatMode>));
+    expect(input.width, greaterThan(100), reason: '模式 chip 挤掉了输入框');
+    expect(mode.right, lessThanOrEqualTo(input.left + 1));
+    // header 里已没有第二个模式入口
+    expect(find.byType(PopupMenuButton<ChatMode>), findsOneWidget);
 
     await tester.binding.setSurfaceSize(null);
   });

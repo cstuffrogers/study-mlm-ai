@@ -50,31 +50,11 @@ def _dump(path: Path, obj) -> int:
     return len(data.encode("utf-8"))
 
 
-def _work_authors() -> dict[str, str]:
-    """著作 → 作者。
-
-    作者只在「已登记的正文文件」里带（BOOKS 表），但原文分片的 source 可能比
-    BOOKS 更细（《提纲》的原文由 theses_raw 提供、注释/解析层来自统编教材）。
-    因此这里显式补齐这 3 个内存来源的署名，其余一律以 BOOKS 为准；
-    查不到的留空字符串，前端显示「作者未标注」——不猜、不编。
-    """
-    from content.book_chunks import BOOKS
-    from content.theses_raw import WORK_TITLE
-
-    mapping = {b["work"]: b.get("author", "") for b in BOOKS}
-    mapping.setdefault(WORK_TITLE, "马克思")
-    # 三层正典注释/解析：艾思奇主编的统编教材与《提纲》注疏
-    mapping.setdefault("正典注释（艾思奇·统编教材）", "艾思奇 等（统编教材）")
-    mapping.setdefault("正典解析（统编教材）", "统编教材")
-    return mapping
-
-
 def build_meta() -> dict:
     from content.routes import ROUTES, SECTIONS, STAGE_LABELS, get_section
     from content.knowledge_graph import KNOWLEDGE_NODES, PREREQUISITES
     from services import content_provider as cp
 
-    authors = _work_authors()
     prereq: dict[str, list[str]] = {}
     dependents: dict[str, list[str]] = {}
     for node, dep in PREREQUISITES:
@@ -109,20 +89,9 @@ def build_meta() -> dict:
             "unlock_threshold": cur.get("unlock_threshold", 0.8),
         })
 
-    from content.book_chunks import BOOKS as _BOOKS
-    _book_names = {str(b.get("work", "")) for b in _BOOKS}
-    works = []
-    for w in cp.works():
-        items = cp.chunks_by_work(w)
-        works.append({
-            "work": w,
-            "author": authors.get(w, ""),
-            "chunk_count": len(items),
-            "first_chunk_id": items[0]["id"] if items else "",
-            # 与 BOOKS 对齐的书才是「著作」；《提纲》原文由 theses_raw 提供、
-            # 统编教材的注释/解析层也在库里，但它们不是独立著作、没有路线入口。
-            "is_book": w in _book_names,
-        })
+    # 书单与作者统一由后端提供器算（注释/解析层已在那边按 logical_type 排除），
+    # 导出脚本不再自留一份作者表，避免与在线接口口径不同。
+    works = cp.works_meta()
 
     return {
         "version": 1,
