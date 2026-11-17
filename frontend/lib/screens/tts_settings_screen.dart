@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../services/tts.dart';
 import '../services/tts_settings.dart';
+import '../services/tts_voice_slots.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 
@@ -144,7 +145,7 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
       );
 
   Widget _presetCard() {
-    return _card('朗读风格', '改的是音调与语速；音色取决于选中的语音包', [
+    return _card('朗读风格', '每一档换了音色 + 音调 + 语速，点一下即时试听', [
       for (final p in TtsPresets.all)
         _row(
           selected: _s.presetId == p.id,
@@ -156,9 +157,53 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
           ),
           onTap: () => _pickPreset(p),
         ),
+      const SizedBox(height: 8),
+      _neuralRow(),
       const SizedBox(height: 4),
       _previewButton(),
     ]);
+  }
+
+  /// 当前档位在 Web 端对应的神经语音（后端白名单内的固定音色）。
+  /// 安卓端做不到固定音色（只能用系统语音包），如实写「随系统语音包」。
+  Widget _neuralRow() {
+    final slot = TtsVoiceSlots.byId(_s.presetId);
+    final name = _neuralLabel(slot.neuralVoice);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.brandSoft.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(children: [
+        const Icon(Icons.graphic_eq_rounded, size: 18, color: AppColors.brand),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            '本档音色：Web 版用「$name」；安卓版随系统语音包（自动找最接近的那一个）',
+            style: const TextStyle(fontSize: 11.5, color: AppColors.ink700, height: 1.45),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// 神经语音 ShortName → 中文名（zh-CN-XiaoxiaoNeural → 晓晓）。
+  String _neuralLabel(String short) {
+    const names = <String, String>{
+      'zh-CN-XiaoxiaoNeural': '晓晓·温暖女声',
+      'zh-CN-XiaoyiNeural': '晓伊·活泼女声',
+      'zh-CN-YunxiNeural': '云希·阳光男声',
+      'zh-CN-YunyangNeural': '云扬·专业男声',
+      'zh-CN-YunjianNeural': '云健·激昂男声',
+      'zh-CN-YunxiaNeural': '云夏·少年男声',
+      'zh-CN-liaoning-XiaobeiNeural': '晓北·东北女声',
+      'zh-CN-shaanxi-XiaoniNeural': '晓妮·陕西女声',
+    };
+    if (names.containsKey(short)) return names[short]!;
+    // 不在表里就不用编名字：直接给 ShortName，用户能自己去引擎里核对
+    return short;
   }
 
   Widget _voiceCard() {
@@ -167,7 +212,7 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
       _row(
         selected: current.isEmpty,
         title: '自动优选（推荐）',
-        subtitle: '按普通话优先的规则自动挑一个，通常是系统默认中文语音',
+        subtitle: '不指定语音包：Web 版用后端神经语音，安卓版用系统默认中文语音',
         onTap: () => _pickVoice(''),
       ),
       if (_loading)
@@ -194,7 +239,7 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
         for (final v in _voices)
           _row(
             selected: current.isNotEmpty && current == v.name,
-            title: v.label.isEmpty ? v.name : v.label,
+            title: '${v.label.isEmpty ? v.name : v.label}${v.chinese ? '' : '（非中文）'}',
             subtitle: '${v.locale}${v.network ? ' · 需联网合成' : ' · 本机离线'} · ${v.name}',
             onTap: () => _pickVoice(v.name),
           ),
@@ -210,15 +255,20 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
     ]);
   }
 
-  Widget _noteCard() => _card('说明', '为什么有的「女声」听起来还是男声', const [
+  Widget _noteCard() => _card('说明', '两端音色是怎么来的（别期待安卓包能变出女声）', const [
     Padding(
       padding: EdgeInsets.only(bottom: 8),
       child: Text(
-        '· 安卓系统 TTS 只能给你「已安装的语音包」，App 自己造不出音色。\n'
-        '· 「温柔女声 / 甜美女声」是通过提高音调、放慢或加快语速得到的近似效果；'
-        '本机只装了男声包时，选这两个仍会是男声——想要真女声，请先装中文女声语音包再回来选。\n'
-        '· 系统不提供性别字段，所以本页不标注「男 / 女」，只显示语音包的真实名字。\n'
-        '· Web 版朗读优先走浏览器语音，规则同上；安卓包的朗读完全离线，不联网。',
+        '· Web 版：朗读优先走后端微软神经语音，「温柔女声 / 甜美女声 / 广播员男声 / '
+        '高亢有力男声」分别对应晓晓 / 晓伊 / 云扬 / 云健，是真·不同音色。'
+        '后端不可达时会退回浏览器语音，这时只剩音调语速的差别。\n'
+        '· 安卓版：系统 TTS 只能用「手机里已安装的语音包」，App 不内置语音包、也不联网合成。'
+        '选某一档时会按关键词去已装语音包里找最接近的那个；找不到就只做音调语速近似，'
+        '所以本机只有男声包时，选「温柔女声」听起来仍是男声。\n'
+        '· 想给安卓加女声：在「设置 → 系统 → 语言和输入 → 文字转语音」里安装'
+        '（如 Google 语音服务）中文女声语音，回到本页「重新读取语音包」再挑。\n'
+        '· 系统不提供性别字段，所以下面列表不标注「男 / 女」，只显示语音包真实名字；'
+        '手动选过语音包后，它会优先于风格档位（手选 > 预设）。',
         style: TextStyle(fontSize: 12, color: AppColors.ink400, height: 1.6),
       ),
     ),

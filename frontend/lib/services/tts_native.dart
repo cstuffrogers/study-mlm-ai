@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'tts_settings.dart';
+import 'tts_voice_slots.dart';
 
 /// 当前正在朗读的「条目 id」。null 表示空闲。全局同一时刻只朗读一段。
 final ValueNotifier<String?> ttsCurrent = ValueNotifier<String?>(null);
@@ -107,6 +108,24 @@ Future<bool> ttsSetVoice(String name) async {
   }
 }
 
+/// 按当前风格档去系统语音包里找对应音色（找不到就返回 null，只做音调语速近似）。
+///
+/// 安卓没法内置语音包，只能从**已装**的里面挑：各厂家命名五花八门，
+/// 所以这里按关键词匹配（见 TtsVoiceSlots.nativeHints），命中 displayName/name 任意其一即用。
+/// 用户手动选过语音包时不动——手选优先于预设。
+Future<String?> _voiceForSlot(TtsVoiceSlot slot) async {
+  if (slot.nativeHints.isEmpty) return null;
+  final list = await ttsListVoices();
+  if (list.isEmpty) return null;
+  for (final hint in slot.nativeHints) {
+    final h = hint.toLowerCase();
+    for (final v in list) {
+      if ('${v.label} ${v.name}'.toLowerCase().contains(h)) return v.name;
+    }
+  }
+  return null;
+}
+
 void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
   final body = text.trim();
   if (body.isEmpty) return;
@@ -120,6 +139,7 @@ void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
   ttsCurrent.value = id;
   // 风格预设：语速在调用方的 rate 上再乘预设倍数，音调交给预设（安卓引擎范围 0.5~2.0）
   final preset = TtsSettings.instance.preset;
+  _applySlotVoice();
   _ch.invokeMethod<bool>('speak', {
     'text': body,
     'id': id,
@@ -132,6 +152,24 @@ void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
     debugPrint('TTS 朗读失败：$e');
   });
 }
+
+/// 把当前风格档对应的系统语音包设上去（手选过语音包、或档位没关键词时跳过）。
+/// 失败/没找到都静默：音调语速预设仍然生效，不该因为选不到音色就静默不读。
+void _applySlotVoice() {
+  final settings = TtsSettings.instance;
+  if (settings.voiceName.isNotEmpty) return;
+  final slot = TtsVoiceSlots.byId(settings.presetId);
+  if (slot.nativeHints.isEmpty) return;
+  if (_appliedSlot == slot.id) return;
+  _appliedSlot = slot.id;
+  _voiceForSlot(slot).then((name) {
+    if (name == null || settings.voiceName.isNotEmpty) return;
+    _ch.invokeMethod<bool>('setVoice', {'name': name}).catchError((Object _) => false);
+  }).catchError((Object _) => null);
+}
+
+/// 上一次按风格档设过的系统语音（避免每次朗读都重设一遍）。
+String? _appliedSlot;
 
 void ttsStop() {
   ttsCurrent.value = null;

@@ -48,8 +48,16 @@ Timer? _watchdog;
 // ---- 浏览器语音（兜底）相关状态 ----
 List<web.SpeechSynthesisVoice> _voices = [];
 
-/// 「语音包设置」里手选的语音名（null = 自动优选）。 */
+/// 「语音包设置」里手选的浏览器语音名（null = 自动优选 / 走神经语音）。
 String? _voiceOverride;
+
+/// 用户在设置页点了「本机浏览器语音」，因此不再走后端神经语音。
+///
+/// 为什么需要它：Web 端的音色来自**后端微软神经语音**（晓晓/晓伊/云扬/云健），
+/// 而浏览器 speechSynthesis 的音色完全取决于本机系统装了哪些语音。
+/// 两者是不同引擎：用户在「语音包设置」里明确挑了某个浏览器语音，就该真的用它，
+/// 否则会出现「选了却不生效」的假开关。
+bool get _neuralDisabled => (_voiceOverride ?? TtsSettings.instance.voiceName).isNotEmpty;
 bool _hooked = false;
 final List<void Function()> _pending = <void Function()>[];
 
@@ -118,19 +126,29 @@ bool ttsVoicesLoaded() {
 
 bool ttsAvailable() => true;
 
-/// 浏览器里的中文语音包（`speechSynthesis.getVoices()` 过滤出的中文项）。
+/// 浏览器里的语音包（中文优先，其余排在后面也列出来，方便用户手选）。
+///
+/// 首发版只列中文项，结果「本机只有英文语音」时列表全空、用户以为功能没做；
+/// 现在非中文也列（页面会标注语言），选择权交给用户。
 Future<List<TtsVoiceOption>> ttsListVoices() async {
   _ensureVoices();
   if (_voices.isEmpty) _refreshVoices();
-  return _voices
-      .where((v) => _voiceScore(v) > 0)
-      .map((v) => TtsVoiceOption(
-            name: v.name,
-            label: v.name,
-            locale: v.lang,
-            network: v.localService == false,
-          ))
-      .toList();
+  final out = <TtsVoiceOption>[];
+  for (final v in _voices) {
+    out.add(TtsVoiceOption(
+      name: v.name,
+      label: v.name,
+      locale: v.lang,
+      network: v.localService == false,
+      chinese: _voiceScore(v) > 0,
+    ));
+  }
+  // 中文在前，同组内保持引擎给的顺序
+  out.sort((a, b) {
+    if (a.chinese != b.chinese) return a.chinese ? -1 : 1;
+    return 0;
+  });
+  return out;
 }
 
 /// 选中某个浏览器语音；空串 = 回到自动优选。浏览器没有「设置失败」，
@@ -218,9 +236,14 @@ String _neuralUrl(String text, String rateStr) {
   if (t.length > 1800) t = t.substring(0, 1800);
   // 相对路径：由当前页面的静态服务（8080）反代到后端 8190 的 /api/tts。
   // 同源 → 无跨端口/CORS 问题，且任何 host 打开页面都能用。
-  final uri = Uri.parse(
-    '/api/tts/speak',
-  ).replace(queryParameters: {'text': t, 'rate': rateStr});
+  //
+  // voice：Web 端的「温柔女声 / 广播员男声」等预设**就是**这几个微软神经语音，
+  // 不带 voice 参数就永远是默认晓晓，页面上选了也没用。
+  final uri = Uri.parse('/api/tts/speak').replace(queryParameters: {
+    'text': t,
+    'rate': rateStr,
+    'voice': TtsSettings.instance.slot.neuralVoice,
+  });
   return uri.toString();
 }
 
@@ -368,6 +391,16 @@ void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
   } catch (_) {}
   _pending.clear();
   _stopAudio();
+  if (_neuralDisabled) {
+    // 用户在设置页手选了浏览器语音：直接用它，不再先试神经语音
+    _segments = const <String>[];
+    _segIndex = 0;
+    _segRate = rate;
+    _segId = id;
+    ttsCurrent.value = id;
+    _browserSpeak(t, id, rate);
+    return;
+  }
   _segments = _splitForTts(t);
   _segIndex = 0;
   _segRate = rate;

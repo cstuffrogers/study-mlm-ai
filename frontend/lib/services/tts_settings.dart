@@ -14,6 +14,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../offline/local_store_keys.dart';
+import 'tts_voice_slots.dart';
 
 /// 朗读风格预设：音调 + 语速。
 class TtsPreset {
@@ -101,6 +102,7 @@ class TtsVoiceOption {
     required this.label,
     required this.locale,
     this.network = false,
+    this.chinese = true,
   });
 
   /// 引擎内部名（zh-cn-x-ccc-local 这类），切语音时用它。
@@ -114,6 +116,9 @@ class TtsVoiceOption {
 
   /// 是否需要联网合成（系统语音包可能标 network）。
   final bool network;
+
+  /// 是否为中文语音（Web 端会把非中文语音也列出来，供用户手选）。
+  final bool chinese;
 }
 
 /// 朗读设置：风格预设 + 选中的语音包名（'' = 自动优选）。
@@ -134,6 +139,10 @@ class TtsSettings {
 
   /// 选中的系统语音包名；空串 = 自动挑最合适的中文语音。
   String get voiceName => _voiceName;
+
+  /// 当前风格对应的「音色档」：Web 用它挑后端神经语音，安卓用它去系统语音包里
+  /// 按关键词找对应音色（找不到就只做音调语速近似）。
+  TtsVoiceSlot get slot => TtsVoiceSlots.byId(_presetId);
 
   bool get loaded => _loaded;
 
