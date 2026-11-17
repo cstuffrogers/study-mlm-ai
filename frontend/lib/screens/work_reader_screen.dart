@@ -84,8 +84,20 @@ class WorkReaderScreen extends StatefulWidget {
   /// 要直接定位到的原文分片（「相关原文」跳转用）。
   /// 打开后自动翻到该分片所在页，而不是回上次进度；找不到则按常规进度打开。
   final String? focusChunkId;
+
+  /// 打开后要替用户发问的选文（来自原文卡片/溯源卡片里选中的话）。
+  /// 会话浮窗全应用只有本页一份实现，别处想发问就把内容带到这里。
+  final String? askText;
+
+  /// 与 [askText] 配套的模式；为空时用释义。
+  final String? askMode;
   const WorkReaderScreen(
-      {super.key, required this.work, required this.title, this.focusChunkId});
+      {super.key,
+      required this.work,
+      required this.title,
+      this.focusChunkId,
+      this.askText,
+      this.askMode});
 
   @override
   State<WorkReaderScreen> createState() => _WorkReaderScreenState();
@@ -99,6 +111,10 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   List<String> _paragraphs = const [];
   /// 待定位的段落下标（一次性，定位后清空，避免影响后续翻页/字号重排）
   int? _focusPara;
+
+  /// 打开时带过来的待发问内容（只发一次，发完置空）。
+  String? _pendingAsk;
+  String? _pendingAskMode;
 
   ReaderDoc? _doc;
   Size? _docSize;
@@ -188,14 +204,38 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         _loading = false;
         _doc = null;
         _docSize = null;
+        // 一次性：带上来的问题只发一次，之后翻页/重排都不再重复发
+        _pendingAsk = widget.askText;
+        _pendingAskMode = widget.askMode;
         _building = false;
       });
+      _flushPendingAsk();
     } catch (e) {
       setState(() {
         _error = '$e';
         _loading = false;
       });
     }
+  }
+
+  /// 把「打开时带过来的问题」发出去（只发一次）。
+  ///
+  /// 为什么放首帧之后：发问会插一个 OverlayEntry，必须在有 Overlay 的
+  /// 帧里做；直接在 setState 同一帧插会在某些机型上拿到尚未挂载的 Overlay。
+  void _flushPendingAsk() {
+    final text = _pendingAsk;
+    final modeName = _pendingAskMode;
+    _pendingAsk = null;
+    _pendingAskMode = null;
+    if (text == null || text.trim().isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final m = ChatMode.values.firstWhere(
+        (e) => e.name == (modeName ?? 'explain'),
+        orElse: () => ChatMode.explain,
+      );
+      _ask(text, m.name);
+    });
   }
 
   Future<void> _loadPrefs() async {
@@ -300,6 +340,16 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     _savePrefs();
   }
 
+  /// 只打开/收起会话浮窗，不发送任何内容。
+  void _openChatOnly() {
+    final svc = context.read<ChatService>();
+    if (_sheetOpen) {
+      _closeFloatingChat();
+    } else {
+      _openFloatingChat(svc);
+    }
+  }
+
   void _ask(String text, String mode) {
     final svc = context.read<ChatService>();
     final m = ChatMode.values.firstWhere((e) => e.name == mode, orElse: () => ChatMode.explain);
@@ -359,6 +409,9 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   }
 
   void _closeFloatingChat() {
+    // 关掉会话浮窗就必须停朗读：浮窗里每条回答都有小喇叭，浮窗一收起，
+    // 正在念的那条既看不到也点不到，用户只能干等它念完（用户实报）。
+    ttsStop();
     if (_chatListener != null && _chatSvc != null) {
       _chatSvc!.removeListener(_chatListener!);
     }
@@ -819,7 +872,16 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   void _onSelectionChanged(SelectedContent? sel) {
     final t = (sel?.plainText ?? '').trim();
     if (t.isNotEmpty && t.length < 500) {
+      // 换了一段选区：旧浮框消失，它上面的朗读必须跟着停，
+      // 否则会一直念着上一段选中的文字（用户实报）。
+      if (_selected != t && _selected.isNotEmpty) ttsStop();
       setState(() => _selected = t);
+      return;
+    }
+    // 选区没了（点空白 / 太长）→ 浮框收起 → 停朗读
+    if (_selected.isNotEmpty) {
+      ttsStop();
+      setState(() => _selected = '');
     }
   }
 
@@ -843,7 +905,14 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
               child: SpeakButton(id: 'reader-page-${widget.work}-$_page', text: _pageSpeech()),
             ),
-          IconButton(tooltip: '会话（五模式精读）', icon: const Icon(Icons.forum_outlined), onPressed: () => _ask(_selected, 'explain')),
+          // 只打开/收起会话浮窗，**不**自动发问。
+          // 用户实报：一点就自动释义 —— 上一版把「打开会话」与「就选中文本发问」
+          // 混成同一个动作。现在打开是空会话，发什么由用户自己在浮窗里决定。
+          IconButton(
+            tooltip: '会话（五模式精读）',
+            icon: const Icon(Icons.forum_outlined),
+            onPressed: _openChatOnly,
+          ),
           const SizedBox(width: 4),
         ],
       ),
@@ -1007,6 +1076,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 backgroundColor: Color(m.color),
                 onPressed: () {
                   final t = _selected;
+                  // 浮框收起，朗读停（不然发问后还在念选中的那段）
+                  ttsStop();
                   setState(() => _selected = '');
                   _ask(t, m.name);
                 },

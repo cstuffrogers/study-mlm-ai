@@ -9,7 +9,10 @@
 import 'package:flutter/material.dart';
 import '../services/content_service_api.dart';
 import '../theme/app_theme.dart';
+import '../screens/work_reader_screen.dart';
+import '../services/tts.dart';
 import 'chat_markdown.dart';
+import 'sheet_selection_ask.dart';
 import 'speak_button.dart';
 
 /// 分片详情缓存：同一条分片反复点开不再重复请求 / 解码。
@@ -95,7 +98,11 @@ Future<void> showChunkCard(BuildContext context, String chunkId, {String? fallba
     showDragHandle: false,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => DraggableScrollableSheet(
+    // 弹层里点过小喇叭后，无论用哪种方式退出（点遮罩 / 下滑 / 返回键）
+    // 都要停朗读。TtsStopOnSheetClose 拦 Navigator.pop 那条路，
+    // 这里再兜一道 dispose（父页面被替换等不走 pop 的路径）。
+    builder: (ctx) => _StopSpeechOnDispose(
+      child: DraggableScrollableSheet(
       initialChildSize: 0.62,
       minChildSize: 0.35,
       maxChildSize: 0.94,
@@ -163,9 +170,17 @@ Future<void> showChunkCard(BuildContext context, String chunkId, {String? fallba
               ),
             ),
             const Divider(height: 1),
-            // 正文（可滚动，完整不截断）
+            // 正文（可滚动，完整不截断）。
+            //
+            // SheetSelectionAsk 做两件事：屏蔽系统自带的「copy / 全选」
+            // 工具条（用户实报「不要弹 copy 框」），以及选中即弹本应用
+            // 自己的追问浮框，把选中的话交回 onAsk 去处。
             Expanded(
-              child: SingleChildScrollView(
+              child: SheetSelectionAsk(
+                speakKey: chunkId,
+                onAsk: (sel, mode) =>
+                    _askFromSheet(context, chunkId, sel, mode.name),
+                child: SingleChildScrollView(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
                 child: Column(
@@ -198,9 +213,60 @@ Future<void> showChunkCard(BuildContext context, String chunkId, {String? fallba
                   ],
                 ),
               ),
+              ),
             ),
           ],
         ),
+      ),
+    ),
+    ),
+  );
+}
+
+/// 弹层即将销毁时停朗读（最后一道保险，ttsStop 幂等）。
+class _StopSpeechOnDispose extends StatefulWidget {
+  final Widget child;
+  const _StopSpeechOnDispose({required this.child});
+
+  @override
+  State<_StopSpeechOnDispose> createState() => _StopSpeechOnDisposeState();
+}
+
+class _StopSpeechOnDisposeState extends State<_StopSpeechOnDispose> {
+  @override
+  void dispose() {
+    ttsStop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// 弹层里选了话 → 关掉弹层 → 打开这段原文所在的阅读器，把问题带过去。
+///
+/// 会话浮窗全应用只有阅读器里那一份实现，别处想发问就把内容带进阅读器，
+/// 由它自己开浮窗并发送 —— 不在这里再起一套（两套必然漏关）。
+Future<void> _askFromSheet(
+    BuildContext sheetContext, String chunkId, String text, String mode) async {
+  final nav = Navigator.of(sheetContext, rootNavigator: true);
+  if (nav.canPop()) nav.pop();
+  final detail = await _chunkDetail(chunkId);
+  final source = (detail['source'] ?? '').toString().trim();
+  final layer = (detail['layer'] as num?)?.toInt() ?? 0;
+  if (source.isEmpty || layer != 1) {
+    // 没有原著正文可定位（导读/解析类分片）：直接回到卡片，不假装能跳原文
+    return;
+  }
+  if (!sheetContext.mounted) return;
+  await Navigator.of(sheetContext, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      builder: (_) => WorkReaderScreen(
+        work: source,
+        title: source,
+        focusChunkId: chunkId,
+        askText: text,
+        askMode: mode,
       ),
     ),
   );
@@ -248,8 +314,12 @@ void _showGuideSourceSheet(BuildContext context, String? fallbackText) {
               ]),
             ),
             const Divider(height: 1),
+            // 与原文卡片一致：屏蔽系统 copy 工具条（选中不弹系统菜单），
+            // 这里没有原著分片可追问，所以只做屏蔽、不挂追问浮框。
             Expanded(
-              child: SingleChildScrollView(
+              child: SelectionArea(
+                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                child: SingleChildScrollView(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
                 child: Column(
@@ -271,6 +341,7 @@ void _showGuideSourceSheet(BuildContext context, String? fallbackText) {
                     ],
                   ],
                 ),
+              ),
               ),
             ),
           ],
