@@ -69,3 +69,27 @@ class TestExemptMarkerEfficacy:
         )
         result = guard.check(text, mode="debate")
         assert result["action"] == "block", "豁免标记段外的偏离内容未被拦截"
+
+
+class TestUnclosedMarkerFallbackWording:
+    """用户实报：单机版把「标记没闭合」报成「涉及与本课程立场不一致的框架」。
+
+    标记未闭合是**格式**问题（模型漏写 `【/反方观点】`），内容往往完全合规；
+    报成立场偏离会误导用户以为回答内容错了。后端 fallback 文案必须区分。
+    """
+
+    def test_marker_flag_gets_format_wording(self) -> None:
+        from services.dialogue_service import _marker_fallback
+
+        msg = _marker_fallback([{"type": "unclosed_exempt_marker", "reason": "x"}])
+        assert "标记没有成对闭合" in msg
+        assert "格式问题" in msg
+        assert "立场" not in msg, "格式问题不能报成立场偏离"
+
+    def test_stance_flag_keeps_default(self) -> None:
+        from services.dialogue_service import _marker_fallback
+
+        assert _marker_fallback([{"type": "deviation"}]) == ""
+        assert _marker_fallback([]) == ""
+        # detail 可能是字符串（ML 分类器分支），不能炸
+        assert _marker_fallback("ML 分类为偏离（conf=0.91）") == ""  # type: ignore[arg-type]

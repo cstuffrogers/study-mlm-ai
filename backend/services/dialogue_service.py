@@ -219,6 +219,20 @@ def _engine_of(resp) -> str:
     return "local"
 
 
+def _marker_fallback(flags: list) -> str:
+    """标记未闭合 → 格式问题，不要报成「立场偏离」。
+
+    `OrthodoxyGuard` 对「写了开标记、漏了闭合标记」一律 block（防绕过），
+    但这类回答的内容往往完全合规，只是模型漏写 `【/反方观点】`。
+    把它报成立场偏离会让用户以为回答内容是错的，所以单独给文案。
+    """
+    kinds = {f.get("type") for f in flags if isinstance(f, dict)}
+    if "unclosed_exempt_marker" in kinds:
+        return ("这次回答的「反方观点」标记没有成对闭合（格式问题，不是内容判定），"
+                "已拦截未展示，已转为正统表述；再问一次通常就好。")
+    return ""
+
+
 class DialogueService:
     """对话编排服务"""
 
@@ -293,7 +307,10 @@ class DialogueService:
                         for f in (flags[:3] if flags else [{"reason": "立场校验未通过"}])
                     ),
                     "layer": "stance",
-                    "fallback": "该回答触发防偏离拦截，已转为正统表述。如需批判性参考，可切换批判性阅读模式。",
+                    "fallback": (
+                        _marker_fallback(flags) or
+                        "该回答触发防偏离拦截，已转为正统表述。如需批判性参考，可切换批判性阅读模式。"
+                    ),
                     "allow_critical_reading": True,
                     # T022：被判偏离的内容标注为『需批判对象引导』，不计普通人错题
                     "not_a_normal_error": True,
