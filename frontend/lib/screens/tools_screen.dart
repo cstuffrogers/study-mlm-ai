@@ -1,14 +1,17 @@
-// 功能菜单页 — 汇聚全站入口（学习路线 / 学习分析 / 原著浏览 / 对话历史 / 错题本 / 大模型配置 / 本机数据 / 关于 / 法律与隐私）
+// 功能菜单页 — 汇聚全站入口（学习分析 / 原著浏览 / 对话历史 / 错题本 / 大模型配置 / 语音包设置 / 本机数据 / 关于 / 法律与隐私）
+//
+// 「学习路线」入口已删（D143）：首页本身就是选学习路线页，这里再放一份是重复入口；
+// 要换路线直接返回首页即可。
 import 'package:flutter/material.dart';
 import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
-import 'route_picker.dart';
 import 'analytics_dashboard.dart';
 import 'source_browser_screen.dart';
 import 'dialogue_history_screen.dart';
 import 'test_history_screen.dart';
 import 'data_backup_screen.dart';
 import 'llm_config_screen.dart';
+import 'tts_settings_screen.dart';
 import 'about_screen.dart';
 import 'legal_screen.dart';
 
@@ -19,8 +22,6 @@ class ToolsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <_ToolItem>[
-      _ToolItem('学习路线', '三条路线 · 章测 · 门控', Icons.route, AppColors.info,
-          (_) => const RoutePickerScreen()),
       _ToolItem('学习分析', '健康度 · 校准 · 错因', Icons.insights, AppColors.ink,
           (_) => AnalyticsDashboardScreen(routeId: routeId)),
       _ToolItem('原著浏览', '原著全文 · 逐段对照', Icons.menu_book, AppColors.brand,
@@ -32,6 +33,9 @@ class ToolsScreen extends StatelessWidget {
       _ToolItem('LLM 大模型 API 配置', 'API Key · 端点 · 模型 · 立即生效',
           Icons.smart_toy_outlined, AppColors.brandDeep,
           (_) => const LlmConfigScreen()),
+      _ToolItem('语音包设置', '中文语音包 · 音调语速风格 · 试听',
+          Icons.record_voice_over_outlined, AppColors.success,
+          (_) => const TtsSettingsScreen()),
       _ToolItem('本机数据', '升级不丢 · 备份恢复 · 数据体检',
           Icons.backup_outlined, AppColors.info,
           (_) => const DataBackupScreen()),

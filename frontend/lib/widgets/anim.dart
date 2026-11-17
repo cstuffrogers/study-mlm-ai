@@ -301,6 +301,18 @@ double _measureText(BuildContext context, String text, TextStyle style,
 /// 渐变头图 — 深蓝→靛紫渐变 + 漂浮光斑，白色标题与副标题。
 class GradientHeader extends StatelessWidget {
   final String title;
+
+  /// 自定义标题组件（给了就替代 [title]，用于首页那种分行 + 自带样式的品牌标题）。
+  ///
+  /// 为什么不直接让调用方传 Widget 到 [title]：这里的头部高度是按文本**实测**出来的
+  /// （见下方 _measureText），换成任意 Widget 就量不出高度、窄屏会溢出。
+  /// 所以由调用方一并给出 [titleHeight]（自己也用同一套样式量好）。
+  final Widget? titleWidget;
+
+  /// 自定义标题在**未缩放**状态下占的高度（px）。给了 [titleWidget] 就必须给。
+  /// 实际占用 = titleHeight × 当前 textScaler 的纵向倍数。
+  final double? titleHeight;
+
   final String? subtitle;
   final Widget? leading;
   final List<Widget> actions;
@@ -316,6 +328,8 @@ class GradientHeader extends StatelessWidget {
   const GradientHeader({
     super.key,
     required this.title,
+    this.titleWidget,
+    this.titleHeight,
     this.subtitle,
     this.leading,
     this.actions = const [],
@@ -352,12 +366,16 @@ class GradientHeader extends StatelessWidget {
     // 图标行取 Material 最小点击区（48）与标题行高，保证不被行内按钮撑破。
     final double rowHeight = (leading != null || actions.isNotEmpty) ? 48.0 : 0.0;
     // 标题允许折两行：窄屏 + 头像占位后单行放不下 9 个字，硬压成省略号更难看。
-    final double titleHeight = _measureText(context, title, _titleStyle, textWidth,
-        maxLines: 2);
+    // 自定义标题走调用方给的基准高度，同样按 textScaler 缩放，避免大字号溢出。
+    final double scaler = MediaQuery.textScalerOf(context).scale(1.0);
+    final double usedTitleHeight = titleWidget != null
+        ? (titleHeight ?? 40.0) * (scaler <= 1.0 ? 1.0 : scaler)
+        : _measureText(context, title, _titleStyle, textWidth, maxLines: 2);
     final double subtitleHeight = subtitle == null
         ? 0.0
         : 4.0 + _measureText(context, subtitle!, _subtitleStyle, textWidth);
-    final double needed = padding.vertical + rowHeight + titleHeight + subtitleHeight;
+    final double needed =
+        padding.vertical + rowHeight + usedTitleHeight + subtitleHeight;
     final double headerHeight =
         (baseHeight > needed ? baseHeight : needed) + topInset;
     // RepaintBoundary 默认会裁剪溢出子级；红白图需完整显示，不能用它包住头部。
@@ -379,12 +397,15 @@ class GradientHeader extends StatelessWidget {
                 children: [
                   Row(children: [?leading, const Spacer(), ...actions]),
                   const Spacer(),
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: _titleStyle,
-                  ),
+                  if (titleWidget != null)
+                    titleWidget!
+                  else
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _titleStyle,
+                    ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 4),
                     Text(

@@ -12,9 +12,15 @@ import java.util.Locale
  * 安卓原生 TTS（系统 TextToSpeech 引擎，离线可用）。
  *
  * 通道：[xxmz/tts]
- *   init   -> {ready: Boolean, chinese: Boolean, engine: String?}
- *   speak  -> 参数 {text: String, id: String, rate: Double}，返回 Boolean（引擎是否接受）
- *   stop   -> null
+ *   init     -> {ready: Boolean, chinese: Boolean, engine: String?, voice: String?}
+ *   speak    -> 参数 {text: String, id: String, rate: Double, pitch: Double}，返回 Boolean（引擎是否接受）
+ *   stop     -> null
+ *   voices   -> {voices: [{name, label, locale, quality, network}], current: String?}
+ *   setVoice -> 参数 {name: String}（空串 = 恢复引擎默认），返回 Boolean
+ *
+ * 「语音包设置」页（功能中心）靠 voices / setVoice 列出本机已装的中文语音并让用户挑选；
+ * pitch 用于「温柔女声 / 广播员男声」这类风格预设（音色取决于装了哪些语音包，
+ * 音调语速由 App 侧预设决定，见 lib/services/tts_settings.dart）。
  * 回调用 invokeMethod("done", id) 通知 Dart 侧朗读结束，用于熄灭喇叭高亮。
  *
  * 要点：
@@ -29,6 +35,12 @@ class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
     private var lastChunkIndex = 0
 
+    /** 当前选中的语音包名（null = 引擎默认）。 */
+    private var voiceName: String? = null
+
+    /** 音调，供「温柔女声 / 广播员男声」等风格预设使用。 */
+    private var pitch = 1.0f
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "xxmz/tts")
@@ -42,16 +54,30 @@ class MainActivity : FlutterActivity() {
                 "speak" -> {
                     val text = call.argument<String>("text") ?: ""
                     val rate = (call.argument<Double>("rate") ?: 1.0).toFloat()
+                    val pit = (call.argument<Double>("pitch") ?: 1.0).toFloat()
                     val id = call.argument<String>("id") ?: "__default__"
                     if (text.isBlank() || !ready) {
                         result.success(false)
                     } else {
+                        pitch = pit
                         result.success(speakNow(text, id, rate))
                     }
                 }
                 "stop" -> {
                     tts?.stop()
                     result.success(null)
+                }
+                "voices" -> result.success(
+                    mapOf(
+                        "voices" to voiceList(),
+                        "current" to voiceName,
+                    )
+                )
+                "setVoice" -> {
+                    val name = call.argument<String>("name") ?: ""
+                    val ok = applyVoice(name)
+                    if (ok) voiceName = name.ifBlank { null }
+                    result.success(ok)
                 }
                 else -> result.notImplemented()
             }
@@ -62,7 +88,51 @@ class MainActivity : FlutterActivity() {
         "ready" to ready,
         "chinese" to chinese,
         "engine" to tts?.engines?.firstOrNull()?.name,
+        "voice" to voiceName,
     )
+
+    /** 本机已装的中文语音包（引擎未就绪时返回空表，UI 自行提示）。 */
+    private fun voiceList(): List<Map<String, Any?>> {
+        val engine = tts ?: return emptyList()
+        return try {
+            engine.voices
+                ?.filter { v ->
+                    val lang = v.locale.language.lowercase()
+                    lang == "zh" || lang == "cmn" || lang == "yue"
+                }
+                ?.map { v ->
+                    // 中文引擎的语音名通常是 zh-cn-x-ccc-local / cmn-cn-x-ccc-local 这类内部名，
+                    // 直接展示对用户没意义；label 只给语言 + 性别线索（引擎不给性别，就别编）。
+                    mapOf(
+                        "name" to v.name,
+                        "locale" to v.locale.toLanguageTag(),
+                        "label" to v.locale.displayName,
+                        "quality" to v.quality,
+                        "network" to v.isNetworkConnectionRequired,
+                    )
+                }
+                ?.sortedWith(compareBy({ it["network"] == true }, { "${it["name"]}" }))
+                ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /** 切换语音包：空串 = 恢复引擎默认（setVoice(null)）。 */
+    private fun applyVoice(name: String): Boolean {
+        val engine = tts ?: return false
+        return try {
+            if (name.isBlank()) {
+                engine.setVoice(null)
+                true
+            } else {
+                val target = engine.voices?.firstOrNull { it.name == name } ?: return false
+                engine.setVoice(target) == TextToSpeech.SUCCESS
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     /** 惰性初始化；已就绪则立即回调。 */
     private fun ensureTts(onReady: () -> Unit) {
@@ -132,6 +202,8 @@ class MainActivity : FlutterActivity() {
         return try {
             engine.stop()
             engine.setSpeechRate(if (rate <= 0f) 1.0f else rate)
+            // 音调范围 [0.5, 2.0]；越界会被引擎静默忽略，这里夹一下更保险
+            engine.setPitch(pitch.coerceIn(0.5f, 2.0f))
             val chunks = splitForTts(text)
             if (chunks.isEmpty()) return false
             lastChunkIndex = chunks.size - 1

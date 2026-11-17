@@ -31,6 +31,13 @@ class LocalStoreKeys {
   /// 学情信号（对话 / 费曼）
   static const String signals = 'off_signals';
 
+  // —— 朗读设置（SharedPreferences 直读，早于 LocalDb 初始化）——
+  /// 朗读风格预设 id（见 services/tts_settings.dart::TtsPresets）
+  static const String ttsPreset = 'off_tts_preset';
+
+  /// 选中的系统语音包名（'' = 自动优选）
+  static const String ttsVoice = 'off_tts_voice';
+
   /// LocalDb 全部文档键，按 flush 顺序
   static const List<String> docs = [
     mastery,

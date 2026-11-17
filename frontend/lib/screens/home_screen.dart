@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../services/sync_controller.dart';
 import '../widgets/anim.dart';
 import '../widgets/author_art.dart';
+import '../widgets/brand_title.dart';
 import '../widgets/guide_dialog.dart';
 import '../widgets/route_cards.dart';
 import '../widgets/sync_notice.dart';
@@ -65,7 +66,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     GradientHeader(
-                      title: '马列毛思想AI伴读',
+                      // 标题走自定义组件（两行「唯物」/「马哲精读」），
+                      // titleHeight 是它在未缩放下的实测总高，供头部预留空间。
+                      title: '唯物 马哲精读',
+                      titleWidget: const BrandTitle(),
+                      titleHeight: BrandTitle.baseHeight,
                       subtitle: '先选学习路线，再进章节精读',
                       // 头像高度随屏宽收一点：窄屏（360dp）上 116 高的横幅图宽达 177，
                       // 占掉近一半头部宽度会把标题挤成省略号。

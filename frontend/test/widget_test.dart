@@ -17,8 +17,9 @@ void main() {
     // 不 init 本地库：路线列表会一直转圈，所以这里只 pump 固定帧，不 pumpAndSettle
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    // 顶部标题与副标题
-    expect(find.text('马列毛思想AI伴读'), findsOneWidget);
+    // 顶部标题与副标题（D143 起标题拆成两行「唯物」/「马哲精读」）
+    expect(find.text('唯物'), findsOneWidget);
+    expect(find.text('马哲精读'), findsOneWidget);
     expect(find.text('先选学习路线，再进章节精读'), findsOneWidget);
     // 首页只到「选路线」为止：章节列表与底部主操作已交给章节地图页
     expect(find.text('深入学习'), findsNothing);

@@ -7,6 +7,16 @@
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
+        <!-- 关于页「下载最新安卓版 / 打开 GitHub」、延伸阅读「打开原文」走 url_launcher；
+             Android 11+ 不声明这些 intent 会导致 canLaunchUrl 恒 false、按钮点了没反应。 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
     </queries>
     <application
         android:label="唯物·马哲精读"

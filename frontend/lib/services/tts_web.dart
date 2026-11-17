@@ -25,6 +25,7 @@ import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
+import 'tts_settings.dart';
 import 'tts_voice_pick.dart';
 
 /// 当前正在朗读的「条目 id」。null 表示空闲。全局同一时刻只朗读一段。
@@ -46,6 +47,9 @@ Timer? _watchdog;
 
 // ---- 浏览器语音（兜底）相关状态 ----
 List<web.SpeechSynthesisVoice> _voices = [];
+
+/// 「语音包设置」里手选的语音名（null = 自动优选）。 */
+String? _voiceOverride;
 bool _hooked = false;
 final List<void Function()> _pending = <void Function()>[];
 
@@ -82,6 +86,12 @@ int _voiceScore(web.SpeechSynthesisVoice v) =>
 web.SpeechSynthesisVoice? _bestVoice() {
   _ensureVoices();
   if (_voices.isEmpty) _refreshVoices();
+  final override = _voiceOverride ?? TtsSettings.instance.voiceName;
+  if (override.isNotEmpty) {
+    for (final v in _voices) {
+      if (v.name == override) return v;
+    }
+  }
   web.SpeechSynthesisVoice? best;
   int bestScore = 0;
   for (final v in _voices) {
@@ -108,13 +118,47 @@ bool ttsVoicesLoaded() {
 
 bool ttsAvailable() => true;
 
+/// 浏览器里的中文语音包（`speechSynthesis.getVoices()` 过滤出的中文项）。
+Future<List<TtsVoiceOption>> ttsListVoices() async {
+  _ensureVoices();
+  if (_voices.isEmpty) _refreshVoices();
+  return _voices
+      .where((v) => _voiceScore(v) > 0)
+      .map((v) => TtsVoiceOption(
+            name: v.name,
+            label: v.name,
+            locale: v.lang,
+            network: v.localService == false,
+          ))
+      .toList();
+}
+
+/// 选中某个浏览器语音；空串 = 回到自动优选。浏览器没有「设置失败」，
+/// 只要名字非空且能在列表里找到就算成功。
+Future<bool> ttsSetVoice(String name) async {
+  _ensureVoices();
+  if (_voices.isEmpty) _refreshVoices();
+  final target = name.trim();
+  if (target.isEmpty) {
+    _voiceOverride = null;
+    await TtsSettings.instance.setVoiceName('');
+    return true;
+  }
+  final hit = _voices.where((v) => v.name == target);
+  if (hit.isEmpty) return false;
+  _voiceOverride = target;
+  await TtsSettings.instance.setVoiceName(target);
+  return true;
+}
+
 // ------------------------- 浏览器语音（兜底） -------------------------
 
 void _speakNowBrowser(String text, String id, double rate) {
   final synth = web.window.speechSynthesis;
   final utter = web.SpeechSynthesisUtterance(text);
-  utter.rate = rate;
-  utter.pitch = 1.0;
+  final preset = TtsSettings.instance.preset;
+  utter.rate = rate * preset.rate;
+  utter.pitch = preset.pitch;
   utter.lang = 'zh-CN';
   final v = _bestVoice();
   if (v != null) {

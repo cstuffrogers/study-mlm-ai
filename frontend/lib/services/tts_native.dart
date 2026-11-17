@@ -14,6 +14,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'tts_settings.dart';
+
 /// 当前正在朗读的「条目 id」。null 表示空闲。全局同一时刻只朗读一段。
 final ValueNotifier<String?> ttsCurrent = ValueNotifier<String?>(null);
 
@@ -42,6 +44,7 @@ bool ttsNeuralReady() => false;
 
 /// 启动时调一次：初始化系统 TTS 引擎并探测中文支持。
 Future<void> ttsInit() async {
+  if (!TtsSettings.instance.loaded) await TtsSettings.instance.load();
   if (!ttsAvailable()) return;
   if (_inited) return;
   _inited = true;
@@ -49,6 +52,13 @@ Future<void> ttsInit() async {
     final map = await _ch.invokeMapMethod<String, dynamic>('init');
     _ready = map?['ready'] == true;
     _hasChinese = map?['chinese'] == true;
+    // 上次选过的语音包：重装/重启后继续用它（引擎没装这个包时保持默认）
+    final saved = TtsSettings.instance.voiceName;
+    if (_ready && saved.isNotEmpty) {
+      try {
+        await _ch.invokeMethod<bool>('setVoice', {'name': saved});
+      } catch (_) {}
+    }
     _ch.setMethodCallHandler((call) async {
       if (call.method == 'done') {
         final id = call.arguments as String?;
@@ -63,6 +73,40 @@ Future<void> ttsInit() async {
   ttsReadyTick.value++;
 }
 
+/// 本机已装的中文语音包（引擎未就绪时为空表）。
+Future<List<TtsVoiceOption>> ttsListVoices() async {
+  if (!ttsAvailable()) return const <TtsVoiceOption>[];
+  try {
+    final map = await _ch.invokeMapMethod<String, dynamic>('voices');
+    final raw = (map?['voices'] as List?) ?? const [];
+    return raw.map((e) {
+      final m = (e as Map).cast<String, dynamic>();
+      return TtsVoiceOption(
+        name: '${m['name'] ?? ''}',
+        label: '${m['label'] ?? ''}',
+        locale: '${m['locale'] ?? ''}',
+        network: m['network'] == true,
+      );
+    }).where((v) => v.name.isNotEmpty).toList();
+  } catch (e) {
+    debugPrint('读取语音包列表失败：$e');
+    return const <TtsVoiceOption>[];
+  }
+}
+
+/// 切换语音包；[name] 为空串表示恢复引擎默认。返回是否切换成功。
+Future<bool> ttsSetVoice(String name) async {
+  if (!ttsAvailable()) return false;
+  try {
+    final ok = await _ch.invokeMethod<bool>('setVoice', {'name': name}) ?? false;
+    if (ok) await TtsSettings.instance.setVoiceName(name);
+    return ok;
+  } catch (e) {
+    debugPrint('切换语音包失败：$e');
+    return false;
+  }
+}
+
 void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
   final body = text.trim();
   if (body.isEmpty) return;
@@ -74,10 +118,13 @@ void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
     return;
   }
   ttsCurrent.value = id;
+  // 风格预设：语速在调用方的 rate 上再乘预设倍数，音调交给预设（安卓引擎范围 0.5~2.0）
+  final preset = TtsSettings.instance.preset;
   _ch.invokeMethod<bool>('speak', {
     'text': body,
     'id': id,
-    'rate': rate,
+    'rate': rate * preset.rate,
+    'pitch': preset.pitch,
   }).then((ok) {
     if (ok != true && ttsCurrent.value == id) ttsCurrent.value = null;
   }).catchError((Object e) {

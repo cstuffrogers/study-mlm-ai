@@ -1,5 +1,10 @@
 allprojects {
     repositories {
+        // 国内网络访问 dl.google.com 常被重置（实测 Recv failure: Connection was reset），
+        // 导致 androidx 依赖下载失败、`flutter build apk` 直接崩在 mergeReleaseNativeLibs。
+        // 阿里云镜像是 google() 的同源镜像，放在前面先命中；取不到时仍会回落到官方源。
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         google()
         mavenCentral()
     }
