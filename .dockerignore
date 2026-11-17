@@ -17,3 +17,12 @@ end_to_end_demo.py
 bert_stance_classifier.py
 prompt_renderer.py
 frontend/
+# 本机私有/巨大产物，别塞进构建上下文（原来 2.9G 里大半是这些）
+.local/
+.git/
+node_modules/
+backend/.venv/
+backend/.llm_config.json
+frontend/build/
+sources/_backup*
+*.log

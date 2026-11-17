@@ -55,13 +55,13 @@
   不再是 `CN=Android Debug`。口令在 `frontend/android/key.properties`（已被 `.gitignore` 忽略），
   keystore 在 `frontend/android/keystore/xxmz-release.jks`——**丢了就再也发不了更新包，请离线备份**。
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
-- 体积从 72.06 MB 涨到 75.56 MB，增量在 `assets/flutter_assets`（离线数据 23 MB → 23.6 MB）。
+- 体积从 72.06 MB 涨到 75.56 MB，增量在 `assets/flutter_assets`（离线数据 23 MB → 23.4 MB）。
 
-- 离线数据指纹 `f11f35284042`：**231 个著作名 / 23,085 分片**（含 D127 考茨基 4 篇）。前端测试 **119** 项全绿、`flutter analyze` 零问题；后端 **696 passed, 5 skipped, 2 xfailed**。
+- **229 部原著 / 22,371 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本）。前端测试 **238** 项全绿、`flutter analyze` 零问题；后端 **735 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
-  - **23,041** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
-  - **22,683** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
-  - **23,085** = 离线导出 `content_provider.all_chunks()`：在上面基础上**加上统编教材的「正典注释」「正典解析」两层**（44 片、不属于任何书，所以 `works` 是 231 而非 229）。
+  - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
+  - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
+  - **22,415** = 离线导出 `content_provider.all_chunks()`：在上面基础上**加上统编教材的「正典注释」「正典解析」两层**（44 片，是我们自己写的注疏，`logical_type` 是 annotation/analysis，**不算原著**——所以原著书单 `works` 是 229，不含这两层；分片本身仍可按 id 取到，对话溯源要用）。
 
 ## 单机安卓版（无后端，推荐给终端用户）
 
@@ -223,13 +223,25 @@ docker compose up --build
 
 ## 测试
 
+本项目不是 Node 工程，但根目录放了一个**只含脚本入口的** `package.json`（不装任何 npm 依赖），
+让 `npm` 系工具（含 claude-scene 的 loop / review 门禁）有统一入口：
+
+```bash
+npm test              # = cd frontend && flutter test        （当前 238 passed）
+npm run lint          # = scripts/lint_shim.js → flutter analyze lib/ test/（当前 No issues）
+npm run analyze       # 同上，直连 flutter analyze
+npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 735 passed + 2 xfailed）
+```
+
+后端测试：
+
 ```bash
 cd backend
-pip install pytest
+pip install -r requirements-dev.txt   # 含 pytest / scikit-learn / joblib / openai / websockets
 python -m pytest tests/ -q
 ```
 
-Phase 6 测试套件（65 passed + 2 xfailed）：
+Phase 6 核心套件（含在整个 735 passed 里）：
 
 | 测试文件 | 验证 |
 |----------|------|
@@ -320,7 +332,7 @@ Phase 6 测试套件（65 passed + 2 xfailed）：
 ## 原著正文数据
 
 **正文随仓库分发**：`sources/texts/*.txt`（229 部，18 MB）与派生的
-`frontend/assets/offline/`（23.6 MB，含 23,085 段原文）都已入库，克隆即完整可用。
+`frontend/assets/offline/`（23.4 MB，含 22,415 段原文）都已入库，克隆即完整可用。
 
 权利状态与使用限制见 **[`CONTENT-NOTICE.md`](CONTENT-NOTICE.md)**。
 逐部的来源页面、字数、版本说明与取舍理由在
@@ -333,9 +345,9 @@ Phase 6 测试套件（65 passed + 2 xfailed）：
 | 后端启动 / 路由挂载 | ✓ 19 组路由 | ✓ |
 | 学习路线 / 章节导读 / 题库 | ✓ 32 节 / 119 题 | ✓ |
 | 立场守门 / 离线学习闭环 | ✓ | ✓ |
-| 检索命中 | 0（书单空） | 23,041 分片 |
-| 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 696 passed / 5 skipped / 2 xfailed |
-| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 119 passed |
+| 检索命中 | 0（书单空） | 22,371 分片 |
+| 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 735 passed / 0 skipped / 2 xfailed |
+| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 238 passed |
 
 依赖正文的用例都打了 `needs_texts` 标记（后端 `backend/conftest.py`）或调用
 `skipWithoutOfflineAssets()`（前端 `frontend/test/helpers/`），缺数据时自动跳过并给出
