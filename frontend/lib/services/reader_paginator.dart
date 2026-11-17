@@ -41,7 +41,15 @@ class ReaderPaginator {
   // 每个段落块在渲染时比纯文字行高多出的垂直开销（上下内边距）。
   static double blockOverhead() => blockPaddingV * 2;
 
-  static ReaderDoc paginate({required List<String> paragraphs, required double width, required double height, required TextStyle style}) {
+  /// [textScaler] 必须与渲染侧一致：系统「字体大小/显示大小」放大后，
+  /// 渲染出来的行比按 1.0 测出来的高，分页就会多塞一行，最后一行被裁掉
+  /// （用户实报「原文页最后一行显示不全」）。实测 1.3 倍时**每一页**都溢出。
+  static ReaderDoc paginate(
+      {required List<String> paragraphs,
+      required double width,
+      required double height,
+      required TextStyle style,
+      TextScaler textScaler = TextScaler.noScaling}) {
     final usable = height - cushion;
     final measureWidth = textWidth(width);
     final pages = <ReaderPage>[];
@@ -60,7 +68,7 @@ class ReaderPaginator {
     for (var i = 0; i < paragraphs.length; i++) {
       final text = paragraphs[i].replaceAll('\r', '').replaceAll('\n', '').trim();
       if (text.isEmpty) continue;
-      final lines = _splitLines(text, measureWidth, style);
+      final lines = _splitLines(text, measureWidth, style, textScaler);
       var idx = 0;
       while (idx < lines.length) {
         final needGap = pars.isNotEmpty;
@@ -117,10 +125,12 @@ class ReaderPaginator {
   }
 
   /// 把一段无换行文本按给定宽度切成若干「行」，并给出每行真实高度。
-  static List<_Line> _splitLines(String text, double width, TextStyle style) {
+  static List<_Line> _splitLines(String text, double width, TextStyle style,
+      [TextScaler textScaler = TextScaler.noScaling]) {
     final tp = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
+      textScaler: textScaler,
     )..layout(maxWidth: width);
     final metrics = tp.computeLineMetrics();
     final lines = <_Line>[];

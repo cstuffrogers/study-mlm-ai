@@ -4,6 +4,8 @@
 // - 只有「头部标题栏」负责拖动，正文列表可正常滚动、输入框可正常输入，互不抢手势。
 // - 位置用 Offset 存于 State，拖动仅重建本浮层（不重建下方阅读页），无抖动。
 // - 性能红线：无 Timer / 无常驻动画，只有 onPanUpdate 触发的 setState。
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/message.dart';
@@ -138,11 +140,25 @@ class _FloatingChatState extends State<FloatingChat> {
 
   @override
   Widget build(BuildContext context) {
+    // 键盘弹起时必须把浮窗抬到键盘上方：浮窗挂在 Overlay 里，不参与
+    // Scaffold 的 resizeToAvoidBottomInset，旧实现于是一直停在原位——
+    // 输入框被键盘压住，用户看不到自己正在打的字（用户实报）。
+    // 屏幕放不下时同步压缩高度，保证「输入框 + 至少几行对话」始终可见。
+    final double insets = MediaQuery.viewInsetsOf(context).bottom;
+    final double availH = MediaQuery.sizeOf(context).height - insets;
+    final double panelH = insets <= 0
+        ? widget.size.height
+        : math.min(widget.size.height, math.max(availH - 24, 220.0));
+    double top = _pos.dy;
+    if (insets > 0) {
+      final double maxTop = math.max(availH - panelH - 8, 8.0);
+      if (top > maxTop) top = maxTop;
+    }
     return Positioned(
       left: _pos.dx,
-      top: _pos.dy,
+      top: top,
       width: widget.size.width,
-      height: widget.size.height,
+      height: panelH,
       child: Material(
         color: Colors.white,
         elevation: 14,

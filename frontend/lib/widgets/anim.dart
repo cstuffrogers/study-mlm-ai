@@ -283,8 +283,9 @@ final TextStyle _subtitleStyle = TextStyle(
 );
 
 /// 按当前 textScaler 测量单行文本高度（与真实渲染同一套样式，避免估算偏差）。
-double _measureText(
-    BuildContext context, String text, TextStyle style, double maxWidth) {
+double _measureText(BuildContext context, String text, TextStyle style,
+    double maxWidth,
+    {int maxLines = 1}) {
   // Text 的 style 是 inherit:true 的：实际行高/字距还要叠一层 DefaultTextStyle
   // （AppTheme 里 bodyMedium 的 height:1.5），测量必须同样叠加，否则会低估。
   final merged = DefaultTextStyle.of(context).style.merge(style);
@@ -292,7 +293,7 @@ double _measureText(
     text: TextSpan(text: text, style: merged),
     textDirection: TextDirection.ltr,
     textScaler: MediaQuery.textScalerOf(context),
-    maxLines: 1,
+    maxLines: maxLines,
   )..layout(maxWidth: maxWidth);
   return tp.height;
 }
@@ -308,6 +309,10 @@ class GradientHeader extends StatelessWidget {
   /// 右侧装饰画（如首页红色顶部的红白人物像），不响应点击。
   final Widget? art;
 
+  /// 装饰画的**实际宽度**（px）。给了就按它预留右侧空间；不给退回旧常量。
+  /// 必须由调用方给：`Widget` 本身在布局前拿不到尺寸，用常量猜就会把标题压在图上。
+  final double? artWidth;
+
   const GradientHeader({
     super.key,
     required this.title,
@@ -316,6 +321,7 @@ class GradientHeader extends StatelessWidget {
     this.actions = const [],
     this.height = 128,
     this.art,
+    this.artWidth,
   });
 
   @override
@@ -326,9 +332,12 @@ class GradientHeader extends StatelessWidget {
         ? height
         : (height < 144 ? 144.0 : height);
     final double topInset = MediaQuery.of(context).padding.top;
-    // 右侧留出人物像的位置，避免标题/副标题压在像上
+    // 右侧留出人物像的位置：按 artWidth 真实宽度算，再加上 12 的呼吸间隙。
+    // 旧实现写死 104，而首页那张横幅图 116 高时宽 177 → 大标题被压掉一截。
+    final double reserveRight =
+        art == null ? 8 : ((artWidth ?? 104) + 12).clamp(8.0, 240.0);
     final EdgeInsets padding =
-        EdgeInsets.fromLTRB(16, 8, art == null ? 8 : 104, 16);
+        EdgeInsets.fromLTRB(16, 8, reserveRight, 16);
 
     // 头部是按内容走的，不能钉死高度：
     //   · 内部 SafeArea 让出状态栏后可用高度只剩 height - inset，标题会被推出去；
@@ -342,7 +351,9 @@ class GradientHeader extends StatelessWidget {
         .clamp(80.0, double.infinity);
     // 图标行取 Material 最小点击区（48）与标题行高，保证不被行内按钮撑破。
     final double rowHeight = (leading != null || actions.isNotEmpty) ? 48.0 : 0.0;
-    final double titleHeight = _measureText(context, title, _titleStyle, textWidth);
+    // 标题允许折两行：窄屏 + 头像占位后单行放不下 9 个字，硬压成省略号更难看。
+    final double titleHeight = _measureText(context, title, _titleStyle, textWidth,
+        maxLines: 2);
     final double subtitleHeight = subtitle == null
         ? 0.0
         : 4.0 + _measureText(context, subtitle!, _subtitleStyle, textWidth);
@@ -370,7 +381,7 @@ class GradientHeader extends StatelessWidget {
                   const Spacer(),
                   Text(
                     title,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: _titleStyle,
                   ),

@@ -149,6 +149,12 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
+  /// 头部红白图高度：窄屏收小，宽屏恢复 116。
+  static double _artHeight(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return (w * 0.30).clamp(88.0, 116.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,7 +165,11 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
             GradientHeader(
               title: '马列毛思想AI伴读',
               subtitle: '先选学习路线，再选起始章节',
-              art: const AuthorArt(asset: kHomeArt, height: 116),
+              // 头像高度随屏宽收一点：窄屏（360dp）上 116 高的横幅图宽达 177，
+              // 占掉近一半头部宽度会把标题挤成省略号。
+              art: AuthorArt(asset: kHomeArt, height: _artHeight(context)),
+              artWidth: AuthorArt.widthFor(
+                  asset: kHomeArt, height: _artHeight(context)),
               // 入口放在头部而不是右下浮动按钮：浮动按钮会压住底部「深入学习」
               // 与「查看原文」两个主操作（历史问题），头部图标不遮挡任何内容。
               actions: [

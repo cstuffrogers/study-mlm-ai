@@ -101,6 +101,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
 
   ReaderDoc? _doc;
   Size? _docSize;
+  // 系统字号缩放也参与分页，变了必须重排（否则缩放后仍是旧排版，末行被裁）
+  TextScaler? _docScaler;
   double _fontSize = 18;
   final double _lineHeight = 1.9;
   int? _keepPage; // 重排后要停留的页
@@ -230,7 +232,10 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     final width = size.width - _padding.left - _padding.right;
     final height = size.height - _padding.top - _padding.bottom;
     if (width <= 0 || height <= 0) return;
-    final doc = ReaderPaginator.paginate(paragraphs: _paragraphs, width: width, height: height, style: _textStyle());
+    // 分页测量必须带上系统字号缩放：渲染侧的 Text 会自动应用 textScaler，
+    // 测量侧不带就会低估行高，末尾那一行被挤出页面（用户实报）。
+    final scaler = MediaQuery.textScalerOf(context);
+    final doc = ReaderPaginator.paginate(paragraphs: _paragraphs, width: width, height: height, style: _textStyle(), textScaler: scaler);
     final sp = await SharedPreferences.getInstance();
     final last = sp.getInt(_k(LocalStoreKeys.readerLastPage)) ?? 0;
     // 定位优先级：本次要跳到的分片 > 重排前停留页 > 上次进度
@@ -250,6 +255,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     setState(() {
       _doc = doc;
       _docSize = size;
+      _docScaler = scaler;
       _page = target;
       _building = false;
       _pc?.dispose();
@@ -843,7 +849,9 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final size = Size(constraints.maxWidth, constraints.maxHeight);
-                      final needBuild = _doc == null || _docSize != size;
+                      final needBuild = _doc == null ||
+                          _docSize != size ||
+                          _docScaler != MediaQuery.textScalerOf(context);
                       if (needBuild) {
                         if (!_building) {
                           _building = true;
@@ -1092,7 +1100,9 @@ class _AnnotatedPage extends StatelessWidget {
       child: Padding(
         padding: padding,
         child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          // 分页是「精确装下」的，正常不产生滚动；但混排中英数字时行宽可能与
+          // 测量有差，留一手可滚，避免最末一行被直接裁掉看不见。
+          physics: const ClampingScrollPhysics(),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
         ),
       ),
