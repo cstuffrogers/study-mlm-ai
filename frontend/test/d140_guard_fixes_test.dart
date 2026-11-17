@@ -117,7 +117,8 @@ void main() {
       expect(p.contains('不得说「马克思主义有多种解读」'), isTrue);
       expect(p.contains('原著内部确有论战'), isTrue,
           reason: '否则「毛为什么批苏联教科书」会被判成禁区（库内就有这部原著）');
-      expect(p.contains('对苏联教科书的批评'), isTrue);
+      // D141 改写后具名到《读苏联〈政治经济学教科书〉的谈话》（库内确有此书）
+      expect(p.contains('苏联政治经济学教科书'), isTrue);
     });
 
     test('新增条款不破坏标记纪律（成对 + 退出口仍在）', () {

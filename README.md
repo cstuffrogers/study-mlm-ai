@@ -57,7 +57,7 @@
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
 - 体积从 72.06 MB 涨到 75.56 MB，增量在 `assets/flutter_assets`（离线数据 23 MB → 23.4 MB）。
 
-- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **273** 项全绿、`flutter analyze` 零问题；后端 **754 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **279** 项全绿、`flutter analyze` 零问题；后端 **773 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
@@ -227,7 +227,7 @@ docker compose up --build
 让 `npm` 系工具（含 claude-scene 的 loop / review 门禁）有统一入口：
 
 ```bash
-npm test              # = cd frontend && flutter test        （当前 273 passed）
+npm test              # = cd frontend && flutter test        （当前 279 passed）
 npm run lint          # = scripts/lint_shim.js → flutter analyze lib/ test/（当前 No issues）
 npm run analyze       # 同上，直连 flutter analyze
 npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 735 passed + 2 xfailed）
@@ -274,8 +274,18 @@ Phase 6 核心套件（含在整个 735 passed 里）：
 防偏离三重机制（产品命门）：
 
 1. **输入侧** `PromptSanitizer` — 越狱/角色切换/系统提示探测/全角绕过拦截
-2. **生成侧** `OrthodoxyGuard` — 批判对象清单 + 立场模式正则 + 辩难豁免标记
+2. **生成侧** `OrthodoxyGuard` — 批判对象清单 + 立场模式正则（12 条）+ 辩难豁免标记
+   - 「正统限定语豁免」双向：恩格斯「决定性因素**归根到底**是…」、毛「**能动的**革命的反映论」
+     这类原话放行，但同句出现「共同决定/互为决定」等**否决词**即不豁免
+   - **毛泽东思想三项基本点**（两类矛盾 / 群众路线 / 独立自主）各有专门规则：
+     只拦「否认、替换、说已经过时」，正统论述不误拦
 3. **生成后** `TripleCheck` — 事实一致性 + 术语红线 + 立场二分类（BERT 接口位）
+
+口径（D141 修订，避免自我矛盾）：**原理层一元**（唯物论/辩证法/唯物史观/阶级分析没有
+「多个版本」）＋**具体结论可争**（个别论断、具体策略、文本解读历来有真实争论，照实讲）＋
+**原著内部论战不算「多种解读」**（马克思对蒲鲁东、恩格斯对杜林、列宁对经验批判主义、
+毛泽东对苏联政治经济学教科书）。不再声称「正统体系是唯一科学的体系」——那与恩格斯
+《致威·桑巴特》、毛泽东《整顿党的作风》的原话冲突。
 
 ## 防偏离数据集
 
@@ -347,7 +357,7 @@ Phase 6 核心套件（含在整个 735 passed 里）：
 | 立场守门 / 离线学习闭环 | ✓ | ✓ |
 | 检索命中 | 0（书单空） | 22,371 分片 |
 | 后端 `pytest` | 184 passed / 517 skipped / **0 failed** | 735 passed / 0 skipped / 2 xfailed |
-| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 273 passed |
+| 前端 `flutter test` | 79 passed / 9 skipped / **0 failed** | 279 passed |
 
 依赖正文的用例都打了 `needs_texts` 标记（后端 `backend/conftest.py`）或调用
 `skipWithoutOfflineAssets()`（前端 `frontend/test/helpers/`），缺数据时自动跳过并给出
