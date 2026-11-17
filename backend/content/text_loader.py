@@ -102,6 +102,24 @@ def reflow_hard_wraps(text: str) -> list[str]:
     return merged
 
 
+# 章节标记正则：标题必须短且不含逗号。
+#
+# 修复前这里是行内写的 `re.match(r"^(第[一二三四五六七八九十百零\d]+[章节篇编].*?)$", para)`
+# —— `.*?` 被 `$` 顶成「整行」，于是任何以「第一章/第一篇」开头的**整段正文**都被
+# 当成章标题（实测 9 段，最长 327 字）。后果两层：
+#   ① 那 9 段正文被 `continue` 掉，从未进分片（漏收原文）；
+#   ② 假标题写进 current_chapter，后面所有段落继承它 → 256 片 source_location
+#      长达数百字，引文出处直接串行。
+# 中文标题极少含逗号，正文极少在 40 字内结束又无逗号——两条同时成立才认标题。
+_CHAPTER_HEAD_RE = re.compile(
+    r"^(第[一二三四五六七八九十百零两\d]+[章节篇编][^\n]{0,40})$"
+)
+
+
+def _is_chapter_head(para: str) -> bool:
+    return bool(_CHAPTER_HEAD_RE.match(para)) and "，" not in para
+
+
 class TextLoader:
     """从 sources/texts/ 读取中文原文"""
 
@@ -153,9 +171,8 @@ class TextLoader:
             if not para:
                 continue
             # 检测章节标记
-            ch_match = re.match(r"^(第[一二三四五六七八九十百零\d]+[章节篇编].*?)$", para)
-            if ch_match:
-                current_chapter = ch_match.group(1)
+            if _is_chapter_head(para):
+                current_chapter = para
                 continue
             # 跳过过短段落（目录、页码等）
             if len(para) < 20:

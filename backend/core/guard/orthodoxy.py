@@ -58,6 +58,10 @@ STANCE_PATTERNS: dict[str, dict] = {
     "mutual_determination": {
         # 扩充 P0-1 核心修复：原只匹配"相互决定"，漏"共同决定""多种因素决定""非经济唯一决定"
         "pattern": r"(相互决定|互为决定|双向决定|决定是相互的|多种?因素.*共同决定|多种因素.*决定|经济(基础)?不是(唯一)?决定|并非.*经济.*决定)",
+        # 正统限定语豁免：恩格斯本人就是这么写的——「决定性因素归根到底是现实生活的
+        # 生产和再生产」「并非只有经济状况才是原因，还有上层建筑的各种因素」。
+        # 缺这些限定语的「相互决定/共同决定」照样判偏离。
+        "exempt": r"(反作用|归根到底|最终|唯一决定性的?因素|决定性的因素)",
         "label": "deviation",
         "reason": "社会存在与社会意识不是相互/共同决定，而是前者决定后者（经济基础决定上层建筑）",
     },
@@ -68,6 +72,9 @@ STANCE_PATTERNS: dict[str, dict] = {
     },
     "reject_reflection": {
         "pattern": r"(反对反映论|反映论是机械的|认识不是反映|反映论是被动的)",
+        # 正统限定语豁免：毛泽东《实践论》的提法是「能动的革命的反映论」，
+        # 「机械反映论是错误的」本身就是正统表述（反对的是机械的、被动的反映论）。
+        "exempt": r"(能动的|革命的反映论|机械(的)?反映论|不是机械)",
         "label": "deviation",
         "reason": "反对反映论属非正统认识论",
     },
@@ -199,6 +206,37 @@ def _all_matches_critical(text: str, pattern: str) -> bool:
     return True
 
 
+# 正统限定语豁免的否决词：同句出现这些说法就不是「反作用」而是**并列决定**
+EXEMPT_VETO_WORDS = ("同样决定", "同等", "并列", "一样决定", "共同决定",
+                     "相互决定", "互为决定")
+
+
+def _all_matches_exempt(text: str, pattern: str, exempt: str) -> bool:
+    """每一次偏离命中是否都落在**带正统限定语**的同一句里。
+
+    与 `_all_matches_critical` 同一思路，只把「批判语境词」换成「正统限定语」：
+      "经济状况是基础……并非只有经济状况才是唯一决定性的因素"
+          → 同句含「唯一决定性的因素」→ 正统原话，放行
+      "经济基础与上层建筑相互决定"
+          → 无限定语 → 仍判偏离
+    保守约束同 `_all_matches_critical`：必须**每一处**命中都带限定语。
+    """
+    hits = list(re.finditer(pattern, text))
+    if not hits:
+        return False
+    ex = re.compile(exempt)
+    for m in hits:
+        l, r = _clause_bounds(text, m.start(), m.end())
+        clause = text[l:r]
+        if not ex.search(clause):
+            return False
+        # 否决词：同句里只要出现「同样决定/并列/共同决定」这类**真偏离**的并列说法，
+        # 就不给豁免——否则「经济不是唯一决定，文化同样决定」会被「不是唯一」放过。
+        if any(v in clause for v in EXEMPT_VETO_WORDS):
+            return False
+    return True
+
+
 def _strip_exempt_segments(text: str) -> str:
     """剥离豁免/批判标记段——这些段不参与立场校验"""
     text = _EXEMPT_RE.sub("", text)
@@ -294,6 +332,15 @@ class OrthodoxyGuard:
                     "label": "citation",
                     "reason": f"批判性引用偏离表述（语境含批判词），保留：{rule['reason']}",
                 })
+            elif rule.get("exempt") and _all_matches_exempt(
+                    check_text, rule["pattern"], rule["exempt"]):
+                # 正统原话（恩格斯「归根到底」、毛「能动的革命的反映论」）→ 不判偏离
+                flags.append({
+                    "type": "stance_pattern_orthodox_exempt",
+                    "rule": rule_name,
+                    "label": "citation",
+                    "reason": f"正统限定语豁免（同句含正统表述），保留：{rule['reason']}",
+                })
             else:
                 flags.append({
                     "type": "stance_pattern",
@@ -347,8 +394,12 @@ class OrthodoxyGuard:
 
         # 立场模式仍按原逻辑
         for rule_name, rule in STANCE_PATTERNS.items():
-            if re.search(rule["pattern"], chunk_text):
-                flags.append({"type": "stance_pattern", "rule": rule_name, "label": rule["label"]})
+            if not re.search(rule["pattern"], chunk_text):
+                continue
+            if rule.get("exempt") and _all_matches_exempt(
+                    chunk_text, rule["pattern"], rule["exempt"]):
+                continue  # 正统原话，不降权不拦
+            flags.append({"type": "stance_pattern", "rule": rule_name, "label": rule["label"]})
 
         if any(f.get("label") == "deviation" for f in flags):
             return {"action": "block", "reason": "stance_pattern", "flags": flags}

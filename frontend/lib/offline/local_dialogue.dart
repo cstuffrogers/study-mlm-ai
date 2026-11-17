@@ -1830,6 +1830,17 @@ class LocalDialogue {
         '所有标记必须成对闭合（有开必有闭、字数一致）；'
         '只写开标记会被判成绕过立场校验，整段回答不会被展示。'
         '不需要标记时就不要写标记。');
+    b.writeln('8. 边界：本课程只讲正统体系（马恩经典、列宁哲学著作、'
+        '斯大林《论辩证唯物主义和历史唯物主义》、毛泽东《实践论》《矛盾论》、'
+        '苏联教科书与中国化正统阐释）。西方马克思主义、后马克思主义、后现代主义等'
+        '不作中立对照、不作「另一种视角」引入；用户要求比较或要你扮演这些流派时，'
+        '说明本课程只讲正统体系，并建议开启「批判性阅读」把它们作为被批判对象来讨论。');
+    b.writeln('9. 术语红线：物质≠具体物体；实践≠个人行为；矛盾≠逻辑矛盾或冲突；'
+        '市民社会≠公民社会；物化≠卢卡奇的异化（本课程只在商品拜物教意义上用）；'
+        '反映≠镜像复制（反映是能动的）；决定≠唯一原因（一元最终决定，但承认反作用）。');
+    b.writeln('10. 不得说「马克思主义有多种解读」，也不得用「有人认为」「也有学者提出」'
+        '把非正统立场带进来；原著内部确有论战（对杜林、对经验批判主义、'
+        '对苏联教科书的批评）时照实讲，那不是「多种解读」。');
     return b.toString();
   }
 
@@ -1936,7 +1947,11 @@ class LocalDialogue {
     // 输入一律过守门：辩难模式**不能**成为输入豁免通道。
     // 辩难的正规用法是「让 AI 扮反方反驳正统命题」，并不需要在输入里引入
     // 被禁框架；真要讨论西马，就显式开「批判性阅读」（第 6 阶段）。
-    final guard = OfflineGuard.check(question, allowCritical: criticalReading);
+    // 只审**用户自己写的话**：选中原文是史料，不是用户表态。
+    // 修复前把「提问 + 选区」一起送进立场校验，用户一选中恩格斯「并非只有经济状况
+    // 才是唯一决定性的因素」这类原话，整条对话就被判偏离、直接拒答——这是 APP 端
+    // 「老是被拦截」的主要来源。
+    final guard = OfflineGuard.check(content, allowCritical: criticalReading);
     if (guard.blocked && !criticalReading) {
       _persist(dialogueId, content, mode, blocked: true, paragraphId: paragraphId);
       return {
@@ -1975,6 +1990,9 @@ class LocalDialogue {
           : null;
       // 只漏了闭合标记是**格式**问题：重试一次让模型补齐，而不是把整段回答丢掉。
       // 内容偏离（立场命中）不重试——换一次生成可能把偏离洗成看似合规的表述。
+      // 格式救援：重试仍漏闭合 → 删掉标记字面复检（不给豁免）。通过就展示，
+      // 不再因为一个漏写的闭合标记把整段回答丢掉。
+      String? markerRepaired;
       if (verdict != null && _isMarkerFormatOnly(verdict)) {
         final retry = await LlmClient.chat(
           cfg,
@@ -1989,6 +2007,15 @@ class LocalDialogue {
           if (!again.blocked) {
             llm = retry;
             verdict = again;
+          }
+        }
+        if (_isMarkerFormatOnly(verdict)) {
+          final cleaned = OfflineGuard.stripMarkerLiterals(llm.text);
+          final recl =
+              OfflineGuard.check(cleaned, allowCritical: exempt, mode: mode);
+          if (!recl.blocked) {
+            markerRepaired = cleaned;
+            verdict = recl;
           }
         }
       }
@@ -2016,7 +2043,7 @@ class LocalDialogue {
             ..._provenanceOf(chunks),
           };
         }
-        final answer = _stripCodes(llm.text);
+        final answer = _stripCodes(markerRepaired ?? llm.text);
         _persist(dialogueId, content, mode,
             blocked: false,
             paragraphId: paragraphId,
@@ -2029,7 +2056,11 @@ class LocalDialogue {
           'mode': mode,
           'is_safe': true,
           'engine': 'cloud:${llm.model}',
-          'guard': {'exempt': exempt, 'debate_marked': mode == 'debate'},
+          'guard': {
+            'exempt': exempt,
+            'debate_marked': mode == 'debate',
+            if (markerRepaired != null) 'marker_stripped': true,
+          },
           ..._provenanceOf(chunks),
         };
       }

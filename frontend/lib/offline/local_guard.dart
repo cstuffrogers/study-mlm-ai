@@ -35,6 +35,16 @@ class OfflineGuard {
 
   /// 句读边界：自指批判语境只在同一句内判定，不跨句串味
   static const _clauseTerminators = ['。', '！', '？', '；', '!', '?', ';', '\n'];
+  /// 正统限定语豁免的否决词（与后端 EXEMPT_VETO_WORDS 同口径）。
+  static const _exemptVetoWords = [
+    '同样决定',
+    '同等',
+    '并列',
+    '一样决定',
+    '共同决定',
+    '相互决定',
+    '互为决定',
+  ];
 
   /// 批判对象/辩难标记字面：内含「批判」二字，**不得充当批判语境证据**。
   static const _markerLiterals = [
@@ -68,6 +78,19 @@ class OfflineGuard {
   static String _stripMarkerSegments(String text) =>
       text.replaceAll(_exemptRe, '').replaceAll(_criticalRe, '');
 
+  /// 删掉标记字面（含未闭合的），用于**格式问题救援**。
+  ///
+  /// 未闭合标记原本判「疑似绕过」→ 整段回答不展示；但多数情况只是模型漏写闭合，
+  /// 内容本身没问题。这里只删标记字面、**不给任何豁免**：删完仍按普通内容逐条校验，
+  /// 真有偏离照样拦。这样格式问题不再吃掉整段回答。
+  static String stripMarkerLiterals(String text) {
+    var s = text;
+    for (final lit in _markerLiterals) {
+      s = s.replaceAll(lit, '');
+    }
+    return s;
+  }
+
   /// 标记是否成对。未闭合 → 返回该标记名，否则 null。
   ///
   /// 相当于后端的 `_has_unclosed_exempt_marker`：写一个开标记就整段免检，
@@ -80,6 +103,9 @@ class OfflineGuard {
   }
 
   static final Map<String, RegExp> _compiled = {};
+  /// 正统限定语豁免（如「反作用」「归根到底」「能动的革命的反映论」）。
+  /// 与后端 STANCE_PATTERNS[..]['exempt'] 同口径，随 knowledge.json 导出。
+  static final Map<String, RegExp> _exemptPatterns = {};
   static List<String> _deviation = const [];
   static List<String> _criticalKeys = const [];
   static Map<String, dynamic> _critical = const {};
@@ -96,6 +122,13 @@ class OfflineGuard {
       } catch (_) {
         // 单机版对不兼容的正则静默跳过，不影响其余规则
       }
+    });
+    patterns.forEach((k, v) {
+      final src = '${(v as Map)['exempt'] ?? ''}';
+      if (src.isEmpty) return;
+      try {
+        _exemptPatterns['$k'] = RegExp(src);
+      } catch (_) {}
     });
     _deviation = ((guard['deviation_keywords'] as List?) ?? const [])
         .map((e) => '$e')
@@ -141,6 +174,37 @@ class OfflineGuard {
     return true;
   }
 
+  /// 每一次偏离命中是否都落在**带正统限定语**的同一句里。
+  ///
+  /// 与 `_allMatchesCritical` 同一思路，只把「批判语境词」换成「正统限定语」：
+  ///   「经济状况是基础……并非只有经济状况才是唯一决定性的因素」→ 同句有「唯一决定性的因素」→ 放行
+  ///   「经济基础与上层建筑相互决定」                            → 无正统限定语 → 仍拦
+  static bool _allMatchesExempt(RegExp pattern, RegExp? exempt, String content) {
+    if (exempt == null) return false;
+    final matches = pattern.allMatches(content).toList();
+    if (matches.isEmpty) return false;
+    for (final m in matches) {
+      var left = -1;
+      for (final t in _clauseTerminators) {
+        final i = content.lastIndexOf(t, m.start == 0 ? 0 : m.start - 1);
+        if (i > left) left = i;
+      }
+      var right = content.length;
+      for (final t in _clauseTerminators) {
+        final i = content.indexOf(t, m.end);
+        if (i != -1 && i < right) right = i;
+      }
+      final clause = content.substring(left + 1, right);
+      if (!exempt.hasMatch(clause)) return false;
+      // 否决词：同句出现「同样决定/并列/共同决定」这类真偏离的并列说法就不给豁免，
+      // 否则「经济不是唯一决定，文化同样决定」会被「不是唯一」放过。
+      for (final veto in _exemptVetoWords) {
+        if (clause.contains(veto)) return false;
+      }
+    }
+    return true;
+  }
+
   /// 对一段文本做立场检查。
   /// [allowCritical] 为 true 时视为「批判语境」（第 6 阶段），命中批判对象只提示不拦截。
   /// [mode] 为 `debate` 时：标记段剥离后校验，标记未闭合直接判绕过。
@@ -171,6 +235,10 @@ class OfflineGuard {
       if (!entry.value.hasMatch(scan)) continue;
       // 自指批判语境（用户在批判这个错误论调本身）→ 只记录，不拦截
       if (_allMatchesCritical(entry.value, scan)) {
+        cited.add(entry.key);
+      } else if (_allMatchesExempt(
+          entry.value, _exemptPatterns[entry.key], scan)) {
+        // 正统原话（恩格斯「不是唯一决定因素」、毛「机械反映论是错误的」）→ 不拦
         cited.add(entry.key);
       } else {
         hits.add(entry.key);
