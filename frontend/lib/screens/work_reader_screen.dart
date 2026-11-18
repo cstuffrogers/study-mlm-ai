@@ -140,6 +140,12 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   /// 正在由我们切换页面/分段：此时 ttsCurrent 短暂为空属正常，不算被停止。
   bool _autoLinking = false;
 
+  /// 兜底看门狗：不是所有厂商的语音引擎都会老实回调 onDone
+  /// （小米/部分讯飞版本、离线包里都见过「读完不吭声」）。
+  /// 只靠回调的话，那种机器上连续朗读就会「一页读完就彻底停住」。
+  /// 这里按字数估个上限，超时当这一页念完处理 —— 宁可多翻一页，也不能装死。
+  Timer? _autoWatchdog;
+
   String _selected = '';
 
   // 浮层：会话浮窗（可任意拖动的对话）
@@ -181,6 +187,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       _chatSvc!.removeListener(_chatListener!);
     }
     ttsCurrent.removeListener(_onTtsChanged);
+    _autoWatchdog?.cancel();
+    _autoWatchdog = null;
     // 离开原文页 = 连续朗读的终点：声音停、后台保活开关复位。
     if (_autoMode != null) {
       _autoMode = null;
@@ -1320,9 +1328,26 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     _autoLinking = true;
     ttsSpeak(text, id: id, onDone: _onAutoPageDone);
     _autoLinking = false;
+    _armAutoWatchdog(text);
     // 只预热「下一页的第一段」：换页时接得上、不断档，又不把全文送去合成。
     final next = nextAutoPage(mode: mode, current: page, pageCount: doc.pages.length);
     if (next != null && next != page) ttsPrefetch(_pageSpeechAt(next));
+  }
+
+  /// 给「这一页」装一个超时兜底：引擎不回调 onDone 时，到点自己接下一页。
+  ///
+  /// 估时口径：中文语音在语速 1.0 下约 4~5 字/秒，这里按 4 字/秒算再乘 3 倍余量，
+  /// 另加 15 秒起停开销（长句气口、引擎排队）。只有明显「读完很久还没动静」
+  /// 才会触发，正常朗读不会被打断。上限 15 分钟，免得极端长页把计时器撑爆。
+  void _armAutoWatchdog(String text) {
+    _autoWatchdog?.cancel();
+    final chars = text.runes.length;
+    final seconds = (chars / 4.0 * 3 + 15).clamp(20.0, 900.0);
+    _autoWatchdog = Timer(Duration(milliseconds: (seconds * 1000).round()), () {
+      if (!mounted || _autoMode == null) return;
+      debugPrint('连续朗读：这一页 ${seconds.round()} 秒没有收到读完回调，按读完处理');
+      _onAutoPageDone();
+    });
   }
 
   /// 这一页念完了：按模式接下一页，或到此为止。
@@ -1358,6 +1383,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     _autoMode = null;
     _autoId = null;
     _autoLinking = false;
+    _autoWatchdog?.cancel();
+    _autoWatchdog = null;
     // 开关必须复位：否则退出本页后切后台也不停朗读了。
     ttsBackgroundKeepAlive.value = false;
     if (wasOn) ttsStop();

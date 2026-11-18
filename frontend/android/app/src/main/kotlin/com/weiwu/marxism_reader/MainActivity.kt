@@ -43,7 +43,17 @@ class MainActivity : FlutterActivity() {
     private var ready = false
     private var chinese = false
     private var channel: MethodChannel? = null
-    private var lastChunkIndex = 0
+
+    /**
+     * 本次朗读的**最后一段** utteranceId（形如 `reader-auto-work-3#7`）。
+     *
+     * 为什么存完整 id 而不是「最后一段的下标」：旧写法拿「最后一段下标」当开关，
+     * 还要求它大于 0；而**单段朗读的最后一段下标就是 0**，
+     * 于是单段朗读永远不通知 Dart。
+     * 阅读器一页通常不到 1200 字，正好都走单段分支 → 一页念完既不高亮复位、
+     * 也不接下一页，表现就是「连续朗读读完一页就停了」。
+     */
+    private var lastUtteranceId: String? = null
 
     /** 当前选中的语音包名（null = 引擎默认）。 */
     private var voiceName: String? = null
@@ -74,6 +84,9 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "stop" -> {
+                    // 先把「等哪一段」清掉：engine.stop() 之后可能还有迟到的 onDone，
+                    // 不清会让它去通知一个已经被停掉的任务，把连续朗读错接回去。
+                    lastUtteranceId = null
                     tts?.stop()
                     result.success(null)
                 }
@@ -262,32 +275,47 @@ class MainActivity : FlutterActivity() {
                 engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
                     override fun onDone(utteranceId: String?) {
-                        // 只有最后一段播完才通知 Dart，避免逐段熄灭/重亮
-                        if (utteranceId != null && lastChunkIndex > 0 &&
-                            utteranceId.endsWith("#$lastChunkIndex")
-                        ) {
-                            val id = utteranceId.substringBeforeLast('#')
-                            channel?.invokeMethod("done", id)
-                        }
+                        // 只有「最后一段」播完才通知 Dart，避免逐段熄灭/重亮。
+                        // 单段朗读的 id 就是 `...#0`，用完整 id 比对可以一并覆盖。
+                        val expected = lastUtteranceId ?: return
+                        if (utteranceId != expected) return
+                        lastUtteranceId = null
+                        notifyDone(expected)
                     }
 
                     @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String?) {
-                        if (utteranceId != null) {
-                            channel?.invokeMethod("done", utteranceId.substringBeforeLast('#'))
-                        }
+                        notifyFailed(utteranceId)
                     }
 
                     override fun onError(utteranceId: String?, errorCode: Int) {
-                        if (utteranceId != null) {
-                            channel?.invokeMethod("done", utteranceId.substringBeforeLast('#'))
-                        }
+                        notifyFailed(utteranceId)
                     }
                 })
                 ready = true
             }
             onReady()
         }
+    }
+
+    /**
+     * 告诉 Dart「这条朗读任务结束了」。
+     *
+     * 必须回主线程：UtteranceProgressListener 的回调跑在引擎的 binder 线程，
+     * 而 MethodChannel.invokeMethod 要求在主线程调用。
+     */
+    private fun notifyDone(utteranceId: String) {
+        val id = utteranceId.substringBeforeLast('#')
+        runOnUiThread { channel?.invokeMethod("done", id) }
+    }
+
+    /** 引擎报错：只有错在「当前这条任务」上才收尾，别让上一条的残余错误把新的一页掐掉。 */
+    private fun notifyFailed(utteranceId: String?) {
+        val expected = lastUtteranceId ?: return
+        if (utteranceId == null) return
+        if (utteranceId.substringBeforeLast('#') != expected.substringBeforeLast('#')) return
+        lastUtteranceId = null
+        notifyDone(expected)
     }
 
     private fun speakNow(text: String, id: String, rate: Float): Boolean {
@@ -298,8 +326,11 @@ class MainActivity : FlutterActivity() {
             // 音调范围 [0.5, 2.0]；越界会被引擎静默忽略，这里夹一下更保险
             engine.setPitch(pitch.coerceIn(0.5f, 2.0f))
             val chunks = splitForTts(text)
-            if (chunks.isEmpty()) return false
-            lastChunkIndex = chunks.size - 1
+            if (chunks.isEmpty()) {
+                lastUtteranceId = null
+                return false
+            }
+            lastUtteranceId = "$id#${chunks.size - 1}"
             val params = Bundle()
             for ((i, part) in chunks.withIndex()) {
                 val mode = if (i == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
@@ -307,6 +338,7 @@ class MainActivity : FlutterActivity() {
             }
             true
         } catch (e: Exception) {
+            lastUtteranceId = null
             false
         }
     }
