@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 
 import '../config/app_meta.dart';
 import '../services/app_update.dart';
+import '../services/update_download.dart';
 import '../services/open_url.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
@@ -115,6 +116,66 @@ class _AboutScreenState extends State<AboutScreen> {
         ]),
       );
 
+  /// 后台下载进度：在「关于」页点「下载更新」后框立刻关掉、下载转到后台，
+  /// 这里能看到进展，但**不挡操作** —— 用户可以继续翻别的卡片、读原文。
+  ///
+  /// 为什么下好后不在这里放「立即安装」：下完的确认框由全局的
+  /// widgets/update_host.dart 统一弹一次，两个入口各弹一次会撞车。
+  Widget _downloadStrip() {
+    return ValueListenableBuilder<UpdateState>(
+      valueListenable: updateState,
+      builder: (context, s, _) {
+        final failed = s.phase == UpdatePhase.failed;
+        if (!failed && s.phase != UpdatePhase.downloading) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: failed ? AppColors.brandSoft : Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(failed ? Icons.error_outline : Icons.cloud_download_outlined,
+                  size: 18, color: failed ? AppColors.danger : AppColors.brand),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  failed
+                      ? '更新包没下成'
+                      : '正在后台下载更新 ${s.version}'
+                          '${s.percentLabel == null ? '' : ' · ${s.percentLabel}'}',
+                  style: const TextStyle(
+                      fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.ink700),
+                ),
+              ),
+            ]),
+            if (!failed) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(value: s.progress, minHeight: 4),
+              ),
+            ],
+            const SizedBox(height: 6),
+            Text(
+              failed
+                  ? (s.error ?? '可以改用浏览器下载。')
+                  : '可以继续用 App，下完会问你要不要装；不装也不影响现在的版本。',
+              style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.5,
+                  color: failed ? AppColors.danger : AppColors.ink400),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasGithub = AppMeta.isValidUrl(AppMeta.githubUrl);
@@ -165,6 +226,8 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
               ),
             ]),
+
+            _downloadStrip(),
 
             _card('项目地址与作者', [
               _row('项目地址（GitHub）', hasGithub ? AppMeta.githubUrl : '未配置',

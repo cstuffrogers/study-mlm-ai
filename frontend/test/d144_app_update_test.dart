@@ -145,12 +145,15 @@ void main() {
       expect(src, contains('已是最新版本'));
     });
 
-    test('更新框给的是「下载并安装」，不是「打开网页」', () {
+    test('更新框给的是「下载更新 / 立即安装」，不是「打开网页」', () {
+      // D150 起：点「下载更新」转到后台下（见 test/d150_background_update_test.dart），
+      // 下完再单独问「装不装」，所以下包逻辑在 update_download.dart。
       final src = readFile('lib/widgets/update_dialog.dart');
-      expect(src, contains('下载并安装'));
+      expect(src, contains('下载更新'));
+      expect(src, contains('立即安装'));
       expect(src, contains('去网页下载'));
-      expect(src, contains('downloadApk'));
       expect(src, contains('installApk'));
+      expect(readFile('lib/services/update_download.dart'), contains('downloadApk'));
     });
   });
 
