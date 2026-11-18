@@ -13,17 +13,20 @@
 
 /// 连续朗读的三种模式。
 enum ReaderAutoMode {
-  pageLoop('当前页循环播放', '本页读完从头再读，一直循环'),
-  toEnd('从当前页播到结束', '念完一页自动翻下一页，到全书末尾停'),
-  bookLoop('播完再整篇循环', '念完一页自动翻下一页，到末尾回到第一页继续');
+  pageLoop('当前页循环播放', '本页读完从头再读，一直循环', '本页循环'),
+  toEnd('从当前页播到结束', '念完一页自动翻下一页，到全书末尾停', '播到结尾'),
+  bookLoop('播完再整篇循环', '念完一页自动翻下一页，到末尾回到第一页继续', '整篇循环');
 
-  const ReaderAutoMode(this.label, this.hint);
+  const ReaderAutoMode(this.label, this.hint, this.short);
 
   /// 选项标题（弹层里的一行）。
   final String label;
 
   /// 一句话说明，讲清「念完这页之后会怎样」。
   final String hint;
+
+  /// 状态条上用的短名（底部栏就那么宽，塞不下 [label]）。
+  final String short;
 }
 
 /// 念完 [current] 这一页之后该念哪一页；返回 null 表示「到此结束，不必再念」。

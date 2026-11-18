@@ -87,6 +87,9 @@ void main() {
       for (final m in ReaderAutoMode.values) {
         expect(m.label.trim(), isNotEmpty);
         expect(m.hint.trim(), isNotEmpty);
+        expect(m.short.trim(), isNotEmpty);
+        expect(m.short.length, lessThanOrEqualTo(6),
+            reason: '底部栏只有那么宽，短名太长会折行把底栏撞高');
       }
     });
   });
@@ -261,6 +264,59 @@ void main() {
       expect(body, contains('_autoSpeak(next)'));
       expect(body, isNot(contains('Timer(')), reason: '性能红线：不留常驻定时器');
       expect(body, isNot(contains('.repeat()')));
+    });
+  });
+
+  group('⑤ 开关连续朗读不许把排版搞乱（用户实报：本页带了上一页几行）', () {
+    // 机理：分页宽度/高度来自 `_buildDoc(size)`，而 size 来自 PageView 外的
+    // LayoutBuilder。只要开关连续朗读改变了底栏高度，PageView 可视高度就变，
+    // `_docSize != size` 触发重新分页 → 每页装的行数变少 → 当前页顶部
+    // 冒出「上一页的尾巴」。所以朗读状态只能长在底栏里面，不能新增一条。
+    final src = readFile('lib/screens/work_reader_screen.dart');
+
+    test('底栏不能再包一层去插状态条（否则高度一变就重新分页）', () {
+      final nav = slice(src, 'bottomNavigationBar:', 'Widget _errorView()');
+      expect(nav, contains('_buildBottomBar()'));
+      expect(nav, isNot(contains('Column(')),
+          reason: '底栏外面再套 Column 加上状态条，就会把 PageView 撞矮');
+      expect(nav, isNot(contains('_autoStrip')),
+          reason: '旧做法就是这条，别回来');
+    });
+
+    test('连续朗读的状态位只能替掉底栏里原有的按钮，不能另占一行', () {
+      final bar = slice(src, 'Widget _buildBottomBar()', 'Widget _selectionFab()');
+      expect(bar, contains('if (_autoMode != null)'));
+      expect(bar, contains('_autoInlineStatus()'));
+      expect(bar, contains('SafeArea('), reason: '底栏自身的结构不能为了状态位改');
+
+      final inline = slice(src, 'Widget _autoInlineStatus()', 'Widget _errorView()');
+      expect(inline, isNot(contains('SizedBox(height')), reason: '不能加竖向间距');
+      expect(inline, isNot(contains('Container(')), reason: '不能自己画一块底色条');
+      expect(inline, isNot(contains('SafeArea(')), reason: '不能另起一层安全区');
+    });
+
+    test('底栏两种状态的高度锚点一致（前后翻页按钮两种状态都在）', () {
+      final bar = slice(src, 'Widget _buildBottomBar()', 'Widget _selectionFab()');
+      // 行高由最高的子件决定：左右翻页的 IconButton 在两种状态下都在，行高不变
+      final before = bar.split('if (_autoMode != null)').first;
+      final after = bar.split('if (_autoMode != null)').last;
+      for (final seg in [before, after]) {
+        expect(seg.contains('IconButton('), isTrue,
+            reason: '两种状态都得有 IconButton 撑着高度');
+      }
+    });
+
+    test('排版只跟尺寸/字号缩放走，不跟朗读状态走', () {
+      final body = slice(src, 'Future<void> _buildDoc(Size size)', '/// 翻页即停朗读。');
+      // 分页入参里没有朗读相关的东西
+      final call = slice(body, 'ReaderPaginator.paginate(', ';');
+      expect(call, isNot(contains('_auto')));
+      // _autoMode 只在分页完成、setState 之后出现（重新定位朗读），
+      // 不能在分页之前就掺进去 -> 分页永远只由尺寸决定
+      final beforeFirstAuto = body.split('_autoMode').first;
+      expect(beforeFirstAuto, contains('ReaderPaginator'),
+          reason: '分页必须在任何 _autoMode 判断之前完成');
+      expect(body, contains('_autoSpeak(target)'), reason: '重排后要跟到新的页号');
     });
   });
 

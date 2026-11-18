@@ -1009,45 +1009,40 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       ),
       bottomNavigationBar: _doc == null || _loading || _error != null
           ? null
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_autoMode != null) _autoStrip(),
-                _buildBottomBar(),
-              ],
-            ),
+          : _buildBottomBar(),
     );
   }
 
-  /// 连续朗读进行中的细状态条：让人一眼看到「在念、念到哪、怎么停」。
-  Widget _autoStrip() {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFFFFF6E5),
-      padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
-      child: Row(
-        children: [
-          const Icon(Icons.graphic_eq, size: 16, color: AppColors.gold),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              '连续朗读 · ${_autoMode!.label}　第 ${_page + 1} / ${_doc!.pages.length} 页',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11.5, color: AppColors.ink700),
-            ),
+  /// 连续朗读进行中的状态位，**就长在底部栏里面**。
+  ///
+  /// 为什么不做成单独一条放在底栏上面（用户实报的坑）：底栏一旦变高，
+  /// PageView 的可视高度就变小 → `_buildDoc` 用新高度重新分页 →
+  /// 每页装的行数变少，当前页顶部就冒出了「上一页的尾巴」。
+  /// 排版必须和朗读开关无关，所以这里只替换原有那几个按钮的位置，高度不变。
+  Widget _autoInlineStatus() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.graphic_eq, size: 16, color: AppColors.gold),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            '连续朗读 · ${_autoMode!.short}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11.5, color: AppColors.ink700),
           ),
-          TextButton(
-            onPressed: _finishAuto,
-            style: TextButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              minimumSize: const Size(0, 28),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-            ),
-            child: const Text('停止', style: TextStyle(fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: _finishAuto,
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            minimumSize: const Size(0, 28),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
           ),
-        ],
-      ),
+          child: const Text('停止', style: TextStyle(fontSize: 12)),
+        ),
+      ],
     );
   }
 
@@ -1119,14 +1114,20 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
             ),
             IconButton(tooltip: '下一页', icon: const Icon(Icons.chevron_right), onPressed: _page < total - 1 ? () => _goto(_page + 1) : null),
             const Spacer(),
-            IconButton(tooltip: '缩小字号', icon: const Icon(Icons.text_decrease), onPressed: fs > 13 ? () => _setFont(fs - 1) : null),
-            Text('${fs.toInt()}', style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
-            IconButton(tooltip: '放大字号', icon: const Icon(Icons.text_increase), onPressed: fs < 30 ? () => _setFont(fs + 1) : null),
-            IconButton(
-              tooltip: '加书签',
-              icon: Icon(_bookmarks.any((b) => b.page == _page) ? Icons.bookmark : Icons.bookmark_border, color: AppColors.gold),
-              onPressed: _toggleBookmark,
-            ),
+            // 连续朗读中：字号/书签换成状态位（改字号本来就会先停朗读），
+            // 行高不变 → 底栏高度不变 → 不会触发重新分页。
+            if (_autoMode != null)
+              _autoInlineStatus()
+            else ...[
+              IconButton(tooltip: '缩小字号', icon: const Icon(Icons.text_decrease), onPressed: fs > 13 ? () => _setFont(fs - 1) : null),
+              Text('${fs.toInt()}', style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
+              IconButton(tooltip: '放大字号', icon: const Icon(Icons.text_increase), onPressed: fs < 30 ? () => _setFont(fs + 1) : null),
+              IconButton(
+                tooltip: '加书签',
+                icon: Icon(_bookmarks.any((b) => b.page == _page) ? Icons.bookmark : Icons.bookmark_border, color: AppColors.gold),
+                onPressed: _toggleBookmark,
+              ),
+            ],
           ],
         ),
       ),
