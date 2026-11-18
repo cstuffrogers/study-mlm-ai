@@ -95,9 +95,9 @@ CHAPTER_GUIDES: dict[str, dict] = {
     },
     "sec_A_02": {
         "title": "马克思本人登场：实践与新唯物主义",
-        "work": "《关于费尔巴哈的提纲》",
+        "work": "马克思《关于费尔巴哈的提纲》",
         "work_author": "马克思",
-        "background": "《提纲》写于1845年春，共11条，被恩格斯称为『包含着新世界观的天才萌芽的"
+        "background": "《提纲》写于1845年春，共11条，被恩格斯在《路德维希·费尔巴哈和德国古典哲学的终结》序言中称为『包含着新世界观的天才萌芽的"
                       "第一个文件』。它确立了实践观点，划清了马克思主义新唯物主义与以往一切旧"
                       "唯物主义的界限，是理解全部马克思主义哲学的钥匙。",
         "core_concepts": [
@@ -105,7 +105,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
             ("对象性活动", "人的活动以客观对象为对象、并把自己的本质力量对象化的活动。"),
             ("思维的此岸性", "思维能否达于客观真理的问题不是理论问题而是实践问题，在实践中证明思维的现实性。"),
             ("革命的实践", "改变世界的实践；环境的改变与人的自我改变的统一只能被理解为革命的实践。"),
-            ("人的本质", "实际上，它是一切社会关系的总和。"),
+            ("人的本质", "人的本质并不是单个人所固有的抽象物，实际上，它是一切社会关系的总和。"),
         ],
         "key_points": [
             "第一条：旧唯物主义只从客体、直观理解对象，唯心主义抽象发展能动方面，都不懂『革命的实践』。",
@@ -115,7 +115,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
         ],
         "discussion": [
             "为什么说《提纲》第一条同时批判了旧唯物主义和唯心主义？",
-            "『人的本质是一切社会关系的总和』如何反驳费尔巴哈的抽象人性论？",
+            "『人的本质并不是单个人所固有的抽象物，实际上，它是一切社会关系的总和』如何反驳费尔巴哈的抽象人性论？",
         ],
         "sections": [
             {"heading": "实践：新唯物主义的立足点", "body":
@@ -128,8 +128,8 @@ CHAPTER_GUIDES: dict[str, dict] = {
              "活动中证明自己思维的现实性和力量，即思维的此岸性。离开实践去争论思维是否与现实"
              "相符合，是经院哲学的做派。这一条把认识论奠定在实践基础上。"},
             {"heading": "人的本质与社会", "body":
-             "第六条批判费尔巴哈把人的本质归结为单个人所固有的抽象物，指出人的本质实际上是"
-             "本质是一切社会关系的总和。第十条进一步指出旧唯物主义的立脚点是市民社会，新唯物"
+             "第六条批判费尔巴哈把人的本质归结为单个人所固有的抽象物，指出人的本质并不是"
+             "单个人所固有的抽象物，而是一切社会关系的总和。第十条进一步指出旧唯物主义的立脚点是市民社会，新唯物"
              "主义的立脚点则是人类社会或社会化了的人类。第十一条则是全篇的归宿：问题在于改变世界。"},
         ],
         "source_note": "导读为学习辅助，非原著正文；原著正文已收录，可点“查看原文”对照阅读。",
@@ -151,12 +151,12 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "‘具体问题具体分析’是马克思主义活的灵魂，是矛盾特殊性原理的方法论要求。",
         ],
         "discussion": [
-            "为什么说『实践是检验真理的唯一标准』而不是『多数人的意见』或『本本』？",
-            "用“矛盾的普遍性与特殊性”分析中国革命为什么必须走自己的道路。",
+            "为什么说『真理的标准只能是社会的实践』而不是『多数人的意见』或『本本』？",
+            "用矛盾的普遍性与特殊性原理分析中国革命为什么必须走自己的道路。",
         ],
         "sections": [
             {"heading": "《实践论》：认识与实践", "body": "毛泽东指出，人的认识依赖于物质生产活动，实践是认识的来源和动力。认识从感性认识上升到理性认识，再回到实践中去指导实践并接受检验，形成‘实践—认识—再实践—再认识’的无限上升运动。真理的标准只能是社会的实践。"},
-            {"heading": "《矛盾论》：对立统一", "body": "矛盾即对立统一，是事物发展的根本动力。矛盾的普遍性指矛盾无处不在、无时不有；特殊性指不同事物、不同阶段的矛盾各有其特点。共性寓于个性之中，个性包含共性，这一“共性与个性、绝对与相对”的关系是矛盾问题的精髓。"},
+            {"heading": "《矛盾论》：对立统一", "body": "矛盾即对立统一，是事物发展的根本动力。矛盾的普遍性指矛盾无处不在、无时不有；特殊性指不同事物、不同阶段的矛盾各有其特点。共性寓于个性之中，个性包含共性，这一『共性个性、绝对相对』的道理是矛盾问题的精髓。"},
             {"heading": "方法论：具体问题具体分析", "body": "研究问题要抓主要矛盾和矛盾的主要方面。不同质的矛盾只有用不同质的方法才能解决。‘具体问题具体分析’是马克思主义活的灵魂，反对『一刀切』与教条主义的照搬。"},
         ],
         "source_note": "导读为学习辅助，非原著正文；原著正文已收录，可点“查看原文”对照阅读。",
@@ -183,7 +183,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
         ],
         "sections": [
             {"heading": "读黑格尔：唯物主义地改造辩证法", "body": "列宁在研读黑格尔时强调，黑格尔的辩证法是『天才的』，但裹在唯心主义外壳里。要唯物主义地『翻转』它：把概念的辩证法看作客观世界辩证运动的反映，而不是相反。"},
-            {"heading": "对立统一是辩证法的核心", "body": "列宁提出：『可以把辩证法简要地规定为关于对立面的统一的学说。这样就会抓住辩证法的核心。』对立面的统一、斗争与转化，是理解一切发展、一切矛盾的钥匙。"},
+            {"heading": "对立统一是辩证法的核心", "body": "列宁提出：『可以把辩证法简要地确定为关于对立面的统一的学说。这样就会抓住辩证法的核心。』对立面的统一、斗争与转化，是理解一切发展、一切矛盾的钥匙。"},
             {"heading": "辩证法、逻辑、认识论的统一", "body": "在唯物辩证法看来，客观世界的辩证法（辩证法）、思维把握它的逻辑（逻辑学）、以及人对它的认识过程（认识论）是一致的。这一统一为《资本论》从抽象到具体的方法奠定了哲学前提。"},
         ],
         "source_note": "导读为学习辅助，非原著正文；原著正文已收录，可点“查看原文”对照阅读。",
@@ -204,7 +204,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "从按劳分配到按需分配，取决于生产力发展与劳动本身成为生活第一需要。",
         ],
         "discussion": [
-            "为什么说“分配方式取决于生产方式”？试结合《哥达纲领批判》对拉萨尔纲领的批判加以说明。",
+            "为什么说“消费资料的任何一种分配，都不过是生产条件本身分配的结果”？试结合《哥达纲领批判》对拉萨尔纲领的批判加以说明。",
             "《哥达纲领批判》的批判对象与批判方法是什么？它对今天理解收入分配问题有何方法论意义？",
         ],
         "sections": [
@@ -218,11 +218,11 @@ CHAPTER_GUIDES: dict[str, dict] = {
     # ============================ 路线 B 组织革命 ============================
     "sec_B_00": {
         "title": "公共地基：实践观（共享）",
-        "work": "《关于费尔巴哈的提纲》（共享地基·导读）",
+        "work": "马克思《关于费尔巴哈的提纲》",
         "work_author": "马克思",
         "background": "本路线与 A、C 共享同一块理论地基——实践观与唯物史观。组织革命的一切"
-                      "具体策略都必须建立在对『实践是检验真理的唯一标准』『人的本质是一切社会"
-                      "关系的总和』的正确理解之上。掌握本节点，即跨路线共享地基掌握度。",
+                      "具体策略都必须建立在对『这并不是一个理论的问题，而是一个实践的问题』『人的本质并不是单个人所固有的抽象物，实际上，它是一切社会关系的"
+                      "总和』的正确理解之上。掌握本节点，即跨路线共享地基掌握度。",
         "core_concepts": [
             ("实践观点", "把对象当作感性的人的活动、当作实践去理解，是马克思主义首要的基本观点。"),
             ("社会关系的总和", "人的本质实际上是社会关系的总和，组织工作必须从现实关系出发。"),
@@ -243,14 +243,14 @@ CHAPTER_GUIDES: dict[str, dict] = {
              "对错的标准不是本本，而是实践。教条主义把理论当作僵死公式，脱离具体实践，"
              "必然碰壁。"},
             {"heading": "从现实社会关系出发", "body":
-             "人的本质是一切社会关系的总和。因此分析革命力量、确定依靠对象，不能从抽象"
+             "人的本质并不是单个人所固有的抽象物，实际上，它是一切社会关系的总和。因此分析革命力量、确定依靠对象，不能从抽象"
              "人性或道德愿望出发，而要从现实的生产关系、阶级关系出发，具体问题具体分析。"},
         ],
         "source_note": "导读，与 第 2 章《关于费尔巴哈的提纲》 同源（《提纲》），共享地基知识点。",
     },
     "sec_B_01": {
         "title": "怎么办？：建党原则",
-        "work": "《怎么办？（我们运动中的迫切问题）》（导读）",
+        "work": "列宁《怎么办？》",
         "work_author": "列宁",
         "background": "1902年列宁为批判经济派、建立新型无产阶级政党而写。核心论断是："
                       "没有革命的理论就不会有革命的运动；必须建立以职业革命家为核心的"
@@ -287,7 +287,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     },
     "sec_B_02": {
         "title": "国家与革命：夺权",
-        "work": "《国家与革命》（导读·组织革命视角）",
+        "work": "列宁《国家与革命》",
         "work_author": "列宁",
         "background": "从组织革命的视角重读《国家与革命》：武装起义、打碎旧国家机器、建立"
                       "无产阶级专政，是夺权阶段最核心的组织任务。列宁在此把马克思主义国家"
@@ -304,7 +304,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "夺权后必须建立新国家机器并实行无产阶级专政，防止旧机器复辟。",
         ],
         "discussion": [
-            "为什么说『革命的根本问题是国家政权问题』？",
+            "革命的根本问题是国家政权问题，这一列宁的著名论断在《国家与革命》中如何得到论证？",
             "巴黎公社的经验与教训对组织夺权有哪些意义？",
         ],
         "sections": [
@@ -322,7 +322,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     },
     "sec_B_03": {
         "title": "中国社会各阶级的分析",
-        "work": "《中国社会各阶级的分析》（导读）",
+        "work": "毛泽东《中国社会各阶级的分析》",
         "work_author": "毛泽东",
         "background": "1925年毛泽东為反对党内两种倾向（右倾『一切联合』与『左』倾『一切斗争』）"
                       "而作。文章以阶级分析方法具体剖析中国社会各阶级的经济地位与政治态度，"
@@ -358,7 +358,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     },
     "sec_B_04": {
         "title": "怎样做一个好的领导者",
-        "work": "周恩来《怎样做一个好的领导者》（参读：毛泽东《关于领导方法的若干问题》）",
+        "work": "周恩来《怎样做一个好的领导者》",
         "work_author": "周恩来",
         "background": "1943 年 4 月 22 日，周恩来在中共中央南方局干部会议上作《怎样做一个好的领导者》"
                       "的报告。它不谈心性，而是把领导工作拆成可检查的动作：领导者的定义与立场、领导者"
@@ -379,7 +379,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "与毛泽东《关于领导方法的若干问题》配对读：毛给方法论骨架（一般号召与个别指导、领导骨干与广大群众），周给操作细则。",
         ],
         "discussion": [
-            "“正确地决定问题—组织执行—审查执行情形”三环，与『实践—认识—再实践』的认识论如何对应？",
+            "『必须正确地决定问题』『必须组织正确决定之执行』『必须组织对于执行这种决定的情形之审查』三环，与『实践—认识—再实践』的认识论如何对应？",
             "为什么说『领导群众的方式和态度要使他们不感觉我们是在领导』？这与群众路线矛盾吗？",
         ],
         "sections": [
@@ -400,7 +400,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
              "人士交朋友。领导者自身则要戒骄戒躁、虚心学习、以身作则、埋头苦干——周恩来把这一条"
              "称为领导者的修养，认为它比任何具体方法都更根本。"},
         ],
-        "source_note": "导读，非原著正文；依据《周恩来选集》上卷《怎样做一个好的领导者》（1943 年 4 月 22 日在中共中央南方局干部会议上的报告）转述；本篇暂无原文正文，仅提供导读。",
+        "source_note": "导读，非原著正文；依据《周恩来选集》上卷《怎样做一个好的领导者》（1943 年 4 月 22 日在中共中央南方局干部会议上的报告）转述；本篇暂无原文正文，仅提供导读。参读：毛泽东《关于领导方法的若干问题》。",
     },
 
     "sec_B_05": {
@@ -420,7 +420,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "中国革命斗争的胜利要靠中国同志了解中国情况，坚持独立自主。",
         ],
         "discussion": [
-            "为什么说『没有调查，没有发言权』？它与『实践是检验真理的唯一标准』是什么关系？",
+            "为什么说『没有调查，没有发言权』？它与《实践论》中『真理的标准只能是社会的实践』是什么关系？",
             "组织工作中如何避免『本本主义』式的照搬照抄？",
         ],
         "sections": [
@@ -434,7 +434,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     # ============================ 路线 C 建设社会主义国家 ============================
     "sec_C_00": {
         "title": "公共地基：实践观（共享）",
-        "work": "《关于费尔巴哈的提纲》（共享地基·导读）",
+        "work": "马克思《关于费尔巴哈的提纲》",
         "work_author": "马克思",
         "background": "本路线与 A、B 共享实践观地基。社会主义建设同样是实践活动：一切政策、"
                       "制度都要以实践为检验标准，从现实社会关系出发，落脚于改变世界。",
@@ -627,7 +627,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
         "title": "唯物史观的创立：德意志意识形态",
         "work": "马克思、恩格斯《德意志意识形态》",
         "work_author": "马克思恩格斯",
-        "background": "《德意志意识形态》（1845—1846，节选）是马克思、恩格斯系统地阐述历史唯物主义、清算以费尔巴哈、鲍威尔、施蒂纳为代表的唯心主义哲学的重要著作。它首次系统提出『社会存在决定社会意识』，标志着唯物史观的基本形成。",
+        "background": "《德意志意识形态》（1845—1846，节选）是马克思、恩格斯系统地阐述历史唯物主义、清算以费尔巴哈、鲍威尔、施蒂纳为代表的唯心主义哲学的重要著作。它首次系统阐明『不是意识决定生活，而是生活决定意识』这一历史唯物主义基本原理，标志着唯物史观的基本形成。",
         "core_concepts": [
             ["社会存在决定社会意识", "不是意识决定生活，而是生活决定意识；意识是人们的现实物质生活过程的反映，没有独立的历史。"],
             ["物质生产是人类历史的前提", "人们为了创造历史必须能够生活，物质生活资料的生产是一切历史的基本条件。"],
@@ -640,7 +640,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "一切历史冲突都根源于生产力和交往形式之间的矛盾。",
         ],
         "discussion": [
-            "『社会存在决定社会意识』这一原理是如何在《德意志意识形态》中被系统论证的？",
+            "『不是意识决定生活，而是生活决定意识』这一原理是如何在《德意志意识形态》中被系统论证的？",
             "如何理解『市民社会是全部历史的真正发源地和舞台』？它与经济基础—上层建筑学说的关系是什么？",
         ],
         "sections": [
@@ -652,7 +652,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     },
     "sec_A_08": {
         "title": "剩余价值与资本主义积累：资本论",
-        "work": "马克思《资本论（第一卷）》",
+        "work": "马克思《资本论（第一卷节选）》",
         "work_author": "马克思",
         "background": "《资本论》第一卷（1867）是马克思政治经济学批判的奠基之作，系统揭示资本主义生产方式的内在规律。核心是剩余价值学说：资本家无偿占有工人创造的剩余价值，这是资本主义剥削的秘密。第一卷不仅分析剩余价值如何生产（绝对剩余价值），还用整整一篇分析它在劳动生产率提高的条件下如何生产（相对剩余价值）——协作、分工和工场手工业、机器和大工业，这一篇是理解技术进步与劳动过程变化的原文基础。",
         "core_concepts": [
@@ -672,11 +672,11 @@ CHAPTER_GUIDES: dict[str, dict] = {
             "为什么说『劳动二重性』是理解马克思主义政治经济学的枢纽？它如何解决剩余价值的来源问题？",
             "如何用资本主义积累的一般规律解释资本主义社会的两极分化趋势？",
             "协作、分工和工场手工业、机器大工业这三个阶段，为什么说既是劳动生产率的提高过程，又是资本对劳动支配的加深过程？",
-            "有人说“机器排挤工人是机器的罪过”。用机器大工业这一章的论述说明：为什么问题不在机器本身，而在机器的资本主义应用？",
+            "有人把机器排挤工人的责任归咎于机器本身。用机器大工业这一章的论述说明：为什么问题不在机器本身，而在机器的资本主义应用？",
         ],
         "sections": [
             {"heading": "商品与价值：分析资本主义的起点", "body": "马克思从商品这一资本主义财富的元素形式出发，剖析商品的二因素与劳动二重性，揭示价值的社会性——价值不是物，而是被物掩盖的人与人之间的社会关系。"},
-            {"heading": "货币转化为资本与剩余价值的秘密", "body": "货币在流通中增殖，关键在于劳动力成为商品。劳动力的使用价值（劳动）能创造出大于自身价值的价值，剩余价值即由此产生。这揭穿了“等价交换、剥削从何而来”的谜题。"},
+            {"heading": "货币转化为资本与剩余价值的秘密", "body": "货币在流通中增殖，关键在于劳动力成为商品。劳动力的使用价值（劳动）能创造出大于自身价值的价值，剩余价值即由此产生。这揭穿了所谓等价交换之下剥削从何而来的谜题。"},
             {"heading": "相对剩余价值的生产：协作、分工与机器", "body": "绝对剩余价值靠延长工作日，相对剩余价值靠提高劳动生产力、缩短必要劳动时间。马克思沿三个历史阶段展开：简单协作把许多工人结合在同一生产过程里，创造出集体力；工场手工业把手工操作分解，使局部工人专门化，同时发展了新的社会劳动生产力；机器大工业以机器体系取代手工工具，把科学并入生产过程，使劳动过程的支配权彻底转到资本手中。三步都提高生产力，也三步步加深资本对劳动的支配——生产力的增长被资本占有的形式所限制。"},
             {"heading": "资本积累及其历史趋势", "body": "资本家把剩余价值再转化为资本，形成资本积累。积累加剧了两极分化，也使生产社会化与私人占有之间的矛盾日益尖锐，最终指向资本主义私有制的否定之否定。"},
         ],
@@ -713,7 +713,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
         "title": "时代背景：帝国主义论",
         "work": "列宁《帝国主义是资本主义的最高阶段》",
         "work_author": "列宁",
-        "background": "《帝国主义是资本主义的最高阶段》（1916）是列宁分析垄断资本主义的经典著作。它指出帝国主义是资本主义的垄断阶段，具有五大基本特征，并揭示其寄生性、腐朽性和垂死性，为‘社会主义革命可能首先在一国胜利’提供了理论依据，是理解十月革命与民族解放运动的时代背景。",
+        "background": "《帝国主义是资本主义的最高阶段》（1916）是列宁分析垄断资本主义的经典著作。它指出帝国主义是资本主义的垄断阶段，具有五大基本特征，并揭示其寄生性、腐朽性和垂死性，为列宁在《论欧洲联邦口号》中提出的“一国胜利论”提供了理论依据，是理解十月革命与民族解放运动的时代背景。",
         "core_concepts": [
             ["帝国主义是垄断的资本主义", "垄断代替自由竞争是帝国主义的根本经济特征，生产和资本的集中发展到形成垄断组织。"],
             ["帝国主义的五大基本特征", "①垄断组织；②银行资本与工业资本融合为金融资本、形成金融寡头；③资本输出；④国际垄断同盟瓜分世界；⑤最大资本主义列强瓜分完世界领土。"],
@@ -723,12 +723,12 @@ CHAPTER_GUIDES: dict[str, dict] = {
         "key_points": [
             "帝国主义是资本主义的垄断阶段，垄断是它最根本的经济特征。",
             "金融资本与金融寡头的统治，是帝国主义时代经济与政治的实质。",
-            "经济政治发展不平衡是资本主义的绝对规律，由此得出「社会主义可能首先在少数或者甚至在单独一个资本主义国家内获得胜利」。",
+            "经济政治发展不平衡是资本主义的绝对规律，由此得出列宁在《论欧洲联邦口号》中概括的「社会主义可能首先在少数或者甚至在单独一个资本主义国家内获得胜利」的论断。",
         ],
         "discussion": [
             "列宁概括的帝国主义五大基本特征是什么？它们如何相互联系构成垄断资本主义的整体？",
             "‘一国胜利论’是如何从帝国主义时代的发展不平衡规律中得出的？它对革命实践有何意义？",
-            "对比希法亭『金融资本』、布哈林《世界经济与帝国主义》与列宁的论述：三者在“垄断—金融资本—世界瓜分”这条线上各抓住了什么、又各自少了什么？",
+            "对比希法亭『金融资本』、布哈林《世界经济与帝国主义》与列宁的论述：三者在垄断、金融资本、世界瓜分这条概括线索上各抓住了什么、又各自少了什么？",
         ],
         "sections": [
             {"heading": "从自由竞争到垄断", "body": "列宁依据大量统计资料指出，19世纪末20世纪初，自由竞争为垄断所代替：卡特尔、辛迪加、托拉斯等垄断组织控制了主要工业部门，垄断成为全部经济生活的基础。"},
@@ -756,7 +756,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
         ],
         "discussion": [
             "列宁为什么批评西欧『左派』共产党人拒绝参加议会和反动工会？这对理解革命策略有何意义？",
-            "如何理解“原则的坚定性与策略的灵活性”的统一？它与教条主义、机会主义的界限在哪里？",
+            "如何理解原则的坚定性与策略的灵活性的统一？它与教条主义、机会主义的界限在哪里？",
         ],
         "sections": [
             {"heading": "什么是『左派』幼稚病", "body": "列宁指出，西欧一些年轻共产党人把『左』当革命，拒绝参加资产阶级议会、拒绝在反动工会里工作、拒绝任何妥协。这种貌似革命的态度实际上脱离群众，是妨碍革命发展的幼稚病。"},
@@ -935,7 +935,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     # 教科书结论当教条背（『马哲不是教条，而是方法』）。
     "sec_A_13": {
         "title": "体系收拢（一）：辩证唯物主义要义",
-        "work": "斯大林《辩证唯物主义和历史唯物主义》（导读）",
+        "work": "斯大林《辩证唯物主义和历史唯物主义》",
         "work_author": "斯大林",
         "background": "读完散篇原典后，需要一个体系化的收口。斯大林《辩证唯物主义和历史唯物主义》"
                       "（1938，原为《联共（布）党史简明教程》第四章第二节）以极简篇幅把马克思主义哲学"
@@ -989,7 +989,7 @@ CHAPTER_GUIDES: dict[str, dict] = {
     },
     "sec_A_14": {
         "title": "体系收拢（二）：历史唯物主义要义",
-        "work": "艾思奇《辩证唯物主义 历史唯物主义》（导读）",
+        "work": "艾思奇《辩证唯物主义历史唯物主义（艾思奇）》",
         "work_author": "艾思奇",
         "background": "斯大林给的是骨架，艾思奇主编的《辩证唯物主义 历史唯物主义》（1961 年人民出版社）"
                       "给的是中国化、体系化的教科书式展开：上篇讲辩证唯物主义（物质与意识、对立统一、质量互变、"
@@ -1056,44 +1056,44 @@ ROUTE_NODES: dict[str, list[dict]] = {
     # ---------------- 路线 A：阶段0 革命前·理论奠基 ----------------
     "sec_A_00": [
         {"id": "kn_a00_basic", "name": "哲学是世界观", "ability_dim": "materialism", "exam_weight": 0.85,
-         "definition": "哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。", "source_chunk_id": ""},
+         "definition": "哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。", "source_chunk_id": "CH-DZ-015"},
         {"id": "kn_a00_parties", "name": "唯物论与唯心论两大阵营", "ability_dim": "materialism", "exam_weight": 0.80,
-         "definition": "各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。", "source_chunk_id": ""},
+         "definition": "各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。", "source_chunk_id": "CH-DZ-032"},
         {"id": "kn_a00_agnostic", "name": "日常感想与完整哲学", "ability_dim": "epistemology", "exam_weight": 0.75,
-         "definition": "日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。", "source_chunk_id": ""},
+         "definition": "日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。", "source_chunk_id": "CH-DZ-002"},
     ],
     "sec_A_01": [
         {"id": "kn_a01_matter", "name": "物质与意识", "ability_dim": "materialism", "exam_weight": 0.85,
-         "definition": "物质决定意识，意识具有能动反作用。", "source_chunk_id": ""},
+         "definition": "物质决定意识，意识具有能动反作用。", "source_chunk_id": "CH-DZ-096"},
         {"id": "kn_a01_contradiction", "name": "对立统一规律", "ability_dim": "dialectics", "exam_weight": 0.90,
-         "definition": "矛盾是事物发展的根本动力，是辩证法的实质与核心。", "source_chunk_id": ""},
+         "definition": "矛盾是事物发展的根本动力，是辩证法的实质与核心。", "source_chunk_id": "CH-DZ-214"},
         {"id": "kn_a01_practice", "name": "实践与认识", "ability_dim": "epistemology", "exam_weight": 0.90,
-         "definition": "实践是认识的来源、动力、目的和检验真理的唯一标准。", "source_chunk_id": ""},
+         "definition": "实践是认识的来源、动力、目的和检验真理的唯一标准。", "source_chunk_id": "CH-DZ-127"},
     ],
     # sec_A_02 复用既有 12 个知识点（content/knowledge_graph.py），此处不重复定义。
     "sec_A_03": [
         {"id": "kn_a03_practice", "name": "实践与认识", "ability_dim": "epistemology", "exam_weight": 0.90,
-         "definition": "实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。", "source_chunk_id": ""},
+         "definition": "实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。", "source_chunk_id": "CH-SJL-003"},
         {"id": "kn_a03_general", "name": "矛盾的普遍性与特殊性", "ability_dim": "dialectics", "exam_weight": 0.95,
-         "definition": "共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。", "source_chunk_id": ""},
+         "definition": "共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。", "source_chunk_id": "CH-MDL-045"},
         {"id": "kn_a03_principal", "name": "主要矛盾与矛盾的主要方面", "ability_dim": "dialectics", "exam_weight": 0.85,
-         "definition": "抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。", "source_chunk_id": ""},
+         "definition": "抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。", "source_chunk_id": "CH-MDL-049"},
     ],
     "sec_A_04": [
         {"id": "kn_a04_core", "name": "对立统一是辩证法的核心", "ability_dim": "dialectics", "exam_weight": 0.95,
-         "definition": "列宁把对立面的统一确立为辩证法的实质与核心。", "source_chunk_id": ""},
+         "definition": "列宁把对立面的统一确立为辩证法的实质与核心。", "source_chunk_id": "CH-ZXBJ-150"},
         {"id": "kn_a04_unity", "name": "辩证法、逻辑、认识论三者一致", "ability_dim": "dialectics", "exam_weight": 0.90,
-         "definition": "三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。", "source_chunk_id": ""},
+         "definition": "三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。", "source_chunk_id": "CH-ZXBJ-115"},
         {"id": "kn_a04_reflect", "name": "能动的反映论", "ability_dim": "epistemology", "exam_weight": 0.80,
-         "definition": "认识是人对客观世界的能动反映，由现象到本质不断深入。", "source_chunk_id": ""},
+         "definition": "认识是人对客观世界的能动反映，由现象到本质不断深入。", "source_chunk_id": "CH-ZXBJ-299"},
     ],
     "sec_A_05": [
         {"id": "kn_a05_transition", "name": "过渡时期", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。", "source_chunk_id": ""},
+         "definition": "从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。", "source_chunk_id": "CH-GDGB-085"},
         {"id": "kn_a05_twostage", "name": "共产主义两个阶段", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "共产主义分第一阶段（社会主义）与高级阶段。", "source_chunk_id": ""},
+         "definition": "共产主义分第一阶段（社会主义）与高级阶段。", "source_chunk_id": "CH-GDGB-049"},
         {"id": "kn_a05_distribution", "name": "按劳与按需分配", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "社会主义按劳分配，共产主义高级阶段按需分配。", "source_chunk_id": ""},
+         "definition": "社会主义按劳分配，共产主义高级阶段按需分配。", "source_chunk_id": "CH-GDGB-050"},
     ],
     # ---------------- 路线 B：阶段1 革命中·组织革命 ----------------
     "sec_B_00": [
@@ -1104,43 +1104,43 @@ ROUTE_NODES: dict[str, list[dict]] = {
     ],
     "sec_B_01": [
         {"id": "kn_b01_theory", "name": "革命理论的作用", "ability_dim": "epistemology", "exam_weight": 0.85,
-         "definition": "没有革命的理论就不会有革命的运动。", "source_chunk_id": ""},
+         "definition": "没有革命的理论就不会有革命的运动。", "source_chunk_id": "CH-ZMB-042"},
         {"id": "kn_b01_instill", "name": "灌输论", "ability_dim": "epistemology", "exam_weight": 0.90,
-         "definition": "社会主义意识须从外部灌输，不能自发产生。", "source_chunk_id": ""},
+         "definition": "社会主义意识须从外部灌输，不能自发产生。", "source_chunk_id": "CH-ZMB-072"},
         {"id": "kn_b01_vanguard", "name": "职业革命家组织", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "集中统一、纪律严明的职业革命家组织是迫切任务。", "source_chunk_id": ""},
+         "definition": "集中统一、纪律严明的职业革命家组织是迫切任务。", "source_chunk_id": "CH-ZMB-097"},
     ],
     "sec_B_02": [
         {"id": "kn_b02_power", "name": "政权问题", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "革命的根本问题是国家政权问题。", "source_chunk_id": ""},
+         "definition": "革命的根本问题是国家政权问题。", "source_chunk_id": "CH-GJGM-015"},
         {"id": "kn_b02_smash", "name": "打碎与重建", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "打碎旧官僚军事机器并建立新型国家。", "source_chunk_id": ""},
+         "definition": "打碎旧官僚军事机器并建立新型国家。", "source_chunk_id": "CH-GJGM-121"},
         {"id": "kn_b02_commune", "name": "巴黎公社经验", "ability_dim": "political_economy", "exam_weight": 0.80,
-         "definition": "公社是使劳动在经济上获得解放的政治形式。", "source_chunk_id": ""},
+         "definition": "公社是使劳动在经济上获得解放的政治形式。", "source_chunk_id": "CH-GJGM-183"},
     ],
     "sec_B_03": [
         {"id": "kn_b03_enemy", "name": "分清敌友", "ability_dim": "historical_materialism", "exam_weight": 0.95,
-         "definition": "谁是我们的敌人、谁是我们的朋友，是革命的首要问题。", "source_chunk_id": ""},
+         "definition": "谁是我们的敌人、谁是我们的朋友，是革命的首要问题。", "source_chunk_id": "CH-JJFX-002"},
         {"id": "kn_b03_method", "name": "阶级分析方法", "ability_dim": "historical_materialism", "exam_weight": 0.90,
-         "definition": "以经济地位为基础分析各阶级政治态度。", "source_chunk_id": ""},
+         "definition": "以经济地位为基础分析各阶级政治态度。", "source_chunk_id": "CH-JJFX-005"},
         {"id": "kn_b03_peasant", "name": "农民同盟军", "ability_dim": "historical_materialism", "exam_weight": 0.85,
-         "definition": "贫农是无产阶级最可靠的同盟军。", "source_chunk_id": ""},
+         "definition": "贫农是无产阶级最可靠的同盟军。", "source_chunk_id": "CH-JJFX-001"},
     ],
     "sec_B_04": [
         {"id": "kn_b04_massline", "name": "群众路线", "ability_dim": "epistemology", "exam_weight": 0.90,
-         "definition": "从群众中来，到群众中去，是基本领导方法。", "source_chunk_id": ""},
+         "definition": "从群众中来，到群众中去，是基本领导方法。", "source_chunk_id": "CH-HLDZ-013"},
         {"id": "kn_b04_survey", "name": "调查研究（领导方法）", "ability_dim": "epistemology", "exam_weight": 0.85,
-         "definition": "没有调查就没有发言权（领导工作中的运用）。", "source_chunk_id": ""},
+         "definition": "没有调查就没有发言权（领导工作中的运用）。", "source_chunk_id": "CH-HLDZ-005"},
         {"id": "kn_b04_cadre", "name": "出主意用干部", "ability_dim": "political_economy", "exam_weight": 0.75,
-         "definition": "领导者的任务主要是出主意、用干部并检查落实。", "source_chunk_id": ""},
+         "definition": "领导者的任务主要是出主意、用干部并检查落实。", "source_chunk_id": "CH-HLDZ-001"},
     ],
     "sec_B_05": [
         {"id": "kn_b05_survey", "name": "没有调查没有发言权", "ability_dim": "epistemology", "exam_weight": 0.95,
-         "definition": "不了解实际情况就没有发言权，结论产生于调查之后。", "source_chunk_id": ""},
+         "definition": "不了解实际情况就没有发言权，结论产生于调查之后。", "source_chunk_id": "CH-FDBB-020"},
         {"id": "kn_b05_antidogma", "name": "反对本本主义", "ability_dim": "epistemology", "exam_weight": 0.90,
-         "definition": "反对把书本当教条、脱离实际的照搬，主张理论联系实际。", "source_chunk_id": ""},
+         "definition": "反对把书本当教条、脱离实际的照搬，主张理论联系实际。", "source_chunk_id": "CH-FDBB-001"},
         {"id": "kn_b05_independent", "name": "独立自主", "ability_dim": "historical_materialism", "exam_weight": 0.85,
-         "definition": "中国革命要靠中国同志了解中国情况，独立自主解决本国问题。", "source_chunk_id": ""},
+         "definition": "中国革命要靠中国同志了解中国情况，独立自主解决本国问题。", "source_chunk_id": "CH-FDBB-013"},
     ],
     # ---------------- 路线 C：阶段2 建国·建设社会主义 ----------------
     "sec_C_00": [
@@ -1151,103 +1151,103 @@ ROUTE_NODES: dict[str, list[dict]] = {
     ],
     "sec_C_01": [
         {"id": "kn_c01_transition", "name": "过渡时期", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。", "source_chunk_id": ""},
+         "definition": "从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。", "source_chunk_id": "CH-GDGB-085"},
         {"id": "kn_c01_twostage", "name": "共产主义两个阶段", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "共产主义分第一阶段（社会主义）与高级阶段。", "source_chunk_id": ""},
+         "definition": "共产主义分第一阶段（社会主义）与高级阶段。", "source_chunk_id": "CH-GDGB-049"},
         {"id": "kn_c01_distribution", "name": "按劳与按需分配", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "社会主义按劳分配，共产主义高级阶段按需分配。", "source_chunk_id": ""},
+         "definition": "社会主义按劳分配，共产主义高级阶段按需分配。", "source_chunk_id": "CH-GDGB-050"},
     ],
     "sec_C_02": [
         {"id": "kn_c02_twostep", "name": "中国革命两步走", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。", "source_chunk_id": ""},
+         "definition": "第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。", "source_chunk_id": "CH-XMZ-009"},
         {"id": "kn_c02_society", "name": "新民主主义社会", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。", "source_chunk_id": ""},
+         "definition": "过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。", "source_chunk_id": "CH-XMZ-040"},
         {"id": "kn_c02_leadership", "name": "无产阶级领导权", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "新民主主义革命必须由无产阶级（经过共产党）领导。", "source_chunk_id": ""},
+         "definition": "新民主主义革命必须由无产阶级（经过共产党）领导。", "source_chunk_id": "CH-XMZ-021"},
     ],
     "sec_C_03": [
         {"id": "kn_c03_nature", "name": "人民民主专政", "ability_dim": "political_economy", "exam_weight": 0.90,
-         "definition": "对人民民主与对敌人专政的统一。", "source_chunk_id": ""},
+         "definition": "对人民民主与对敌人专政的统一。", "source_chunk_id": "CH-RMZ-010"},
         {"id": "kn_c03_alliance", "name": "工农联盟", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "工人阶级领导、以工农联盟为基础。", "source_chunk_id": ""},
+         "definition": "工人阶级领导、以工农联盟为基础。", "source_chunk_id": "CH-RMZ-034"},
         {"id": "kn_c03_build", "name": "经济建设任务", "ability_dim": "political_economy", "exam_weight": 0.75,
-         "definition": "政权巩固要与经济建设相结合。", "source_chunk_id": ""},
+         "definition": "政权巩固要与经济建设相结合。", "source_chunk_id": "CH-RMZ-035"},
     ],
     "sec_C_04": [
         {"id": "kn_c04_factor", "name": "调动一切积极因素", "ability_dim": "historical_materialism", "exam_weight": 0.90,
-         "definition": "调动一切积极因素为社会主义事业服务是基本方针。", "source_chunk_id": ""},
+         "definition": "调动一切积极因素为社会主义事业服务是基本方针。", "source_chunk_id": "CH-SDGX-003"},
         {"id": "kn_c04_agric", "name": "农轻重关系", "ability_dim": "political_economy", "exam_weight": 0.85,
-         "definition": "以农业为基础、工业为主导，正确处理农轻重关系。", "source_chunk_id": ""},
+         "definition": "以农业为基础、工业为主导，正确处理农轻重关系。", "source_chunk_id": "CH-SDGX-010"},
         {"id": "kn_c04_balance", "name": "统筹兼顾", "ability_dim": "political_economy", "exam_weight": 0.80,
-         "definition": "兼顾国家、集体、个人三者利益。", "source_chunk_id": ""},
+         "definition": "兼顾国家、集体、个人三者利益。", "source_chunk_id": "CH-SDGX-020"},
     ],
     "sec_C_05": [
         {"id": "kn_c05_twokinds", "name": "两类矛盾", "ability_dim": "dialectics", "exam_weight": 0.95,
-         "definition": "敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。", "source_chunk_id": ""},
+         "definition": "敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。", "source_chunk_id": "CH-LM-003"},
         {"id": "kn_c05_method", "name": "不同方法解决", "ability_dim": "dialectics", "exam_weight": 0.90,
-         "definition": "敌我矛盾用专政，人民内部矛盾用民主方法解决。", "source_chunk_id": ""},
+         "definition": "敌我矛盾用专政，人民内部矛盾用民主方法解决。", "source_chunk_id": "CH-LM-013"},
         {"id": "kn_c05_transform", "name": "矛盾转化", "ability_dim": "dialectics", "exam_weight": 0.80,
-         "definition": "两类矛盾在一定条件下可相互转化。", "source_chunk_id": ""},
+         "definition": "两类矛盾在一定条件下可相互转化。", "source_chunk_id": "CH-LM-064"},
     ],
     "sec_A_06": [
-        {"id": "kn_a06_class", "name": "阶级斗争是历史动力", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "至今一切社会的历史都是阶级斗争的历史，阶级斗争是阶级社会发展的直接动力。", "source_chunk_id": ""},
-        {"id": "kn_a06_bourgeois", "name": "资产阶级历史作用与矛盾", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。", "source_chunk_id": ""},
-        {"id": "kn_a06_mission", "name": "无产阶级历史使命", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "无产阶级是资本主义的掘墓人，须组织成为阶级、建立政党，解放全人类。", "source_chunk_id": ""},
+        {"id": "kn_a06_class", "name": "阶级斗争是历史动力", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "至今一切社会的历史都是阶级斗争的历史，阶级斗争是阶级社会发展的直接动力。", "source_chunk_id": "CH-XY-013"},
+        {"id": "kn_a06_bourgeois", "name": "资产阶级历史作用与矛盾", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。", "source_chunk_id": "CH-XY-072"},
+        {"id": "kn_a06_mission", "name": "无产阶级历史使命", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "无产阶级是资本主义的掘墓人，须组织成为阶级、建立政党，解放全人类。", "source_chunk_id": "CH-XY-099"},
     ],
     "sec_A_07": [
-        {"id": "kn_a07_social", "name": "社会存在决定社会意识", "ability_dim": "historical_materialism", "exam_weight": 0.95, "definition": "不是意识决定生活，而是生活决定意识；意识是现实物质生活过程的反映。", "source_chunk_id": ""},
-        {"id": "kn_a07_production", "name": "物质生产是历史前提", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "物质生活资料的生产是一切历史的基本条件与前提。", "source_chunk_id": ""},
-        {"id": "kn_a07_contradiction", "name": "生产力与交往形式的矛盾", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。", "source_chunk_id": ""},
+        {"id": "kn_a07_social", "name": "社会存在决定社会意识", "ability_dim": "historical_materialism", "exam_weight": 0.95, "definition": "不是意识决定生活，而是生活决定意识；意识是现实物质生活过程的反映。", "source_chunk_id": "CH-DYZT-026"},
+        {"id": "kn_a07_production", "name": "物质生产是历史前提", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "物质生活资料的生产是一切历史的基本条件与前提。", "source_chunk_id": "CH-DYZT-024"},
+        {"id": "kn_a07_contradiction", "name": "生产力与交往形式的矛盾", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。", "source_chunk_id": "CH-DYZT-096"},
     ],
     "sec_A_08": [
-        {"id": "kn_a08_commodity", "name": "商品二因素与劳动二重性", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "商品是使用价值与价值的统一，劳动二重性是理解政治经济学的枢纽。", "source_chunk_id": ""},
-        {"id": "kn_a08_surplus", "name": "剩余价值的生产", "ability_dim": "political_economy", "exam_weight": 0.95, "definition": "资本家无偿占有工人剩余劳动创造的剩余价值，是资本主义剥削的本质。", "source_chunk_id": ""},
-        {"id": "kn_a08_accumulation", "name": "资本主义积累的一般规律", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "积累导致财富与贫困两极积累，激化基本矛盾，最终『剥夺者被剥夺』。", "source_chunk_id": ""},
+        {"id": "kn_a08_commodity", "name": "商品二因素与劳动二重性", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "商品是使用价值与价值的统一，劳动二重性是理解政治经济学的枢纽。", "source_chunk_id": "CH-ZBL-001"},
+        {"id": "kn_a08_surplus", "name": "剩余价值的生产", "ability_dim": "political_economy", "exam_weight": 0.95, "definition": "资本家无偿占有工人剩余劳动创造的剩余价值，是资本主义剥削的本质。", "source_chunk_id": "CH-ZBL-365"},
+        {"id": "kn_a08_accumulation", "name": "资本主义积累的一般规律", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "积累导致财富与贫困两极积累，激化基本矛盾，最终『剥夺者被剥夺』。", "source_chunk_id": "CH-ZBL-908"},
     ],
     "sec_A_09": [
-        {"id": "kn_a09_smash", "name": "打碎旧国家机器", "ability_dim": "historical_materialism", "exam_weight": 0.95, "definition": "工人阶级不能简单掌握现成国家机器来达到自己的目的，必须打碎它。", "source_chunk_id": ""},
-        {"id": "kn_a09_commune", "name": "巴黎公社：劳动者政治形式", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "公社以人民武装代替常备军、公职人员选举可撤换领工人工资，是新型国家政权。", "source_chunk_id": ""},
-        {"id": "kn_a09_state", "name": "国家是阶级压迫工具", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。", "source_chunk_id": ""},
+        {"id": "kn_a09_smash", "name": "打碎旧国家机器", "ability_dim": "historical_materialism", "exam_weight": 0.95, "definition": "工人阶级不能简单掌握现成国家机器来达到自己的目的，必须打碎它。", "source_chunk_id": "CH-FLNZ-023"},
+        {"id": "kn_a09_commune", "name": "巴黎公社：劳动者政治形式", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "公社以人民武装代替常备军、公职人员选举可撤换领工人工资，是新型国家政权。", "source_chunk_id": "CH-FLNZ-107"},
+        {"id": "kn_a09_state", "name": "国家是阶级压迫工具", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。", "source_chunk_id": "CH-FLNZ-020"},
     ],
     "sec_B_06": [
-        {"id": "kn_b06_monopoly", "name": "帝国主义是垄断资本主义", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "垄断代替自由竞争是帝国主义的根本经济特征。", "source_chunk_id": ""},
-        {"id": "kn_b06_five", "name": "帝国主义五大基本特征", "ability_dim": "political_economy", "exam_weight": 0.95, "definition": "垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。", "source_chunk_id": ""},
-        {"id": "kn_b06_onesided", "name": "政治经济发展不平衡规律", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "发展不平衡使社会主义革命可能首先在一国或数国取得胜利。", "source_chunk_id": ""},
+        {"id": "kn_b06_monopoly", "name": "帝国主义是垄断资本主义", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "垄断代替自由竞争是帝国主义的根本经济特征。", "source_chunk_id": "CH-DGZY-035"},
+        {"id": "kn_b06_five", "name": "帝国主义五大基本特征", "ability_dim": "political_economy", "exam_weight": 0.95, "definition": "垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。", "source_chunk_id": "CH-DGZY-148"},
+        {"id": "kn_b06_onesided", "name": "政治经济发展不平衡规律", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "发展不平衡使社会主义革命可能首先在一国或数国取得胜利。", "source_chunk_id": "CH-DGZY-137"},
     ],
     "sec_B_08": [
-        {"id": "kn_b08_strategy", "name": "战略与策略的统一", "ability_dim": "dialectics", "exam_weight": 0.9, "definition": "把对共产主义的忠诚同善于灵活运用一切斗争形式结合起来。", "source_chunk_id": ""},
-        {"id": "kn_b08_masses", "name": "争取群众是胜利根本", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "先锋队须在议会、工会等一切场合争取群众，反对自我孤立。", "source_chunk_id": ""},
-        {"id": "kn_b08_leadership", "name": "领袖·政党·阶级·群众", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。", "source_chunk_id": ""},
+        {"id": "kn_b08_strategy", "name": "战略与策略的统一", "ability_dim": "dialectics", "exam_weight": 0.9, "definition": "把对共产主义的忠诚同善于灵活运用一切斗争形式结合起来。", "source_chunk_id": "CH-YZB-127"},
+        {"id": "kn_b08_masses", "name": "争取群众是胜利根本", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "先锋队须在议会、工会等一切场合争取群众，反对自我孤立。", "source_chunk_id": "CH-YZB-031"},
+        {"id": "kn_b08_leadership", "name": "领袖·政党·阶级·群众", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。", "source_chunk_id": "CH-YZB-001"},
     ],
     "sec_A_11": [
-        {"id": "kn_a11_basicq", "name": "哲学基本问题", "ability_dim": "materialism", "exam_weight": 0.9, "definition": "思维和存在的关系问题是全部哲学特别是近代哲学的重大的基本问题。", "source_chunk_id": ""},
-        {"id": "kn_a11_half", "name": "费尔巴哈的‘半截子唯物主义’", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "费尔巴哈自然观唯物、历史观唯心，唯物主义未能贯彻到底。", "source_chunk_id": ""},
-        {"id": "kn_a11_dialectic", "name": "黑格尔辩证法的合理内核", "ability_dim": "dialectics", "exam_weight": 0.85, "definition": "黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。", "source_chunk_id": ""},
+        {"id": "kn_a11_basicq", "name": "哲学基本问题", "ability_dim": "materialism", "exam_weight": 0.9, "definition": "思维和存在的关系问题是全部哲学特别是近代哲学的重大的基本问题。", "source_chunk_id": "CH-FEBH-025"},
+        {"id": "kn_a11_half", "name": "费尔巴哈的‘半截子唯物主义’", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "费尔巴哈自然观唯物、历史观唯心，唯物主义未能贯彻到底。", "source_chunk_id": "CH-FEBH-005"},
+        {"id": "kn_a11_dialectic", "name": "黑格尔辩证法的合理内核", "ability_dim": "dialectics", "exam_weight": 0.85, "definition": "黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。", "source_chunk_id": "CH-FEBH-011"},
     ],
     "sec_A_12": [
-        {"id": "kn_a12_alienation", "name": "异化劳动四重规定", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "劳动产品、劳动活动、人的类本质、人与人的异化。", "source_chunk_id": ""},
-        {"id": "kn_a12_private", "name": "异化劳动与私有财产", "ability_dim": "political_economy", "exam_weight": 0.85, "definition": "异化劳动是私有财产的根源，二者相互作用。", "source_chunk_id": ""},
-        {"id": "kn_a12_communism", "name": "共产主义是异化的积极扬弃", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "共产主义是私有财产即人的自我异化的积极的扬弃。", "source_chunk_id": ""},
+        {"id": "kn_a12_alienation", "name": "异化劳动四重规定", "ability_dim": "political_economy", "exam_weight": 0.9, "definition": "劳动产品、劳动活动、人的类本质、人与人的异化。", "source_chunk_id": "CH-SG-196"},
+        {"id": "kn_a12_private", "name": "异化劳动与私有财产", "ability_dim": "political_economy", "exam_weight": 0.85, "definition": "异化劳动是私有财产的根源，二者相互作用。", "source_chunk_id": "CH-SG-157"},
+        {"id": "kn_a12_communism", "name": "共产主义是异化的积极扬弃", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "共产主义是私有财产即人的自我异化的积极的扬弃。", "source_chunk_id": "CH-SG-239"},
     ],
     "sec_B_09": [
-        {"id": "kn_b09_peasant", "name": "农民问题与贫农先锋", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "农民问题是中国革命的基本问题，贫农是革命的先锋。", "source_chunk_id": ""},
-        {"id": "kn_b09_revolution", "name": "革命不是请客吃饭", "ability_dim": "dialectics", "exam_weight": 0.8, "definition": "革命是一个阶级推翻一个阶级的暴烈行动，不能温良恭俭让。", "source_chunk_id": ""},
-        {"id": "kn_b09_investigate", "name": "调查研究方法", "ability_dim": "epistemology", "exam_weight": 0.85, "definition": "通过实地考察、开调查会掌握第一手材料，反对空谈。", "source_chunk_id": ""},
+        {"id": "kn_b09_peasant", "name": "农民问题与贫农先锋", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "农民问题是中国革命的基本问题，贫农是革命的先锋。", "source_chunk_id": "CH-HN-011"},
+        {"id": "kn_b09_revolution", "name": "革命不是请客吃饭", "ability_dim": "dialectics", "exam_weight": 0.8, "definition": "革命是一个阶级推翻一个阶级的暴烈行动，不能温良恭俭让。", "source_chunk_id": "CH-HN-009"},
+        {"id": "kn_b09_investigate", "name": "调查研究方法", "ability_dim": "epistemology", "exam_weight": 0.85, "definition": "通过实地考察、开调查会掌握第一手材料，反对空谈。", "source_chunk_id": "CH-HN-002"},
     ],
     "sec_B_10": [
-        {"id": "kn_b10_shishi", "name": "实事求是", "ability_dim": "epistemology", "exam_weight": 0.9, "definition": "从客观实际出发，研究事物的内部联系即规律性。", "source_chunk_id": ""},
-        {"id": "kn_b10_subjectivism", "name": "主观主义批判", "ability_dim": "epistemology", "exam_weight": 0.85, "definition": "教条主义、经验主义脱离实际，是党性不纯的表现。", "source_chunk_id": ""},
-        {"id": "kn_b10_method", "name": "理论联系实际", "ability_dim": "epistemology", "exam_weight": 0.85, "definition": "学习的目的全在于应用，要有的放矢。", "source_chunk_id": ""},
+        {"id": "kn_b10_shishi", "name": "实事求是", "ability_dim": "epistemology", "exam_weight": 0.9, "definition": "从客观实际出发，研究事物的内部联系即规律性。", "source_chunk_id": "CH-GZ-013"},
+        {"id": "kn_b10_subjectivism", "name": "主观主义批判", "ability_dim": "epistemology", "exam_weight": 0.85, "definition": "教条主义、经验主义脱离实际，是党性不纯的表现。", "source_chunk_id": "CH-GZ-001"},
+        {"id": "kn_b10_method", "name": "理论联系实际", "ability_dim": "epistemology", "exam_weight": 0.85, "definition": "学习的目的全在于应用，要有的放矢。", "source_chunk_id": "CH-GZ-015"},
     ],
     "sec_C_06": [
-        {"id": "kn_c06_twoprod", "name": "两种生产", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "历史决定因素是生活资料的生产和人自身的生产（种的繁衍）。", "source_chunk_id": ""},
-        {"id": "kn_c06_origin", "name": "私有制与阶级的起源", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "生产力发展、社会分工导致私有制与阶级分化。", "source_chunk_id": ""},
-        {"id": "kn_c06_state", "name": "国家的起源与消亡", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "国家是阶级矛盾不可调和的产物，随阶级消失而消亡。", "source_chunk_id": ""},
+        {"id": "kn_c06_twoprod", "name": "两种生产", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "历史决定因素是生活资料的生产和人自身的生产（种的繁衍）。", "source_chunk_id": "CH-JT-002"},
+        {"id": "kn_c06_origin", "name": "私有制与阶级的起源", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "生产力发展、社会分工导致私有制与阶级分化。", "source_chunk_id": "CH-JT-121"},
+        {"id": "kn_c06_state", "name": "国家的起源与消亡", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "国家是阶级矛盾不可调和的产物，随阶级消失而消亡。", "source_chunk_id": "CH-JT-175"},
     ],
     "sec_C_07": [
-        {"id": "kn_c07_service", "name": "文艺为人民大众", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "文艺为人民大众、首先为工农兵服务。", "source_chunk_id": ""},
-        {"id": "kn_c07_politics", "name": "文艺与政治", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "文艺从属于政治，又反作用于政治。", "source_chunk_id": ""},
-        {"id": "kn_c07_popularize", "name": "普及与提高·两个标准", "ability_dim": "dialectics", "exam_weight": 0.8, "definition": "普及与提高辩证统一，政治标准与艺术标准统一。", "source_chunk_id": ""},
+        {"id": "kn_c07_service", "name": "文艺为人民大众", "ability_dim": "historical_materialism", "exam_weight": 0.9, "definition": "文艺为人民大众、首先为工农兵服务。", "source_chunk_id": "CH-YA-002"},
+        {"id": "kn_c07_politics", "name": "文艺与政治", "ability_dim": "historical_materialism", "exam_weight": 0.85, "definition": "文艺从属于政治，又反作用于政治。", "source_chunk_id": "CH-YA-028"},
+        {"id": "kn_c07_popularize", "name": "普及与提高·两个标准", "ability_dim": "dialectics", "exam_weight": 0.8, "definition": "普及与提高辩证统一，政治标准与艺术标准统一。", "source_chunk_id": "CH-YA-020"},
     ],
     # ---------------- 路线 A：体系收拢（D97，接在 sec_A_09 之后）----------------
     "sec_A_13": [

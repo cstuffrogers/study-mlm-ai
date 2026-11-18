@@ -47,12 +47,16 @@ def test_authoritative_links_point_to_real_chunks():
 
 
 def test_related_links_are_honest_and_real():
-    r = _guide("sec_A_00")  # 导读型知识点：source_chunk_id 为空
+    r = _guide("sec_A_00")  # 全部知识点已补锚：链接须指向真实分片
     nodes = r["nodes"]
     links = r["source_links"]["nodes"]
-    assert any(not (n.get("source_chunk_id") or "").strip() for n in nodes)
+    assert len(links) == len(nodes)
     for x in links:
-        if x["kind"] == "related":
+        if x["kind"] == "authoritative":
+            assert x["chunk_id"]
+            assert get_chunk(x["chunk_id"]) is not None
+            assert "权威" in x["reason"]
+        elif x["kind"] == "related":
             assert x["chunk_id"]
             assert get_chunk(x["chunk_id"]) is not None
             assert "非逐条权威溯源" in x["reason"]

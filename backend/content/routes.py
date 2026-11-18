@@ -136,7 +136,7 @@ SECTIONS: list[dict] = [
     },
     {
         "id": "sec_A_08", "route_id": "route_A", "order_index": 9, "stage_no": 0,
-        "work": "马克思《资本论（第一卷）》", "title": "剩余价值与资本主义积累：资本论", "is_foundation": False,
+        "work": "马克思《资本论（第一卷节选）》", "title": "剩余价值与资本主义积累：资本论", "is_foundation": False,
         "local_work": "资本论（第一卷节选）", "work_short": "资本论（第一卷节选）",
     },
     {
@@ -193,7 +193,7 @@ SECTIONS: list[dict] = [
     },
     {
         "id": "sec_B_04", "route_id": "route_B", "order_index": 8, "stage_no": 1,
-        "work": "周恩来 组织工作三部曲", "title": "怎样做一个好的领导者", "is_foundation": False,
+        "work": "周恩来《怎样做一个好的领导者》", "title": "怎样做一个好的领导者", "is_foundation": False,
         "local_work": "怎样做一个好的领导者", "work_short": "怎样做一个好的领导者",
     },
     {
@@ -254,7 +254,7 @@ SECTIONS: list[dict] = [
     },
     {
         "id": "sec_A_14", "route_id": "route_A", "order_index": 13, "stage_no": 0,
-        "work": "艾思奇《辩证唯物主义 历史唯物主义》", "title": "体系收拢（二）：历史唯物主义要义",
+        "work": "艾思奇《辩证唯物主义历史唯物主义（艾思奇）》", "title": "体系收拢（二）：历史唯物主义要义",
         "is_foundation": False,
         "local_work": "辩证唯物主义历史唯物主义（艾思奇）", "work_short": "辩证唯物主义历史唯物主义（艾思奇）",
     },
