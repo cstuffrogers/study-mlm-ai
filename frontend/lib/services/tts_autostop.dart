@@ -8,10 +8,27 @@
 // 弹窗类路由（PopupRoute：对话框/底部弹层）打开时不算「切换页面」，不打断朗读；
 // 但**关闭时**要停 —— 用户实报「相关原文」弹层里点小喇叭，关掉弹层声音还在念。
 // 这条由 TtsStopOnSheetClose 负责：只监 didPop，且只针对 PopupRoute。
+//
+// 两个例外（都是有意的，别当成漏停）：
+//   · ttsBackgroundKeepAlive —— 原文阅读器的「自动连续发声」要求后台继续念；
+//   · ttsSkipStopOnNextSheetClose —— 弹层里选了「开始连续朗读」，关弹层正是起头动作。
 // 性能红线：无常驻 Timer / 动画，只在事件回调里调一次 ttsStop()。
 import 'package:flutter/material.dart';
 
 import 'tts.dart';
+
+/// 「后台继续朗读」开关。
+///
+/// 原文阅读器的「自动连续发声」打开时置 true：用户要的就是「切后台/息屏也继续念」，
+/// 所以这时 [TtsAutoStopScope] 不再停它。关掉连续朗读、退出原文页时必须复位，
+/// 否则切后台就不停了——那会绕过所有「该停就停」的规则。
+final ValueNotifier<bool> ttsBackgroundKeepAlive = ValueNotifier<bool>(false);
+
+/// 一次性豁免：设为 true 后，**下一次**弹层关闭不停朗读。
+///
+/// 场景：「自动连续发声」的选模式弹层——关掉弹层正是为了开始念，
+/// 不该被「关弹层就停」那条规则误伤。用完自动复位，避免长期免停。
+bool ttsSkipStopOnNextSheetClose = false;
 
 /// 路由变化即停止朗读。
 class TtsStopOnRouteChange extends NavigatorObserver {
@@ -55,7 +72,16 @@ class TtsStopOnSheetClose extends NavigatorObserver {
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (route is PopupRoute) ttsStop();
+    if (route is PopupRoute) {
+      // 「关弹层就是为了开始念」的一次性豁免（如连续朗读选完模式）。
+      if (ttsSkipStopOnNextSheetClose) {
+        ttsSkipStopOnNextSheetClose = false;
+        return;
+      }
+      // 连续朗读进行中：用户只是看一眼目录/书签再回来，不能把声音弄停。
+      if (ttsBackgroundKeepAlive.value) return;
+      ttsStop();
+    }
   }
 }
 
@@ -90,6 +116,8 @@ class _TtsAutoStopScopeState extends State<TtsAutoStopScope>
     if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      // 连续朗读（原文阅读器）要求后台继续念，由它自己管生命周期。
+      if (ttsBackgroundKeepAlive.value) return;
       ttsStop();
     }
   }

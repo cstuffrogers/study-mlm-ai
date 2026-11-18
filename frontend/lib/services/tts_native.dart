@@ -25,6 +25,11 @@ final ValueNotifier<int> ttsReadyTick = ValueNotifier<int>(0);
 
 const MethodChannel _ch = MethodChannel('xxmz/tts');
 
+/// 每条朗读任务「念完」时的一次性回调（按 id 存）。
+/// 安卓侧在最后一段播完后回 `done(id)`，这里对应上就把它调出来——
+/// 连续朗读靠它接下一页，不用去轮询 ttsCurrent。
+final Map<String, void Function()> _doneById = <String, void Function()>{};
+
 bool _inited = false;
 bool _ready = false;
 bool _hasChinese = false;
@@ -60,10 +65,18 @@ Future<void> ttsInit() async {
         await _ch.invokeMethod<bool>('setVoice', {'name': saved});
       } catch (_) {}
     }
-    _ch.setMethodCallHandler((call) async {
+        _ch.setMethodCallHandler((call) async {
       if (call.method == 'done') {
         final id = call.arguments as String?;
+        void Function()? cb;
+        if (id != null) {
+          cb = _doneById.remove(id);
+        } else if (_doneById.isNotEmpty) {
+          // 引擎没报 id（少见）：只可能有一个在念的任务，取它。
+          cb = _doneById.remove(_doneById.keys.first);
+        }
         if (id == null || ttsCurrent.value == id) ttsCurrent.value = null;
+        cb?.call();
       }
       return null;
     });
@@ -136,16 +149,23 @@ Future<String?> _voiceForSlot(TtsVoiceSlot slot) async {
   return null;
 }
 
-void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
+void ttsSpeak(
+  String text, {
+  String id = '__default__',
+  double rate = 1.0,
+  void Function()? onDone,
+}) {
   final body = text.trim();
   if (body.isEmpty) return;
   if (!_inited) {
     // 首次点击才初始化（正常路径在 main() 里已经 init 过）
     ttsInit().then((_) {
-      if (_ready) ttsSpeak(body, id: id, rate: rate);
+      if (_ready) ttsSpeak(body, id: id, rate: rate, onDone: onDone);
     });
     return;
   }
+  _doneById.remove(id);
+  if (onDone != null) _doneById[id] = onDone;
   ttsCurrent.value = id;
   // 风格预设：语速在调用方的 rate 上再乘预设倍数，音调交给预设（安卓引擎范围 0.5~2.0）
   final preset = TtsSettings.instance.preset;
@@ -183,6 +203,10 @@ String? _appliedSlot;
 
 void ttsStop() {
   ttsCurrent.value = null;
+  _doneById.clear();
   if (!_inited) return;
   _ch.invokeMethod<void>('stop').catchError((Object _) {});
 }
+
+/// 提前合成下一段音频：安卓是系统 TTS 本地离线合成，没有网络等待，无需预热。
+void ttsPrefetch(String text, {double rate = 1.0}) {}

@@ -20,7 +20,9 @@ import '../offline/offline_content.dart';
 import '../services/chat_service.dart';
 import '../services/content_service_api.dart';
 import '../services/reader_paginator.dart';
+import '../services/reader_autoplay.dart';
 import '../services/tts.dart';
+import '../services/tts_autostop.dart';
 import '../theme/app_theme.dart';
 import 'chapter_guide_screen.dart';
 import '../widgets/floating_chat.dart';
@@ -128,6 +130,16 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   PageController? _pc;
   int _page = 0;
 
+  // ── 自动连续发声（当前页循环 / 播到结束 / 播完再整篇循环）──
+  /// 当前模式；null = 没开。
+  ReaderAutoMode? _autoMode;
+  /// 连续朗读正在念第几页（自动翻页以它为准）。
+  int _autoPage = 0;
+  /// 我们自己发起的那条朗读的 id（用来识别「被别的喇叭抢走」）。
+  String? _autoId;
+  /// 正在由我们切换页面/分段：此时 ttsCurrent 短暂为空属正常，不算被停止。
+  bool _autoLinking = false;
+
   String _selected = '';
 
   // 浮层：会话浮窗（可任意拖动的对话）
@@ -149,6 +161,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   @override
   void initState() {
     super.initState();
+    // 连续朗读要感知「朗读被停 / 被别的喇叭抢走」，只挂一个监听，别轮询。
+    ttsCurrent.addListener(_onTtsChanged);
     _load();
     _loadRouteIndex();
   }
@@ -165,6 +179,14 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   void dispose() {
     if (_chatListener != null && _chatSvc != null) {
       _chatSvc!.removeListener(_chatListener!);
+    }
+    ttsCurrent.removeListener(_onTtsChanged);
+    // 离开原文页 = 连续朗读的终点：声音停、后台保活开关复位。
+    if (_autoMode != null) {
+      _autoMode = null;
+      _autoId = null;
+      ttsBackgroundKeepAlive.value = false;
+      ttsStop();
     }
     _chatEntry?.remove();
     _pc?.dispose();
@@ -302,6 +324,13 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       _pc?.dispose();
       _pc = PageController(initialPage: target);
     });
+    // 重新分页（转屏 / 系统字号变化）后页码全变了：连续朗读跟到当前这一页重起，
+    // 否则它会拿着旧页号去念新排版里的别的段落。
+    if (_autoMode != null && _autoPage != target) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _autoMode != null) _autoSpeak(target);
+      });
+    }
   }
 
   /// 翻页即停朗读。
@@ -311,6 +340,9 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   /// 且**只在真的变了时停**——同一页重建、滚动、改字号都不该打断朗读。
   void _stopSpeechIfPageChanged(int next) {
     if (next == _page) return;
+    // 连续朗读中翻页不掐声：要么是它自己在往下推进，要么是用户手动翻页
+    // 要换到新的一页接着念（用户要求「连续朗读跟着翻页走」）。
+    if (_autoMode != null) return;
     ttsStop();
   }
 
@@ -319,16 +351,21 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     // 用户主动翻页 → 结束「相关原文」定位状态，之后按正常进度记忆
     _focusPara = null;
     final p = page.clamp(0, _doc!.pages.length - 1);
+    final auto = _autoMode;
     _stopSpeechIfPageChanged(p);
     await _pc?.animateToPage(p, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
     if (!mounted) return;
     setState(() => _page = p);
     _savePrefs();
+    // 连续朗读中手动翻页：从新的一页重新开始念，而不是停掉。
+    if (auto != null && _autoMode != null && p != _autoPage) _autoSpeak(p);
   }
 
   void _setFont(double fs) {
     final next = fs.clamp(13.0, 30.0);
     if (next == _fontSize) return;
+    // 改字号会重新分页，「第 N 页」对应的正文换了一批；正在念的那段接不下去，先收掉。
+    if (_autoMode != null) _finishAuto();
     _keepPage = _page;
     _focusPara = null;
     setState(() {
@@ -899,6 +936,17 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
               onPressed: _openRouteSheet,
             ),
           IconButton(tooltip: '目录 / 书签 / 笔记', icon: const Icon(Icons.list_alt_rounded), onPressed: _openToc),
+          // 自动连续发声：当前页循环 / 从当前页播到结束 / 播完再整篇循环。
+          if (_doc != null && !_loading && _error == null)
+            IconButton(
+              tooltip: _autoMode == null ? '自动连续发声' : '连续朗读中（点开可换模式 / 停止）',
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                _autoMode == null ? Icons.headphones_outlined : Icons.headphones,
+                color: _autoMode == null ? null : AppColors.gold,
+              ),
+              onPressed: _openAutoSheet,
+            ),
           // 朗读当前页（发音喇叭）
           if (_doc != null && !_loading && _error == null)
             Padding(
@@ -959,7 +1007,47 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
             ),
         ],
       ),
-      bottomNavigationBar: _doc == null || _loading || _error != null ? null : _buildBottomBar(),
+      bottomNavigationBar: _doc == null || _loading || _error != null
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_autoMode != null) _autoStrip(),
+                _buildBottomBar(),
+              ],
+            ),
+    );
+  }
+
+  /// 连续朗读进行中的细状态条：让人一眼看到「在念、念到哪、怎么停」。
+  Widget _autoStrip() {
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFFFF6E5),
+      padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
+      child: Row(
+        children: [
+          const Icon(Icons.graphic_eq, size: 16, color: AppColors.gold),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '连续朗读 · ${_autoMode!.label}　第 ${_page + 1} / ${_doc!.pages.length} 页',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11.5, color: AppColors.ink700),
+            ),
+          ),
+          TextButton(
+            onPressed: _finishAuto,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size(0, 28),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            child: const Text('停止', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -984,6 +1072,9 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         _stopSpeechIfPageChanged(i);
         setState(() => _page = i);
         _savePrefs();
+        // 连续朗读中手动滑到别的页：跟到新的一页接着念（不是停）。
+        // 自动翻页时 _autoPage 已经等于 i，这里不会重复触发。
+        if (_autoMode != null && i != _autoPage) _autoSpeak(i);
       },
       itemBuilder: (context, i) => _AnnotatedPage(
         page: i,
@@ -1090,10 +1181,202 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   }
 
   /// 当前页纯文本（用于整页朗读）。
-  String _pageSpeech() {
-    if (_doc == null || _page >= _doc!.pages.length) return '';
-    final page = _doc!.pages[_page];
-    return page.text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  String _pageSpeech() => _pageSpeechAt(_page);
+
+  /// 指定页的纯文本（连续朗读要提前取下一页）。
+  String _pageSpeechAt(int page) {
+    final doc = _doc;
+    if (doc == null || page < 0 || page >= doc.pages.length) return '';
+    return doc.pages[page].text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  // ─────────────────── 自动连续发声 ───────────────────
+
+  /// 弹出三个模式选项（当前页循环 / 播到结束 / 播完再整篇循环）。
+  void _openAutoSheet() {
+    final doc = _doc;
+    if (doc == null) return;
+    // 进弹层前先清掉上次可能没用完的一次性豁免，别让它跨场景生效。
+    ttsSkipStopOnNextSheetClose = false;
+    final total = doc.pages.length;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.headphones_rounded, size: 20, color: AppColors.brand),
+                  const SizedBox(width: 8),
+                  const Text('自动连续发声',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.ink900)),
+                  const Spacer(),
+                  Text('第 ${_page + 1} / $total 页',
+                      style: const TextStyle(fontSize: 12, color: AppColors.ink400)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '从现在这一页开始念，念完自动翻下一页；切后台、息屏也继续，退出本页才停。',
+                style: TextStyle(fontSize: 12, color: AppColors.ink500),
+              ),
+              const SizedBox(height: 8),
+              if (_autoMode != null)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.stop_circle_outlined, color: AppColors.danger),
+                  title: const Text('停止连续朗读', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('正在：${_autoMode!.label}',
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.ink500)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _finishAuto();
+                  },
+                ),
+              ...ReaderAutoMode.values.map(
+                (m) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    m == ReaderAutoMode.pageLoop
+                        ? Icons.repeat_one_rounded
+                        : m == ReaderAutoMode.toEnd
+                            ? Icons.trending_flat_rounded
+                            : Icons.repeat_rounded,
+                    color: _autoMode == m ? AppColors.gold : AppColors.brand,
+                  ),
+                  title: Text(m.label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(m.hint,
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.ink500)),
+                  trailing: _autoMode == m
+                      ? const Icon(Icons.graphic_eq, size: 18, color: AppColors.gold)
+                      : const Icon(Icons.chevron_right, size: 18, color: AppColors.ink400),
+                  onTap: () {
+                    // 关闭本弹层正是为了开始念：给观察者一个一次性豁免，
+                    // 否则「关弹层就停」那条规则会把刚起头的连续朗读掐掉。
+                    ttsSkipStopOnNextSheetClose = true;
+                    Navigator.pop(ctx);
+                    _startAuto(m);
+                  },
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _startAuto(ReaderAutoMode mode) {
+    final doc = _doc;
+    if (doc == null || doc.pages.isEmpty) return;
+    ttsStop();
+    setState(() {
+      _autoMode = mode;
+      _autoPage = _page.clamp(0, doc.pages.length - 1);
+    });
+    // 用户要求：连续朗读时切后台/息屏也得继续，由它自己管到退出本页为止。
+    ttsBackgroundKeepAlive.value = true;
+    _autoSpeak(_autoPage);
+  }
+
+  /// 念第 [page] 页，并提前把下一页的开头音频拉好（只一段，不预生成整篇）。
+  void _autoSpeak(int page) {
+    final mode = _autoMode;
+    final doc = _doc;
+    if (mode == null || doc == null) return;
+    if (page < 0 || page >= doc.pages.length) {
+      _finishAuto(announce: true);
+      return;
+    }
+    final text = _pageSpeechAt(page);
+    if (text.isEmpty) {
+      // 空页（分页边界的极端情况）：跳过去，别让它把连续朗读卡死。
+      final skip = nextAutoPage(mode: mode, current: page, pageCount: doc.pages.length);
+      if (skip == null || skip == page) {
+        _finishAuto(announce: true);
+        return;
+      }
+      _autoPage = skip;
+      _autoGoto(skip);
+      _autoSpeak(skip);
+      return;
+    }
+    _autoPage = page;
+    _autoGoto(page);
+    final id = 'reader-auto-${widget.work}-$page';
+    _autoId = id;
+    _autoLinking = true;
+    ttsSpeak(text, id: id, onDone: _onAutoPageDone);
+    _autoLinking = false;
+    // 只预热「下一页的第一段」：换页时接得上、不断档，又不把全文送去合成。
+    final next = nextAutoPage(mode: mode, current: page, pageCount: doc.pages.length);
+    if (next != null && next != page) ttsPrefetch(_pageSpeechAt(next));
+  }
+
+  /// 这一页念完了：按模式接下一页，或到此为止。
+  void _onAutoPageDone() {
+    final mode = _autoMode;
+    final doc = _doc;
+    if (mode == null || doc == null) return;
+    final next = nextAutoPage(mode: mode, current: _autoPage, pageCount: doc.pages.length);
+    if (next == null) {
+      _finishAuto(announce: true);
+      return;
+    }
+    _autoSpeak(next);
+  }
+
+  /// 连续朗读自己翻页：页码与 PageView 立刻对齐。
+  /// 用 jumpToPage 而不是动画 —— 切后台/息屏时不出帧，动画会停在半路，
+  /// 页码和实际显示的页就对不上了。
+  void _autoGoto(int page) {
+    final doc = _doc;
+    if (doc == null) return;
+    final p = page.clamp(0, doc.pages.length - 1);
+    if (_page == p) return;
+    if (mounted) setState(() => _page = p);
+    final pc = _pc;
+    if (pc != null && pc.hasClients) pc.jumpToPage(p);
+    _savePrefs();
+  }
+
+  /// 收掉连续朗读（用户点停止 / 读到末尾 / 被别的朗读接管）。
+  void _finishAuto({bool announce = false}) {
+    final wasOn = _autoMode != null;
+    _autoMode = null;
+    _autoId = null;
+    _autoLinking = false;
+    // 开关必须复位：否则退出本页后切后台也不停朗读了。
+    ttsBackgroundKeepAlive.value = false;
+    if (wasOn) ttsStop();
+    if (!mounted) return;
+    setState(() {});
+    if (wasOn && announce) _snack('已读到最后一页，连续朗读结束');
+  }
+
+  /// 朗读被停 / 被别的喇叭抢走 → 连续朗读跟着收摊，
+  /// 避免留下一个「看着还在播、其实早没声了」的状态条。
+  void _onTtsChanged() {
+    if (_autoMode == null || _autoLinking) return;
+    if (ttsCurrent.value == _autoId) return;
+    // 念完一页接下一页时 ttsCurrent 会在同一个 tick 里短暂为 null，
+    // 所以等这轮事件循环结束再判定，别把正常接续误判成「被停止」。
+    Future.microtask(() {
+      if (!mounted || _autoMode == null) return;
+      if (ttsCurrent.value == _autoId) return;
+      _finishAuto();
+    });
   }
 
   void _annotateSelection() {

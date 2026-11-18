@@ -45,6 +45,12 @@ Future<void> ttsInit() async {
 html.AudioElement? _audio;
 Timer? _watchdog;
 
+/// 「提前一页」预热缓存：url → 已经开始下载的 <audio>。
+///
+/// 连续朗读换页时直接复用它，接得上、不断档。**只预热一段**（不超过 _segMaxLen），
+/// 绝不预生成整篇——那样会把后端语音合成排满，且用户明确要求「不要全文生成」。
+final Map<String, html.AudioElement> _warm = <String, html.AudioElement>{};
+
 // ---- 浏览器语音（兜底）相关状态 ----
 List<web.SpeechSynthesisVoice> _voices = [];
 
@@ -197,7 +203,7 @@ void _speakNowBrowser(String text, String id, double rate) {
     utter.lang = v.lang;
   }
   void clearIfMine() {
-    if (ttsCurrent.value == id) ttsCurrent.value = null;
+    if (ttsCurrent.value == id) _finishChain();
   }
 
   utter.onstart = ((web.Event e) {
@@ -273,7 +279,7 @@ void _stopAudio() {
 }
 
 /// 用后端 URL 同步播放；失败自动回退浏览器语音。
-/// [onDone] 在本段播放自然结束时回调（用于「整页长文」分段续播）。
+/// [onDone] 在本段播放自然结束时回调（用于「整页长文」分段续播与连续朗读换页）。
 void _playNeuralUrl(
   String url,
   String id,
@@ -282,7 +288,9 @@ void _playNeuralUrl(
   void Function()? onDone,
 }) {
   _stopAudio();
-  final audio = html.AudioElement();
+  // 命中了「下一页预热」：这一段音频已经在下或在缓存里了，直接拿来播，换页没空档。
+  final warm = _warm.remove(url);
+  final audio = warm ?? html.AudioElement();
   audio.preload = 'auto';
   _audio = audio;
   bool fellBack = false;
@@ -304,7 +312,8 @@ void _playNeuralUrl(
     }
   });
   audio.onError.listen((_) => fallback());
-  audio.src = url;
+  // 预热过的元素不重设 src：按 HTML 规范重设会走一遍加载算法，白白丢掉已下载的数据。
+  if (warm == null) audio.src = url;
   // 关键：在点击手势内同步 play()（异步后才 play 会被自动播放策略拦截）。
   audio.play().then((_) {}).catchError((_) {
     fallback();
@@ -320,6 +329,37 @@ void _playNeuralUrl(
   });
 }
 
+/// 提前抓取 [text] 开头的这一段音频（只一段，<= _segMaxLen）。
+///
+/// 连续朗读换页时用它把「下一页的第一段」先拉下来，避免念完一页要等 1~3 秒合成。
+/// 已经选了本机浏览器语音（不走后端）时无事可做；安卓端不等网络，见 tts_native.dart。
+void ttsPrefetch(String text, {double rate = 1.0}) {
+  if (_neuralDisabled) return;
+  final t = text.trim();
+  if (t.isEmpty) return;
+  final segs = _splitForTts(t);
+  if (segs.isEmpty) return;
+  final url = _neuralUrl(segs.first, _rateToEdge(rate));
+  if (_warm.containsKey(url)) return; // 已经在拉了
+  try {
+    final a = html.AudioElement();
+    a.preload = 'auto';
+    // 预热失败（后端 500 / 断网）就丢掉，别让调用方以为「已就绪」。
+    a.onError.listen((_) => _warm.remove(url));
+    a.src = url;
+    _warm[url] = a;
+    // 只留最近 3 条：多读几页后旧的不再需要，继续下载纯属浪费流量。
+    while (_warm.length > 3) {
+      final key = _warm.keys.first;
+      if (key == url) break;
+      final old = _warm.remove(key);
+      try {
+        old?.pause();
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+
 // ------------------------- 长文分段（整页朗读） -------------------------
 
 // 当前朗读任务的分段队列（整页长文按句切分，逐段合成播放，避免 URL/合成超长被截断）。
@@ -327,7 +367,23 @@ List<String> _segments = const <String>[];
 int _segIndex = 0;
 double _segRate = 1.0;
 String _segId = '__default__';
+
+/// 本次朗读任务全部念完后的一次性回调（连续朗读用它接下一页）。
+void Function()? _segOnDone;
 const int _segMaxLen = 600;
+
+/// 一条「朗读任务」结束（念完 / 兜底浏览器语音念完）。
+///
+/// 顺序很关键：**先**清状态、**再**回调。回调里通常会立刻开始念下一段（连续朗读下一页），
+/// 它会把 ttsCurrent 设成新的 id，不能被这里的清理覆盖。
+void _finishChain() {
+  final done = _segOnDone;
+  _segOnDone = null;
+  _segments = const <String>[];
+  _segIndex = 0;
+  ttsCurrent.value = null;
+  done?.call();
+}
 
 /// 按句末标点切句，再把句子合并到 <= maxLen，保证语义边界不被切断。
 List<String> _splitForTts(String text, {int maxLen = _segMaxLen}) {
@@ -375,7 +431,7 @@ String _remainingText() => _segments.skip(_segIndex).join();
 
 void _playSegment() {
   if (_segIndex >= _segments.length) {
-    ttsCurrent.value = null;
+    _finishChain();
     return;
   }
   final seg = _segments[_segIndex];
@@ -395,7 +451,13 @@ void _playSegment() {
 
 /// 开始朗读；先试后端神经语音（同步播放），失败回退浏览器语音。
 /// 长文本自动分段续播，可「一次点开、整页读完」。
-void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
+/// [onDone] 整段文本念完时回调一次（连续朗读靠它接下一页）。
+void ttsSpeak(
+  String text, {
+  String id = '__default__',
+  double rate = 1.0,
+  void Function()? onDone,
+}) {
   final t = text.trim();
   if (t.isEmpty) return;
   // 先停掉旧的（含浏览器语音）
@@ -404,6 +466,7 @@ void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {
   } catch (_) {}
   _pending.clear();
   _stopAudio();
+  _segOnDone = onDone;
   if (_neuralDisabled) {
     // 用户在设置页手选了浏览器语音：直接用它，不再先试神经语音
     _segments = const <String>[];
@@ -429,7 +492,15 @@ void ttsStop() {
     web.window.speechSynthesis.cancel();
   } catch (_) {}
   _pending.clear();
+  // 预热元素也要放掉：不停就会在后台继续下载下一段音频。
+  for (final a in _warm.values) {
+    try {
+      a.pause();
+    } catch (_) {}
+  }
+  _warm.clear();
   _segments = const <String>[];
   _segIndex = 0;
+  _segOnDone = null;
   ttsCurrent.value = null;
 }

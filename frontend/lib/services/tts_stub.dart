@@ -17,5 +17,11 @@ bool ttsNeuralReady() => false;
 Future<List<TtsVoiceOption>> ttsListVoices() async =>
     const <TtsVoiceOption>[];
 Future<bool> ttsSetVoice(String name) async => false;
-void ttsSpeak(String text, {String id = '__default__', double rate = 1.0}) {}
+void ttsSpeak(
+  String text, {
+  String id = '__default__',
+  double rate = 1.0,
+  void Function()? onDone,
+}) {}
+void ttsPrefetch(String text, {double rate = 1.0}) {}
 void ttsStop() {}
