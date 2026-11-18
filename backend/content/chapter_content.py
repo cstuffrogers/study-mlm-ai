@@ -1284,6 +1284,101 @@ ROUTE_NODES: dict[str, list[dict]] = {
 }
 
 
+def _d155_fix_background() -> None:
+    """D155: 为写作背景补充作者名。"""
+    BACKGROUND_FIXES = {
+        'sec_A_01': '艾思奇',
+        'sec_A_06': '马克思恩格斯',
+        'sec_A_07': '马克思恩格斯',
+        'sec_B_00': '马克思',
+        'sec_C_00': '马克思',
+        'sec_C_01': '马克思',
+        'sec_C_02': '毛泽东',
+        'sec_C_03': '毛泽东',
+    }
+    for sid, author in BACKGROUND_FIXES.items():
+        guide = CHAPTER_GUIDES.get(sid, {})
+        bg = guide.get('background', '')
+        if not bg or author in bg:
+            continue
+        # 在背景开头补充作者名
+        if bg.startswith('《'):
+            m = __import__('re').match(r'(《[^》]+》)', bg)
+            if m:
+                guide['background'] = bg[:m.end()] + f'（{author}）' + bg[m.end():]
+            else:
+                guide['background'] = f'{author}的' + bg
+        else:
+            guide['background'] = f'{author}的' + bg
+
+
+_d155_fix_background()
+del _d155_fix_background
+
+
+def _d155_fix_bg_quotes() -> None:
+    """D155: 去除写作背景中误用引号的术语/概括描述。"""
+    BG_QUOTE_FIXES = {
+        'sec_B_06': ('“一国胜利论”', '一国胜利论'),
+    }
+    for sid, (old, new) in BG_QUOTE_FIXES.items():
+        guide = CHAPTER_GUIDES.get(sid, {})
+        bg = guide.get('background', '')
+        if old in bg:
+            guide['background'] = bg.replace(old, new)
+
+
+_d155_fix_bg_quotes()
+del _d155_fix_bg_quotes
+
+
+def _d155_fix_dim_quotes() -> None:
+    """D155: 去除正文导读/要点提炼/思考题中误用引号的概括标签。"""
+    # (section_id, field, old_quote, new_text)
+    DIM_QUOTE_FIXES = [
+        # 正文导读 (sections.body)
+        ('sec_A_00', 'sections', '“人人天生就是哲学家”', '人人天生就是哲学家'),
+        ('sec_B_06', 'sections', '“有组织资本主义”', '有组织资本主义'),
+        ('sec_B_09', 'sections', '“农民运动糟得很”', '农民运动糟得很'),
+        # 要点提炼 (key_points)
+        ('sec_A_01', 'key_points', '『世界是什么』', '世界是什么'),
+        ('sec_A_01', 'key_points', '“世界怎样发展”', '世界怎样发展'),
+        ('sec_A_03', 'key_points', '『实践第一』', '实践第一'),
+        ('sec_A_14', 'key_points', '『英雄史观』', '英雄史观'),
+        # 思考题 (discussion)
+        ('sec_A_01', 'discussion', '『白马非马』', '白马非马'),
+        ('sec_A_09', 'discussion', '“打碎旧国家机器”', '打碎旧国家机器'),
+        ('sec_A_14', 'discussion', '“上层建筑无关紧要”', '上层建筑无关紧要'),
+        ('sec_A_14', 'discussion', '『社会结构学』', '社会结构学'),
+        ('sec_B_00', 'discussion', '“社会关系总和”', '社会关系总和'),
+        ('sec_B_01', 'discussion', '“职业革命家组织”', '职业革命家组织'),
+        ('sec_C_00', 'discussion', '“从现实社会关系出发”', '从现实社会关系出发'),
+        ('sec_C_04', 'discussion', '『以苏为鉴』', '以苏为鉴'),
+        ('sec_C_07', 'discussion', '“政治标准与艺术标准”', '政治标准与艺术标准'),
+    ]
+    for sid, field, old, new in DIM_QUOTE_FIXES:
+        guide = CHAPTER_GUIDES.get(sid, {})
+        if field == 'sections':
+            for sec in guide.get('sections', []):
+                body = sec.get('body', '')
+                if old in body:
+                    sec['body'] = body.replace(old, new)
+        elif field == 'key_points':
+            kps = guide.get('key_points', [])
+            for i, kp in enumerate(kps):
+                if old in kp:
+                    kps[i] = kp.replace(old, new)
+        elif field == 'discussion':
+            discs = guide.get('discussion', [])
+            for i, d in enumerate(discs):
+                if old in d:
+                    discs[i] = d.replace(old, new)
+
+
+_d155_fix_dim_quotes()
+del _d155_fix_dim_quotes
+
+
 def build_route_nodes() -> tuple[list[dict], list[tuple[str, str]]]:
     """把 ROUTE_NODES 展开为完整节点列表 + 依赖边（章内顺序链 + 跨章衔接），构成 DAG。
 
