@@ -619,7 +619,90 @@ class LocalMastery {
       });
       prevDone = prog['completed'] == true;
     }
-    return {'route_id': routeId, 'sections': out};
+    return {
+      'route_id': routeId,
+      'sections': out,
+      'foundation': _foundationRows(routeId, out.map((e) => e['id'] as String).toSet()),
+    };
+  }
+
+  /// 公共地基（D152）：三条路线共用三章（《大众哲学》×2 + 《提纲》），只排在路线 A。
+  ///
+  /// 单机版为什么也要算：B/C 的章节列表里没有《大众哲学》两章，不补一张地基卡，
+  /// 切到 B 的人会以为地基已经过关。三个坑与后端 `shared_foundation()` 同口径：
+  ///   ① 地基章只排在路线 A → B/C 靠这张卡补；
+  ///   ② 但《提纲》在 B/C 有占位章（sec_B_00 / sec_C_00）→ 按 `is_foundation` 占位章
+  ///      匹配，**不能**按 local_work 匹配（《大众哲学》两章共用同一部原著）；
+  ///   ③ 掌握度按「用户 × 路线」存 → 占位章读当前路线，其余锚 route_A，
+  ///      否则从 A 切到 B 会看到刚学完的地基又归零。
+  static List<Map<String, dynamic>> _foundationRows(String routeId, Set<String> ownIds) {
+    final route = OfflineContent.routes
+        .cast<Map<String, dynamic>?>()
+        .firstWhere((r) => r != null && r['id'] == routeId, orElse: () => null);
+    if (route == null || route['shares_foundation'] != true) return const [];
+    // 老资产里 B/C 的 foundation_ref 可能是 "shared"，此时按「全部地基章」处理
+    final ref = '${route['foundation_ref'] ?? ''}'.trim();
+    final declared = (ref.isEmpty || ref == 'shared')
+        ? null
+        : ref.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    // 地基章本体只排在路线 A（B/C 只有《提纲》占位章），所以基准清单取 A 的
+    // is_foundation 章，再按 foundation_ref 过滤；旧资产写 "shared" 时就是全部三章。
+    const anchorRoute = 'route_A';
+    final target = OfflineContent.sectionsOf(anchorRoute)
+        .where((sec) => sec['is_foundation'] == true &&
+            (declared == null || declared.contains(sec['id'])))
+        .toList();
+    if (target.isEmpty) return const [];
+
+    // 本路线的《提纲》占位章（sec_B_00 / sec_C_00）——只认标了 is_foundation 的
+    final placeholders = <String, Map<String, dynamic>>{};
+    for (final sec in OfflineContent.sectionsOf(routeId)) {
+      if (sec['is_foundation'] != true || (declared?.contains(sec['id']) ?? false)) continue;
+      final lw = '${sec['local_work'] ?? ''}'.trim();
+      if (lw.isNotEmpty) placeholders.putIfAbsent(lw, () => sec);
+    }
+
+    const anchor = 'route_A';
+    final anchorMap = masteryMap(anchor);
+    final curMap = routeId == anchor ? anchorMap : masteryMap(routeId);
+    final rows = <Map<String, dynamic>>[];
+    for (final sec in target) {
+      final sid = sec['id'] as String;
+      final lw = '${sec['local_work'] ?? ''}'.trim();
+      final bool inRoute = ownIds.contains(sid);
+      final placeholder = inRoute ? null : (lw.isEmpty ? null : placeholders[lw]);
+      final readRoute = inRoute || placeholder != null ? routeId : anchor;
+      final progId = inRoute ? sid : (placeholder?['id'] as String? ?? sid);
+      final prog = sectionProgress(readRoute, progId, readRoute == anchor ? anchorMap : curMap);
+      String status;
+      if (prog['completed'] == true) {
+        status = 'completed';
+      } else if (inum(prog['assessed']) > 0 || progressOf(readRoute, progId).isNotEmpty) {
+        status = 'in_progress';
+      } else {
+        status = 'unlocked';
+      }
+      rows.add({
+        'id': sid,
+        'route_id': anchor,
+        'in_route': inRoute || placeholder != null,
+        'covered_by': placeholder?['id'],
+        'order_index': sec['order_index'],
+        'stage_no': sec['stage_no'],
+        'stage_label': sec['stage_label'],
+        'work': sec['work'],
+        'title': sec['title'],
+        'is_foundation': true,
+        'local_work': sec['local_work'],
+        'work_short': sec['work_short'],
+        'status': status,
+        'mastery_score': prog['score'],
+        'unlock_threshold': prog['threshold'],
+        'has_bank': prog['bank'],
+      });
+    }
+    rows.sort((a, b) => (a['order_index'] as num).compareTo(b['order_index'] as num));
+    return rows;
   }
 
   static Future<Map<String, dynamic>> guide(

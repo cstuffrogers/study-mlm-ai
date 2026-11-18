@@ -89,7 +89,9 @@ class _RouteCardsViewState extends State<RouteCardsView> {
                     Icon(Icons.hub_outlined, color: AppColors.brand, size: 20),
                     SizedBox(width: 8),
                     Expanded(
-                      child: Text('三条路线共享公共地基（马恩哲学基础），地基掌握度跨路线复用。',
+                      child: Text(
+                          '三条路线共享公共地基：《大众哲学》两章 + 《关于费尔巴哈的提纲》。'
+                          '地基课只在「纯理论研究」开，学一次三条路线都算。',
                           style: TextStyle(fontSize: 13, color: AppColors.brandDeep)),
                     ),
                   ]),

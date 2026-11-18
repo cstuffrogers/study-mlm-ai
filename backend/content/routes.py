@@ -14,9 +14,22 @@
     过渡时期理论、社会主义建设规律、两类矛盾（从马克思到毛泽东）。
     → 路线 C：建设社会主义国家
 
-「1+3」公共地基：三条路线都以《关于费尔巴哈的提纲》（实践观·新唯物主义）为共享地基
-（is_foundation=True），再各自进入对应阶段的专属支线。这样切换路线时先懂「实践/新唯物
-主义」这一共同前提，再按阶段分化。
+「1+3」公共地基：三条路线共用同一套地基章（`is_foundation=True`，见
+`FOUNDATION_SECTION_IDS`）——
+
+  1. 艾思奇《大众哲学》·建坐标系：什么是哲学（sec_A_00）
+  2. 艾思奇《大众哲学》·体系化：唯物论·辩证法·认识论（sec_A_01）
+  3. 马克思《关于费尔巴哈的提纲》（sec_A_02，实践观·新唯物主义）
+
+顺序不能倒：《大众哲学》先用白话把物质/意识、矛盾、量变质变、实践这些坐标立起来，
+再去读《提纲》才看得懂「实践的、新唯物主义」在反驳什么。这三章**只在路线 A 的章节
+列表里出现**（不重复排进 B/C，免得同一个人学两遍），但三条路线共用它们的学情：
+B/C 路线页顶部会以「公共地基」卡片把它们列出来（`/api/routes/{id}/sections` 的
+`foundation` 字段），读完的打勾、没读的提示去补。
+
+注意：掌握度按「用户 × 路线」存（`MasteryRecord.route_id`），地基章的记录挂在
+`FOUNDATION_ROUTE_ID`（route_A）名下，所以地基卡片的进度一律读 route_A 的掌握度，
+不读当前路线的——否则从 A 切到 B 会看到「刚学完的地基又归零」。
 
 章内顺序参照 `学习顺序.md` / `学习顺序2.md` 的书单先后（破冰→方法论→体系化→国际视野、
 破冰→辩证法预备→马克思本人登场→体系化）。凡本机知识库已入原著正文的著作，章节都挂
@@ -35,6 +48,12 @@ STAGE_LABELS: dict[int, str] = {
     2: "建国 · 建设社会主义",
 }
 
+# 公共地基「1+3」：三条路线共用这三章，按学习顺序排列（先大众哲学，后提纲）
+FOUNDATION_SECTION_IDS: tuple[str, ...] = ("sec_A_00", "sec_A_01", "sec_A_02")
+# 地基章的掌握度挂在哪条路线名下（掌握度按「用户 × 路线」存，地基只存一份）
+FOUNDATION_ROUTE_ID = "route_A"
+
+
 ROUTES: list[dict] = [
     {
         "id": "route_A",
@@ -52,7 +71,7 @@ ROUTES: list[dict] = [
                 "对应「革命中 · 组织革命」阶段。",
         "est_duration": "约 2-3 个月",
         "shares_foundation": True,
-        "foundation_ref": "shared",
+        "foundation_ref": "sec_A_00,sec_A_01,sec_A_02",
     },
     {
         "id": "route_C",
@@ -61,7 +80,7 @@ ROUTES: list[dict] = [
                 "对应「建国 · 建设社会主义」阶段。",
         "est_duration": "约 2-3 个月",
         "shares_foundation": True,
-        "foundation_ref": "shared",
+        "foundation_ref": "sec_A_00,sec_A_01,sec_A_02",
     },
 ]
 
@@ -259,3 +278,30 @@ def get_section(section_id: str) -> dict | None:
 
 def stage_label(stage_no: int) -> str:
     return STAGE_LABELS.get(stage_no, "")
+
+
+def foundation_sections() -> list[dict]:
+    """公共地基章（「1+3」），按学习顺序返回。
+
+    三条路线共用这三章，但它们只排在路线 A 的章节列表里（不重复进 B/C）。
+    路线页要展示「地基学着没」就靠这个列表 + `is_foundation` 标记。
+    字体不重要，顺序重要：《大众哲学》两章在前，《提纲》在后。
+    """
+    out: list[dict] = []
+    for sid in FOUNDATION_SECTION_IDS:
+        sec = get_section(sid)
+        if sec is not None:
+            sec.setdefault("unlock_threshold", UNLOCK_THRESHOLD)
+            out.append(sec)
+    return out
+
+
+def foundation_ids_of_route(route_id: str) -> list[str]:
+    """该路线声明共享的地基章 id（含自身已列出的那些）。"""
+    route = next((r for r in ROUTES if r["id"] == route_id), None)
+    if not route or not route.get("shares_foundation"):
+        return []
+    ref = (route.get("foundation_ref") or "").strip()
+    if ref in ("", "shared"):
+        return list(FOUNDATION_SECTION_IDS)
+    return [x.strip() for x in ref.split(",") if x.strip()]

@@ -28,7 +28,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   final _recApi = RecommendationApi();
   final _reviewApi = ReviewApi();
   final _motApi = MotivationApi();
-  late Future<List<RouteSection>> _future;
+  late Future<RouteSectionsView> _future;
   Recommendation? _rec;
   List<ReviewItem> _due = const [];
   Map<String, dynamic>? _motivation;
@@ -66,7 +66,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   }
 
   void _reload() {
-    _future = _svc.sections(widget.routeId);
+    _future = _svc.sectionsView(widget.routeId);
   }
 
   IconData _icon(String status) {
@@ -122,14 +122,15 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           ),
           Expanded(
             child: AuroraBackground(
-              child: FutureBuilder<List<RouteSection>>(
+              child: FutureBuilder<RouteSectionsView>(
                 future: _future,
                 builder: (context, snap) {
                   if (snap.connectionState != ConnectionState.done) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snap.hasError) return Center(child: Text('加载失败：${snap.error}'));
-                  final secs = snap.data ?? [];
+                  final view = snap.data ?? RouteSectionsView(sections: const []);
+                  final secs = view.sections;
                   int lastStage = -1;
                   final children = <Widget>[];
                   if (_motivation != null) {
@@ -189,6 +190,14 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                       ),
                     ),
                   ));
+                  // 公共地基（D152）：B/C 的章节列表里没有地基章，这里补上，
+                  // 免得切到 B 就以为「地基已经过关」。路线 A 自己列了，不重复展示。
+                  if (view.sharedOnly.isNotEmpty) {
+                    children.add(Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                      child: AnimatedEntrance(delayMs: 60, child: _foundationCard(view)),
+                    ));
+                  }
                   for (final s in secs) {
                     if (s.stageNo != lastStage) {
                       lastStage = s.stageNo;
@@ -224,6 +233,89 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 公共地基卡（D152）：三条路线共用三章，只排在路线 A。
+  ///
+  /// 这里只展示「本路线没有的那几章」：读完的打勾，没读的提示去路线 A 补。
+  /// 点行进去时 routeId 用地基章自己的路线（route_A）——掌握度按「用户 × 路线」存，
+  /// 在 B 路线名义下读地基章，记录会落在 B 名下，回到 A 又显示没学。
+  Widget _foundationCard(RouteSectionsView view) {
+    final rows = view.sharedOnly;
+    final done = view.doneCount;
+    final total = view.foundation.length;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.brandSoft),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.foundation_outlined, size: 18, color: AppColors.brandDeep),
+            const SizedBox(width: 6),
+            const Expanded(
+              child: Text('公共地基（三条路线共用）',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+            ),
+            Text('已读 $done/$total',
+                style: const TextStyle(fontSize: 11.5, color: AppColors.ink500)),
+          ]),
+          const SizedBox(height: 4),
+          const Text(
+            '《大众哲学》两章 + 《关于费尔巴哈的提纲》一章，只在「纯理论研究」路线里上课；'
+            '学完一次，三条路线都算数。',
+            style: TextStyle(fontSize: 11.5, color: AppColors.ink400, height: 1.4),
+          ),
+          const SizedBox(height: 6),
+          for (final s in rows) _foundationRow(s),
+        ],
+      ),
+    );
+  }
+
+  Widget _foundationRow(RouteSection s) {
+    final color = _color(s.status);
+    final label = s.status == 'completed'
+        ? '已读'
+        : (s.status == 'in_progress' ? '在读' : '待补');
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () async {
+        final back = await Navigator.push<bool>(context, MaterialPageRoute(
+            builder: (_) => ChapterGuideScreen(
+                routeId: s.routeId ?? widget.routeId,
+                sectionId: s.id,
+                sectionTitle: s.title,
+                hasBank: s.hasBank)));
+        if (back == true) setState(_reload);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(children: [
+          Icon(_icon(s.status), size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(s.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+          ),
+          const Icon(Icons.chevron_right, size: 16, color: AppColors.ink400),
+        ]),
       ),
     );
   }

@@ -193,8 +193,9 @@ void main() {
       // 三条路线各一张卡片（GradientCard），每张都有「共享地基」徽标
       expect(find.byType(GradientCard), findsNWidgets(3));
       expect(find.textContaining('共享地基'), findsAtLeastNWidgets(1));
-      expect(find.text('三条路线共享公共地基（马恩哲学基础），地基掌握度跨路线复用。'),
-          findsOneWidget);
+      // D152：干脆写明地基是哪三章（只写「马恩哲学基础」会让《大众哲学》看起来可跳过）
+      expect(find.textContaining('三条路线共享公共地基：《大众哲学》两章'), findsOneWidget);
+      expect(find.textContaining('《关于费尔巴哈的提纲》'), findsOneWidget);
 
       // 旧首页的东西不该再出现
       expect(find.text('② 选择起始章节'), findsNothing);

@@ -587,6 +587,15 @@ for _sid, _items in _D127.items():
     READING_EXTENSIONS.setdefault(_sid, []).extend(_items)
 del _sid, _items, _D127
 
+# D152：公共地基的「经典原文替代路径」——地基两章（大众哲学）各配一条对照读物，
+# 让「想直接读经典」的人有明确路径；两条都挂真实正文（三个来源 / 反杜林论哲学篇），
+# 不新增知识点、不改题库：换读物不改变本章掌握度口径。
+from content.reading_extensions_d152 import D152_EXTENSIONS as _D152
+
+for _sid, _items in _D152.items():
+    READING_EXTENSIONS.setdefault(_sid, []).extend(_items)
+del _sid, _items, _D152
+
 # 镜像补录：D98/D99 写作时此处无正文，故一律导读；现已从 D 盘镜像照录 22 部入库，
 # 对其中确有原文的条目挂 local_work 并更新 caution（其余仍保持导读）。
 # D100 的条目自带 local_work，apply_upgrades 只处理匹配到且尚无 local_work 的条目。

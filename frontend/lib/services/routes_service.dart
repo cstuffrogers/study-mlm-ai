@@ -12,10 +12,15 @@ class RoutesService {
   }
 
   Future<List<RouteSection>> sections(String routeId, {String userId = kDemoUserId}) async {
+    final view = await sectionsView(routeId, userId: userId);
+    return view.sections;
+  }
+
+  /// 章节列表 + 公共地基（D152）。一次请求拿全，避免「章节一次、地基再一次」。
+  Future<RouteSectionsView> sectionsView(String routeId,
+      {String userId = kDemoUserId}) async {
     final j = await ApiClient.get('/api/routes/$routeId/sections', query: {'user_id': userId});
-    return ((j['sections'] as List?) ?? const [])
-        .map((e) => RouteSection.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return RouteSectionsView.fromJson(j);
   }
 
   /// 选择路线只改服务端「当前路线」标记，不改变任何章节进度，

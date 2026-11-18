@@ -37,6 +37,9 @@ class RouteSection {
   final bool hasBank; // 是否挂载题库（无题库章＝按段落学习）
   final bool prevCompleted; // 理想顺序上，前一章是否已完成（仅作建议/展示，不构成硬门禁）
   final String? localWork; // 本章对应的本机知识库原著名（有则可「查看原文」）
+  // 公共地基专用（D152）：这三章只排在路线 A，B/C 的章节列表靠 foundation 字段展示。
+  final String? routeId; // 本章归属的路线（地基章恒为 route_A；普通章为 null）
+  final bool inRoute; // 是否已在本路线章节列表里（false = 只出现在地基卡片里）
 
   RouteSection({
     required this.id,
@@ -51,7 +54,15 @@ class RouteSection {
     this.hasBank = true,
     this.prevCompleted = true,
     this.localWork,
+    this.routeId,
+    this.inRoute = true,
   });
+
+  /// 公共地基行（D152）：后端 `/sections` 的 `foundation` 字段。
+  /// 注意没有 `prev_completed`（地基是并列关系，不是顺序关系），缺省给 true 即可。
+  factory RouteSection.foundation(Map<String, dynamic> j) => RouteSection.fromJson(
+        {...j, 'prev_completed': j['prev_completed'] ?? true},
+      );
 
   factory RouteSection.fromJson(Map<String, dynamic> j) => RouteSection(
         id: j['id'] ?? '',
@@ -66,6 +77,35 @@ class RouteSection {
         hasBank: j['has_bank'] ?? true,
         prevCompleted: j['prev_completed'] ?? true,
         localWork: (j['local_work'] as String?)?.isNotEmpty == true ? j['local_work'] as String : null,
+        routeId: (j['route_id'] as String?)?.isNotEmpty == true ? j['route_id'] as String : null,
+        inRoute: j['in_route'] ?? true,
+      );
+}
+
+/// `/api/routes/{id}/sections` 的完整返回：本路线章节 + 三条路线共用的公共地基（D152）。
+///
+/// 为什么要单独一个类：地基章**不在** B/C 的章节列表里（它们只排在路线 A），
+/// 但学习者必须看得见「地基还没读」，否则切到 B 会误以为地基已经过关。
+class RouteSectionsView {
+  final List<RouteSection> sections;
+  final List<RouteSection> foundation;
+
+  RouteSectionsView({required this.sections, this.foundation = const []});
+
+  /// 只保留「本路线没列出来」的地基章（路线 A 自己已经列了，不重复展示）。
+  List<RouteSection> get sharedOnly =>
+      foundation.where((s) => !s.inRoute).toList(growable: false);
+
+  /// 地基本身也查到进度：已完成 / 共几章（B/C 页顶部那句「3 章里已读 1 章」）。
+  int get doneCount => foundation.where((s) => s.status == 'completed').length;
+
+  factory RouteSectionsView.fromJson(Map<String, dynamic> j) => RouteSectionsView(
+        sections: ((j['sections'] as List?) ?? const [])
+            .map((e) => RouteSection.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        foundation: ((j['foundation'] as List?) ?? const [])
+            .map((e) => RouteSection.foundation(e as Map<String, dynamic>))
+            .toList(),
       );
 }
 

@@ -291,8 +291,26 @@
   },
   "GET /api/routes/route_A/sections": {
    ".": [
+    "foundation",
     "route_id",
     "sections"
+   ],
+   "foundation[]": [
+    "covered_by",
+    "has_bank",
+    "id",
+    "in_route",
+    "is_foundation",
+    "local_work",
+    "mastery_score",
+    "order_index",
+    "route_id",
+    "stage_no",
+    "status",
+    "title",
+    "unlock_threshold",
+    "work",
+    "work_short"
    ],
    "sections[]": [
     "has_bank",

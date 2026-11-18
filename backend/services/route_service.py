@@ -10,7 +10,10 @@ from __future__ import annotations
 from sqlalchemy import select
 
 from services import mastery_service as ms
-from content.routes import ROUTES, sections_for_route, stage_label
+from content.routes import (
+    FOUNDATION_ROUTE_ID, ROUTES, foundation_ids_of_route, foundation_sections,
+    sections_for_route, stage_label,
+)
 
 
 async def list_routes() -> list[dict]:
@@ -22,7 +25,7 @@ async def list_routes() -> list[dict]:
 async def get_routes_sections(user_id: str, route_id: str) -> dict:
     secs = sections_for_route(route_id)
     m_map = await ms.get_mastery_map(user_id, route_id)
-    # 批量取进度：原先每章一次 section_progress（无题库章含一次 DB 查询）
+    # 批量取进度：原先每章一次 section_progress（含一次 DB 查询）
     progress = await ms.section_progress_all(
         user_id, route_id, [sec["id"] for sec in secs], m_map)
     out = []
@@ -47,7 +50,93 @@ async def get_routes_sections(user_id: str, route_id: str) -> dict:
             "has_bank": prog["bank"], "prev_completed": prev_done,
         })
         prev_done = prog["completed"]
-    return {"route_id": route_id, "sections": out}
+    return {"route_id": route_id, "sections": out,
+            "foundation": await shared_foundation(user_id, route_id, own_secs=secs)}
+
+
+async def shared_foundation(user_id: str, route_id: str,
+                            own_secs: list[dict] | None = None) -> list[dict]:
+    """公共地基章（三条路线共用）：把「本路线没覆盖到的地基」也摆到页面上。
+
+    三个容易踩的坑，都在这里处理掉：
+
+    ① **地基章只排在路线 A**：`sections_for_route()` 按 route_id 过滤，
+       切到 B/C 的章节列表里看不到《大众哲学》两章 → 学习者以为地基不用管了。
+    ② **但《提纲》在 B/C 有占位章**（sec_B_00 / sec_C_00「公共地基：实践观（共享）」）：
+       所以「这条路线有没有覆盖某地基章」不能只比 section_id，要按 `local_work`
+       （同一部原著）判断；按 id 比会把《提纲》重复展示两遍。
+    ③ **掌握度按「用户 × 路线」存**（`MasteryRecord.route_id`）：
+       占位章的学习记录落在当前路线名下，其余地基章只会在 route_A 名下产生。
+       所以进度要么读当前路线的占位章、要么锚 route_A，**绝不能一律读当前路线**
+       （那样从 A 切到 B 会看到刚学完的地基又归零）。
+
+    返回的每行都带 `in_route`（本路线是否已覆盖）与 `covered_by`（占位章 id）。
+    """
+    declared = set(foundation_ids_of_route(route_id))
+    own = sections_for_route(route_id) if own_secs is None else own_secs
+    own_ids = {s["id"] for s in own}
+    # 占位章候选：本路线自己标了 is_foundation 的章（sec_B_00 / sec_C_00）。
+    # 只认这些，不能拿「local_work 相同」去匹配——《大众哲学》两章共用同一部原著，
+    # 按 work 匹配会把 sec_A_01 错认成被 sec_A_00 覆盖。
+    placeholders: dict[str, dict] = {}
+    for sec in own:
+        if not sec.get("is_foundation") or sec["id"] in declared:
+            continue
+        lw = (sec.get("local_work") or "").strip()
+        if lw:
+            placeholders.setdefault(lw, sec)
+    target = [s for s in foundation_sections() if s["id"] in declared]
+    if not target:
+        return []
+
+    anchor = FOUNDATION_ROUTE_ID
+    anchor_map = await ms.get_mastery_map(user_id, anchor)
+    cur_map = anchor_map if route_id == anchor else await ms.get_mastery_map(user_id, route_id)
+
+    # 先分组：被本路线占位章覆盖的读当前路线；没覆盖的读地基锚路线
+    plan: list[tuple[dict, dict | None, str, dict]] = []
+    for sec in target:
+        lw = (sec.get("local_work") or "").strip()
+        if sec["id"] in own_ids:
+            # 路线 A：地基章本体就在本路线里（进度读本路线 = 锚路线）
+            plan.append((sec, sec, route_id, cur_map))
+            continue
+        placeholder = placeholders.get(lw) if lw else None
+        if placeholder is not None:
+            # B/C：《提纲》有占位章，进度按本路线名下的占位章记账
+            plan.append((sec, placeholder, route_id, cur_map))
+        else:
+            # B/C 完全没覆盖的地基章（《大众哲学》两章）：进度锚 route_A
+            plan.append((sec, None, anchor, anchor_map))
+
+    # 按 (路线, 掌握度) 分组批量算进度，避免逐章查库
+    groups: dict[str, tuple[str, dict, list[str]]] = {}
+    for sec, covered, rid, mmap in plan:
+        key = f"{rid}|{'covered' if covered else 'anchor'}"
+        if key not in groups:
+            groups[key] = (rid, mmap, [])
+        groups[key][2].append(covered["id"] if covered else sec["id"])
+    prog: dict[str, dict] = {}
+    for rid, mmap, ids in groups.values():
+        prog.update(await ms.section_progress_all(user_id, rid, ids, mmap))
+
+    rows = []
+    for sec, covered, _rid, _m in plan:
+        p = prog[covered["id"] if covered else sec["id"]]
+        status = "completed" if p["completed"] else (
+            "in_progress" if p["started"] else "unlocked")
+        covered_by = covered["id"] if (covered and covered["id"] != sec["id"]) else None
+        rows.append({
+            "id": sec["id"], "route_id": anchor,
+            "in_route": covered is not None,
+            "covered_by": covered_by,
+            "order_index": sec["order_index"], "stage_no": sec["stage_no"],
+            "work": sec["work"], "title": sec["title"], "is_foundation": True,
+            "local_work": sec.get("local_work"), "work_short": sec.get("work_short"),
+            "status": status, "mastery_score": p["score"],
+            "unlock_threshold": p["threshold"], "has_bank": p["bank"],
+        })
+    return rows
 
 
 def _has_records(m_map, section_id) -> bool:
