@@ -10,6 +10,7 @@ import 'offline/local_db.dart';
 import 'offline/offline_content.dart';
 import 'screens/home_screen.dart';
 import 'services/app_update.dart';
+import 'services/cache_sweep.dart';
 import 'services/chat_service.dart';
 import 'services/tts.dart';
 import 'services/sync_controller.dart';
@@ -35,6 +36,8 @@ Future<void> main() async {
     unawaited(_checkUpdateAfterLaunch());
     // 顺手清掉上次更新留下的安装包（70+MB）：装完不能立刻删，只能等下次启动。
     unawaited(cleanDownloadedApks());
+    // 朗读音频一律不留盘：防厂商语音引擎把合成结果写进 App 缓存目录。
+    unawaited(cleanTempAudio());
   });
 }
 

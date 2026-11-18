@@ -8,6 +8,7 @@
 //  · 试听与正式朗读走同一条通道（ttsSpeak），所以听到的就是点喇叭后的效果。
 import 'package:flutter/material.dart';
 
+import '../services/cache_sweep.dart';
 import '../services/tts.dart';
 import '../services/tts_settings.dart';
 import '../services/tts_voice_slots.dart';
@@ -98,6 +99,8 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
             AnimatedEntrance(child: _voiceCard()),
             const SizedBox(height: 12),
             AnimatedEntrance(child: _noteCard()),
+            const SizedBox(height: 12),
+            AnimatedEntrance(child: _cacheCard()),
           ],
         ),
       ),
@@ -275,6 +278,39 @@ class _TtsSettingsScreenState extends State<TtsSettingsScreen> {
       ),
     ),
   ]);
+
+  /// 朗读不留垃圾：iOS 式的「音频文件攒着」在这里不存在，但字段要说清楚。
+  Widget _cacheCard() => _card('朗读缓存', '合成出来的音频是临时产物，不该长期占存储', [
+        const Text(
+          '· 安卓版：系统语音引擎直接出声，App 不把音频写成文件（没有落盘，也就没有累积）。\n'
+          '· Web 版：后端流式合成、响应标记为不缓存，浏览器不会把音频存到磁盘；'
+          '停止朗读时内存里的那一小段也会立即释放。\n'
+          '· 兜底：部分手机厂商的语音引擎会把合成结果写进 App 缓存目录，'
+          '这类残留会在**启动时自动清**（只删音频、只删超过一小时的），也可以现在手动清。',
+          style: TextStyle(fontSize: 12, color: AppColors.ink400, height: 1.6),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _cleanAudio,
+            icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+            label: const Text('立即清理朗读缓存'),
+          ),
+        ),
+      ]);
+
+  Future<void> _cleanAudio() async {
+    ttsStop(); // 先停声，否则正在播的那一段可能被占用删不掉
+    final r = await cleanTempAudio(olderThan: Duration.zero);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(r.isEmpty
+          ? '没有残留的朗读音频（本来就不落盘）'
+          : '已清理 ${r.files} 个音频文件，腾出 ${r.sizeLabel}'),
+      duration: const Duration(seconds: 2),
+    ));
+  }
 
   Widget _previewButton() => ValueListenableBuilder<String?>(
         valueListenable: ttsCurrent,

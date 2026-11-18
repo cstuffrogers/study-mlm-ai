@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:marxism_reader/services/app_update.dart';
+import 'package:marxism_reader/services/cache_sweep.dart';
 
 String readFile(String p) => File(p).readAsStringSync();
 
@@ -132,6 +133,110 @@ void main() {
       } finally {
         await empty.delete(recursive: true);
       }
+    });
+  });
+
+  group('④ 安卓端 App 自己不写音频文件（写清楚，别乱删）', () {
+    final kt = readFile('android/app/src/main/kotlin/com/weiwu/marxism_reader/MainActivity.kt');
+    final native = readFile('lib/services/tts_native.dart');
+
+    test('原生朗读只走 TextToSpeech.speak，没有 synthesizeToFile/文件落盘', () {
+      expect(kt, contains('engine.speak('));
+      expect(kt, isNot(contains('synthesizeToFile')),
+          reason: '一旦落盘就必须配套清理；现在的口径是不落盘');
+      expect(kt, isNot(contains('synthesizeToFileAsync')));
+      expect(kt, isNot(contains('cacheDir')));
+      expect(kt, isNot(contains('FileOutputStream')));
+    });
+
+    test('Dart 侧朗读实现不碰文件系统', () {
+      expect(native, isNot(contains('File(')), reason: '朗读别写盘，只走通道');
+      expect(native, isNot(contains('openWrite(')));
+      expect(native, isNot(contains('getTemporaryDirectory')));
+    });
+
+    test('停止朗读要把引擎停掉（不然系统引擎还在缓冲后面几段）', () {
+      expect(native, contains("_ch.invokeMethod<void>('stop')"));
+      expect(kt, contains('engine.stop()'));
+    });
+  });
+
+  group('⑤ 缓存目录里的残留音频：启动自动清 + 设置页可手清', () {
+    test('启动后首帧扫一遍音频缓存', () {
+      final main = readFile('lib/main.dart');
+      expect(main, contains('cleanTempAudio()'));
+    });
+
+    test('语音包设置页有「立即清理朗读缓存」，点了先停声再清', () {
+      final page = readFile('lib/screens/tts_settings_screen.dart');
+      expect(page, contains('立即清理朗读缓存'));
+      final fn = slice(page, 'Future<void> _cleanAudio()', 'Widget _previewButton()');
+      expect(fn, contains('ttsStop()'));
+      expect(fn, contains('cleanTempAudio('));
+      expect(fn, contains('olderThan: Duration.zero'), reason: '手清要清干净，不受一小时门槛限制');
+    });
+
+    test('只删音频后缀，且只删「一小时没动过」的', () async {
+      final dir = await Directory.systemTemp.createTemp('d148_audio_');
+      try {
+        final now = DateTime.now();
+        final oldMp3 = File('${dir.path}/chunk-old.mp3')..writeAsBytesSync(List.filled(2048, 1));
+        oldMp3.setLastModifiedSync(now.subtract(const Duration(hours: 3)));
+        final oldWav = File('${dir.path}/page.wav')..writeAsBytesSync(List.filled(1024, 2));
+        oldWav.setLastModifiedSync(now.subtract(const Duration(hours: 2)));
+        final fresh = File('${dir.path}/now.mp3')..writeAsBytesSync(List.filled(512, 3));
+        final other = File('${dir.path}/xxmz-1.4.2.apk')..writeAsBytesSync(List.filled(64, 4));
+        other.setLastModifiedSync(now.subtract(const Duration(hours: 5)));
+        final note = File('${dir.path}/notes.txt')..writeAsStringSync('keep');
+        note.setLastModifiedSync(now.subtract(const Duration(hours: 9)));
+        final sub = Directory('${dir.path}/sub')..createSync();
+        final nested = File('${sub.path}/deep.mp3')..writeAsBytesSync(List.filled(32, 5));
+
+        final r = await cleanTempAudio(dir: dir, now: now);
+
+        expect(r.files, 2, reason: '只删两个过期音频');
+        expect(r.bytes, 3072);
+        expect(oldMp3.existsSync(), isFalse);
+        expect(oldWav.existsSync(), isFalse);
+        expect(fresh.existsSync(), isTrue, reason: '刚写进来的可能正在用，不能动');
+        expect(other.existsSync(), isTrue, reason: 'APK 由另一条清理负责，别抢');
+        expect(note.existsSync(), isTrue);
+        expect(nested.existsSync(), isTrue, reason: '不递归，别把别处的文件删了');
+      } finally {
+        await dir.delete(recursive: true);
+      }
+    });
+
+    test('手清（olderThan 为零）把刚生成的也清掉', () async {
+      final dir = await Directory.systemTemp.createTemp('d148_audio_now_');
+      try {
+        final f = File('${dir.path}/just-made.m4a')..writeAsBytesSync(List.filled(4096, 7));
+        final r = await cleanTempAudio(dir: dir, olderThan: Duration.zero);
+        expect(r.files, 1);
+        expect(r.sizeLabel, '4 KB');
+        expect(f.existsSync(), isFalse);
+      } finally {
+        await dir.delete(recursive: true);
+      }
+    });
+
+    test('空目录 / 不存在的目录都返回 0，不抛异常', () async {
+      final empty = await Directory.systemTemp.createTemp('d148_audio_empty_');
+      try {
+        final r = await cleanTempAudio(dir: empty);
+        expect(r.isEmpty, isTrue);
+        expect(r.sizeLabel, '0 B');
+      } finally {
+        await empty.delete(recursive: true);
+      }
+      final missing = Directory('${Directory.systemTemp.path}/d148_no_${DateTime.now().microsecondsSinceEpoch}');
+      expect((await cleanTempAudio(dir: missing)).files, 0);
+    });
+
+    test('音频后缀清单里没有奇怪的东西', () {
+      expect(kAudioExts.every((e) => e.startsWith('.') && e.length <= 6), isTrue);
+      expect(kAudioExts.contains('.mp3'), isTrue);
+      expect(kAudioExts.contains('.apk'), isFalse);
     });
   });
 }
