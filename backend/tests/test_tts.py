@@ -103,3 +103,48 @@ def test_get_speak_endpoint_returns_audio_when_online():
 def test_get_empty_text_rejected():
     r = client.get("/api/tts/speak", params={"text": "   "})
     assert r.status_code == 400
+
+
+# ── 语音是临时产物：不许落盘、内存缓存要有上限 ──────────────────────
+
+def test_speak_response_is_not_stored_by_browser(monkeypatch):
+    """合成的 MP3 不能进浏览器/中间层的磁盘缓存。
+
+    一段几百 KB，读一本书能堆到几十 MB，还永远不会自己清 —— 用户实报
+    「音频不是永久保存的吧，要及时清理」。响应头必须是 no-store。
+    这里把合成函数换成假数据，只为验头部与路由，不依赖外网。
+    """
+    monkeypatch.setattr(tts_service, "available", lambda: True)
+    monkeypatch.setattr(tts_service, "synthesize", lambda *a, **k: b"ID3" + b"\x00" * 2048)
+
+    post = client.post("/api/tts/speak", json={"text": "落盘缓存测试"})
+    get = client.get("/api/tts/speak", params={"text": "落盘缓存测试"})
+    for r in (post, get):
+        assert r.status_code == 200, r.text
+        cc = r.headers.get("cache-control", "").lower()
+        assert "no-store" in cc, f"Cache-Control 必须 no-store，实际：{cc!r}"
+        assert "86400" not in cc, "不允许再给一天的有效期"
+
+
+def test_cache_evicts_by_total_bytes(monkeypatch):
+    """只按条目数限制会把内存堆爆（256 条 × 1MB = 256MB），必须还有字节上限。"""
+    monkeypatch.setattr(tts_service, "_CACHE_MAX_BYTES", 10 * 1024)
+    tts_service.cache_clear()
+    for i in range(6):
+        tts_service._cache_put(f"bytes-{i}", b"x" * 4096)
+    assert tts_service.cache_bytes() <= 10 * 1024, "总字节超上限没被淘汰"
+    assert tts_service.cache_size() >= 1
+    # 刚放进去的那条必须还在：马上要返回给调用方，淘汰了等于白合成
+    assert tts_service._cache_get("bytes-5") is not None
+    tts_service.cache_clear()
+
+
+def test_cache_bytes_counts_replacement_once():
+    tts_service.cache_clear()
+    tts_service._cache_put("same", b"a" * 100)
+    tts_service._cache_put("same", b"a" * 200)
+    assert tts_service.cache_bytes() == 200, "同名 key 覆盖时不能重复累计字节"
+    assert tts_service.cache_size() == 1
+    tts_service.cache_clear()
+    assert tts_service.cache_bytes() == 0
+    assert tts_service.cache_size() == 0

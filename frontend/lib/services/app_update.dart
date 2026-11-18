@@ -191,6 +191,35 @@ Future<File?> downloadApk(
   }
 }
 
+/// 清掉上次更新留下的安装包（每个 70+ MB，一直躺在临时目录里等系统回收太浪费）。
+///
+/// 为什么不在装完就删：系统安装器是**异步**读这个文件的，
+/// 一唤起安装就删会让安装失败；所以放到下次启动时清，
+/// 只清「xxmz-*.apk」这种自己下载的包，不动临时目录里的其它东西。
+Future<int> cleanDownloadedApks({Directory? dir}) async {
+  // 显式传目录时（测试）不做平台限制；生产环境只有安卓会下载安装包。
+  if (dir == null && !Platform.isAndroid) return 0;
+  var removed = 0;
+  try {
+    final d = dir ?? await getTemporaryDirectory();
+    if (!await d.exists()) return 0;
+    await for (final e in d.list()) {
+      if (e is! File) continue;
+      final name = e.uri.pathSegments.last.toLowerCase();
+      if (!name.startsWith('xxmz-') || !name.endsWith('.apk')) continue;
+      try {
+        await e.delete();
+        removed++;
+      } catch (err) {
+        debugPrint('删安装包失败：$err');
+      }
+    }
+  } catch (e) {
+    debugPrint('清理安装包失败：$e');
+  }
+  return removed;
+}
+
 /// 原生安装通道（见 MainActivity.kt 的 xxmz/app）。
 ///
 /// 单独抽成常量是为了让门禁能直接核对通道名与 Kotlin 侧一致 ——

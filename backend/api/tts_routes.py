@@ -52,7 +52,10 @@ def tts_speak(body: SpeakIn):
         content=audio,
         media_type="audio/mpeg",
         headers={
-            "Cache-Control": "public, max-age=86400",
+            # 语音是按需合成的**临时产物**：一段几百 KB，读一本书能堆到几十 MB。
+            # no-store 明确告诉浏览器/中间层「别落盘」：播完就只剩内存里那一小段。
+            # 重复念同一段仍有后端内存缓存兜底，不会重新调微软。
+            "Cache-Control": "no-store, max-age=0",
             "X-TTS-Engine": "edge-neural",
         },
     )
@@ -88,7 +91,10 @@ def tts_speak_get(
         content=audio,
         media_type="audio/mpeg",
         headers={
-            "Cache-Control": "public, max-age=86400",
+            # 语音是按需合成的**临时产物**：一段几百 KB，读一本书能堆到几十 MB。
+            # no-store 明确告诉浏览器/中间层「别落盘」：播完就只剩内存里那一小段。
+            # 重复念同一段仍有后端内存缓存兜底，不会重新调微软。
+            "Cache-Control": "no-store, max-age=0",
             "X-TTS-Engine": "edge-neural",
         },
     )

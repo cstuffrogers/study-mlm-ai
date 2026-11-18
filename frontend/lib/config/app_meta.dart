@@ -11,7 +11,7 @@ class AppMeta {
   static const appName = '唯物 · 马哲精读';
   static const productName = '正统马哲深度学习系统';
   static const tagline = '三路线 · 逐章精读 · AI 测试';
-  static const clientVersion = '1.4.1+22';
+  static const clientVersion = '1.4.2+23';
   static const serverVersion = '0.1.0-mvp';
   static const packageName = 'marxism_reader';
 

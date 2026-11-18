@@ -44,10 +44,14 @@ ALLOWED_VOICES = {
 
 _MAX_TEXT = 4000          # 单次朗读上限（防滥用）
 _CACHE_MAX = 256          # 缓存条目上限
+# 内存缓存总字节上限：只按条目数限时，长段落（4000 字 ≈ 1~2MB MP3）
+# 能把 256 条堆到几十上百 MB。语音是临时产物，堆着没用。
+_CACHE_MAX_BYTES = 48 * 1024 * 1024
 _SYNTH_TIMEOUT = 20.0     # 单次合成超时（秒）
 
 _cache: "OrderedDict[str, bytes]" = OrderedDict()
 _cache_lock = threading.Lock()
+_cache_bytes_total = 0
 
 
 def available() -> bool:
@@ -73,11 +77,20 @@ def _cache_get(key: str) -> Optional[bytes]:
 
 
 def _cache_put(key: str, data: bytes) -> None:
+    global _cache_bytes_total
     with _cache_lock:
+        old = _cache.pop(key, None)
+        if old is not None:
+            _cache_bytes_total -= len(old)
         _cache[key] = data
-        _cache.move_to_end(key)
-        while len(_cache) > _CACHE_MAX:
-            _cache.popitem(last=False)
+        _cache_bytes_total += len(data)
+        # 双上限：条目数 + 总字节。逐个淘汰最旧的，最后一条无论多大都留着
+        # （刚合成完马上要返回给它，淘汰了等于白合成）。
+        while len(_cache) > _CACHE_MAX or (
+            _cache_bytes_total > _CACHE_MAX_BYTES and len(_cache) > 1
+        ):
+            _, dropped = _cache.popitem(last=False)
+            _cache_bytes_total -= len(dropped)
 
 
 async def _synth_async(text: str, voice: str, rate: str) -> bytes:
@@ -150,3 +163,17 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE, rate: str = "+0%") -> byte
 def cache_size() -> int:
     with _cache_lock:
         return len(_cache)
+
+
+def cache_bytes() -> int:
+    """缓存占用的内存字节数（给容量门禁与排查用）。"""
+    with _cache_lock:
+        return _cache_bytes_total
+
+
+def cache_clear() -> None:
+    """主动清空语音缓存。语音是临时产物，不需要跨会话留着。"""
+    global _cache_bytes_total
+    with _cache_lock:
+        _cache.clear()
+        _cache_bytes_total = 0

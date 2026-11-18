@@ -33,6 +33,8 @@ Future<void> main() async {
   // 只有安卓会真的弹框——桌面/Web 没有自装这回事，见 services/app_update.dart。
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_checkUpdateAfterLaunch());
+    // 顺手清掉上次更新留下的安装包（70+MB）：装完不能立刻删，只能等下次启动。
+    unawaited(cleanDownloadedApks());
   });
 }
 

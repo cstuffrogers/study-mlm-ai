@@ -266,14 +266,25 @@ String _neuralUrl(String text, String rateStr) {
   return uri.toString();
 }
 
+/// 真正放掉一个 <audio>：暂停、断开 src、再 load()。
+///
+/// 只 pause() 不够：预热的元素还在后台继续下载，解码后的缓冲也不会释放；
+/// `removeAttribute('src') + load()` 才会中止请求、把已下载/已解码的数据丢掉。
+void _release(html.AudioElement? a) {
+  if (a == null) return;
+  try {
+    a.pause();
+    a.removeAttribute('src');
+    a.load();
+  } catch (_) {}
+}
+
 void _stopAudio() {
   _watchdog?.cancel();
   _watchdog = null;
   final a = _audio;
   if (a != null) {
-    try {
-      a.pause();
-    } catch (_) {}
+    _release(a);
     _audio = null;
   }
 }
@@ -352,10 +363,7 @@ void ttsPrefetch(String text, {double rate = 1.0}) {
     while (_warm.length > 3) {
       final key = _warm.keys.first;
       if (key == url) break;
-      final old = _warm.remove(key);
-      try {
-        old?.pause();
-      } catch (_) {}
+      _release(_warm.remove(key));
     }
   } catch (_) {}
 }
@@ -492,11 +500,10 @@ void ttsStop() {
     web.window.speechSynthesis.cancel();
   } catch (_) {}
   _pending.clear();
-  // 预热元素也要放掉：不停就会在后台继续下载下一段音频。
+  // 预热元素也要放掉：只 pause 的话它还在后台继续拉下一页的音频，
+  // 而且解码后的缓冲一直占着（语音是临时产物，声一停就该释放干净）。
   for (final a in _warm.values) {
-    try {
-      a.pause();
-    } catch (_) {}
+    _release(a);
   }
   _warm.clear();
   _segments = const <String>[];
