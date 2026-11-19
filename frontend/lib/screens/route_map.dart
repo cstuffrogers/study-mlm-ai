@@ -62,11 +62,13 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     try {
       await _reviewApi.submit(nodeId: nodeId, correctRatio: ratio, routeId: widget.routeId);
       await _loadDue();
+      _loadMotivation();
     } catch (_) {}
   }
 
   void _reload() {
     _future = _svc.sectionsView(widget.routeId);
+    _loadMotivation();
   }
 
   IconData _icon(String status) {
@@ -184,9 +186,13 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                         ),
                         icon: const Icon(Icons.quiz_outlined, size: 18),
                         label: const Text('重新摸底测'),
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(
-                            builder: (_) =>
-                                DiagnosticTestScreen(routeId: widget.routeId, routeName: widget.routeName))),
+                        onPressed: () async {
+                          await Navigator.push(context, MaterialPageRoute(
+                              builder: (_)
+                                  => DiagnosticTestScreen(routeId: widget.routeId, routeName: widget.routeName)));
+                          // 诊断测试必写掌握度，返回后无条件刷新
+                          if (mounted) setState(_reload);
+                        },
                       ),
                     ),
                   ));
