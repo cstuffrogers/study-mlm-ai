@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_config.dart';
 import 'local_store_keys.dart';
+import 'offline_content.dart';
 
 class LocalDb {
   LocalDb._();
@@ -104,25 +105,80 @@ class LocalDb {
   }
 
   /// 只刷某个文档（写操作后调用，避免每次都整库序列化）
+  ///
+  /// 注意：每个 case 必须 `break`——Dart 允许 switch 空落（fall-through），
+  /// 漏掉 break 会让任意单键 flush 实际把全部文档都写一遍。
   static Future<void> flushKey(String key) async {
     if (!_ready || _memoryOnly || _prefs == null) return;
     final p = _prefs!;
     switch (key) {
       case 'mastery':
         await p.setString(_kMastery, jsonEncode(mastery));
+        break;
       case 'progress':
         await p.setString(_kProgress, jsonEncode(progress));
+        break;
       case 'attempts':
         await p.setString(_kAttempts, jsonEncode(attempts));
+        break;
       case 'tests':
         await p.setString(_kTests, jsonEncode(tests));
+        break;
       case 'dialogues':
         await p.setString(_kDialogues, jsonEncode(dialogues));
+        break;
       case 'settings':
         await p.setString(_kSettings, jsonEncode(settings));
+        break;
       case 'signals':
         await p.setString(_kSignals, jsonEncode(signals));
+        break;
     }
+  }
+
+  /// 取指定路线的作答流水（学情/校准/错题等分析只应看到本路线的数据）。
+  ///
+  /// 解析顺序（与后端「事件自带 route_id 优先」同口径）：
+  ///  ① 记录自带 `route_id` → 直接匹配；
+  ///  ② 无 `route_id` 但 `test_id` 在本机测试表 → 按测试归属路线；
+  ///  ③ 无 `route_id` 但 `node_id` 可定位到节点 → 按节点所在章节的路线；
+  ///  ④ 三者皆无（老版本遗留的手工/损坏数据）→ 归入当前路线，避免静默丢数据。
+  static List<Map<String, dynamic>> attemptsForRoute(String routeId) {
+    final out = <Map<String, dynamic>>[];
+    for (final a in attempts.whereType<Map>()) {
+      final rec = a.cast<String, dynamic>();
+      final rid = '${rec['route_id'] ?? ''}';
+      if (rid.isNotEmpty) {
+        if (rid == routeId) out.add(rec);
+        continue;
+      }
+      final testId = '${rec['test_id'] ?? ''}';
+      if (testId.isNotEmpty) {
+        final t = tests[testId];
+        if (t is Map) {
+          if ('${t['route_id'] ?? ''}' == routeId) out.add(rec);
+          continue;
+        }
+      }
+      final nodeId = '${rec['node_id'] ?? ''}';
+      if (nodeId.isNotEmpty) {
+        final node = OfflineContent.node(nodeId);
+        final secId = '${node?['section_id'] ?? ''}';
+        if (secId.isNotEmpty) {
+          final secRoute = '${OfflineContent.sectionMeta(secId)?['route_id'] ?? ''}';
+          if (secRoute.isNotEmpty) {
+            // 节点归属路线明确：严格按该路线归属，与查询路线不符即排除
+            // （原先 secRoute != routeId 时会落进兜底分支被归到当前路线，
+            //  跨路线数据串线）。
+            if (secRoute == routeId) out.add(rec);
+            continue;
+          }
+        }
+      }
+      // 完全无法归属的遗留记录：按当前路线处理（不丢数据）
+      out.add(rec);
+    }
+    return out;
   }
 
   // ------------------------------------------------------------ 便捷读写

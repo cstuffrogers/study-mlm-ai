@@ -130,9 +130,10 @@ class LocalInsight {
           .map((e) => e.key)
           .join('+');
       final name = '${n['name']}';
-      if (score >= 0.85) {
-        // 「已掌握」门槛与 LocalMastery.levelFromScore() 的 mastered 阈值（0.85）一致：
-        // 否则 0.8~0.85 的节点在总结里算「已掌握」、在掌握度分布里却是 proficient，两页数字对不上。
+      // 「已掌握」门槛与后端 `profile_service.generate_summary()` 同口径：**score >= 0.8**。
+      // 总结里的「已掌握项」是宽口径统计（不带 feynman 降档）；掌握度分布的 mastered 等级
+      // 则是 levelFromScore 的严口径（0.85 + feynman≥0.8）——两端各自与后端一致，互不混用。
+      if (score >= 0.8) {
         mastered.add(name);
         tags[name] = flags.isEmpty ? 'quiz' : flags;
       } else if (score < 0.45) {
@@ -342,10 +343,7 @@ class LocalInsight {
           return t != null && !t.isBefore(since);
         })
         .toList();
-    final attempts = LocalDb.attempts
-        .whereType<Map>()
-        .map((e) => e.cast<String, dynamic>())
-        .toList()
+    final attempts = LocalDb.attemptsForRoute(routeId)
       ..sort((a, b) => '${a['created_at']}'.compareTo('${b['created_at']}'));
     final recent =
         attempts.length > 10 ? attempts.sublist(attempts.length - 10) : attempts;
@@ -511,10 +509,7 @@ class LocalInsight {
     final dueCount = inum(status['due_count']);
     final cal = calibration(routeId);
 
-    final attempts = LocalDb.attempts
-        .whereType<Map>()
-        .map((e) => e.cast<String, dynamic>())
-        .toList();
+    final attempts = LocalDb.attemptsForRoute(routeId).toList();
     final errors = <String, int>{};
     final scores = <double>[];
     for (final a in attempts) {
@@ -624,9 +619,7 @@ class LocalInsight {
       'high': 0.9,
     }).map((k, v) => MapEntry('$k', dnum(v)));
     final gapLimit = dnum(calCfg['overconfident_gap'], 0.25);
-    final rows = LocalDb.attempts
-        .whereType<Map>()
-        .map((e) => e.cast<String, dynamic>())
+    final rows = LocalDb.attemptsForRoute(routeId)
         .where((a) => confMap.containsKey('${a['confidence'] ?? ''}'.toLowerCase()))
         .toList();
     if (rows.isEmpty) {
@@ -697,9 +690,7 @@ class LocalInsight {
 
   /// 错题本：只看错题，按章节聚合
   static Map<String, dynamic> wrongBook(String routeId, {int limit = 60}) {
-    final rows = LocalDb.attempts
-        .whereType<Map>()
-        .map((e) => e.cast<String, dynamic>())
+    final rows = LocalDb.attemptsForRoute(routeId)
         .where((a) => a['is_correct'] != true)
         .toList()
       ..sort((a, b) => '${b['created_at']}'.compareTo('${a['created_at']}'));

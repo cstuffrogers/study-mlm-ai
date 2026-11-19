@@ -31,6 +31,7 @@ double dnum(dynamic v, [double fallback = 0.0]) =>
     (v as num?)?.toDouble() ?? fallback;
 int inum(dynamic v, [int fallback = 0]) => (v as num?)?.toInt() ?? fallback;
 double round4(num v) => double.parse(v.toStringAsFixed(4));
+double round3(num v) => double.parse(v.toStringAsFixed(3));
 String nowIso() => DateTime.now().toUtc().toIso8601String();
 DateTime? parseTime(dynamic v) =>
     v is String && v.isNotEmpty ? DateTime.tryParse(v)?.toUtc() : null;
@@ -255,7 +256,8 @@ class LocalMastery {
   static double retention(double elapsedDays, double stability) {
     final hl = halfLife(stability);
     if (hl <= 0) return 0.0;
-    return math.pow(0.5, elapsedDays / hl).toDouble();
+    // 与后端 `retention()` 同式：`max(0.0, elapsed_days)`——时间为负时保持率恒 1。
+    return math.pow(0.5, math.max(0.0, elapsedDays) / hl).toDouble();
   }
 
   /// 建议复习间隔（天）—— 与后端 `review_service.interval_days` 逐字同式：
@@ -546,37 +548,75 @@ class LocalMastery {
     return out;
   }
 
-  static Map<String, dynamic> fitParameters() {
-    final rows = LocalDb.attempts
-        .whereType<Map>()
-        .map((a) => a.cast<String, dynamic>())
+  /// FSRS 复习参数拟合（单机版）。
+  ///
+  /// 与后端 `review_service.fit_parameters()` 逐键同口径：
+  ///  · 样本门槛 6（后端 `_MIN_LOG_SAMPLES = 6`；原 8 会导致同一用户单机可拟合、
+  ///    联网端提示样本不足，两端建议值对不上）；
+  ///  · 建议 gain = clamp(当前 gain × (0.5 + 成功率), 0.05, 0.4)，
+  ///    建议 regress = clamp(当前 regress × (1.5 − 成功率), 0.1, 0.4)；
+  ///  · `lapse_rate` 用「同节点连续作答、前对后错」占比近似（单机没有独立复习
+  ///    日志，以作答流水代理，无样本记 0）；
+  ///  · 只出建议不自动改配置。
+  static Map<String, dynamic> fitParameters(String routeId) {
+    final rows = LocalDb.attemptsForRoute(routeId)
         .where((a) => a['node_id'] != null)
         .toList();
     final cfg = _cfg;
-    final current = {
-      'gain': dnum(cfg['gain'], 0.15),
-      'regress': dnum(cfg['regress'], 0.2),
-    };
-    if (rows.length < 8) {
+    final gain = dnum(cfg['gain'], 0.15);
+    final regress = dnum(cfg['regress'], 0.2);
+    final current = {'gain': gain, 'regress': regress};
+    if (rows.length < 6) {
       return {
         'available': false,
-        'message': '样本不足（${rows.length}/8），继续积累复习记录',
+        'message': '复习日志不足（${rows.length}/6），继续积累后再拟合',
         'current': current,
         'suggested': null,
       };
     }
-    final succ = rows.where((a) => a['is_correct'] == true).length / rows.length;
+    final succ =
+        rows.where((a) => a['is_correct'] == true).length / rows.length;
+    final lapse = _lapseRate(rows);
+    final suggestGain = (gain * (0.5 + succ)).clamp(0.05, 0.4);
+    final suggestRegress = (regress * (1.5 - succ)).clamp(0.1, 0.4);
+    final note = succ < 0.7
+        ? '复习成功率偏低，建议缩短复习间隔、降低增益'
+        : succ >= 0.95 && lapse == 0
+            ? '记忆保持稳定，可适度拉长复习间隔'
+            : '建议按拟合值微调增益与衰减，观察后续复习成功率';
     return {
       'available': true,
-      'message': '基于 ${rows.length} 条本机作答估算的参数建议',
-      'succ_rate': round4(succ),
+      'n': rows.length,
+      'message': '基于 ${rows.length} 条本路线作答估算的参数建议',
+      'succ_rate': round3(succ),
+      'lapse_rate': round3(lapse),
       'current': current,
       'suggested': {
-        'gain': round4(current['gain']! * (0.8 + succ * 0.4)),
-        'regress': round4(1.0 - succ),
+        'gain': round3(suggestGain),
+        'regress': round3(suggestRegress),
       },
-      'note': '单机版仅用本机作答流水，参数仅供参考',
+      'note': '$note（单机版基于本机作答流水估算，仅供参考）',
     };
+  }
+
+  /// 「记牢后复测又错」占比：同节点连续作答中「前一次正确、本次错误」的占比。
+  /// 单机没有独立 ReviewLog，用作答流水作代理（无样本返回 0.0）。
+  static double _lapseRate(List<Map<String, dynamic>> rows) {
+    final byNode = <String, List<bool>>{};
+    for (final a in rows) {
+      final nid = '${a['node_id'] ?? ''}';
+      if (nid.isEmpty) continue;
+      (byNode[nid] ??= <bool>[]).add(a['is_correct'] == true);
+    }
+    var lapse = 0;
+    var pairs = 0;
+    for (final seq in byNode.values) {
+      for (var i = 1; i < seq.length; i++) {
+        pairs++;
+        if (seq[i - 1] && !seq[i]) lapse++;
+      }
+    }
+    return pairs == 0 ? 0.0 : lapse / pairs;
   }
 
   // ------------------------------------------------------------ 路线

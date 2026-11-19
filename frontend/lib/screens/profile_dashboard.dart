@@ -122,7 +122,13 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen> {
 
   Widget _buildBody() {
     final p = _profile!;
-    final radarValues = p.abilityRadar.map((k, v) => MapEntry(k, (v as num).toDouble()));
+    // 雷达画布需要 ≥3 个顶点才会绘制：只评估了 1~2 个维度时多边形会消失。
+    // 未评估维度补 0.0（与分析页 ability_radar 的五维形状一致），保证雷达形状稳定。
+    final radarValues = <String, double>{
+      for (final d in _dimLabels.keys) d: 0.0,
+      for (final e in p.abilityRadar.entries)
+        e.key: (e.value as num).toDouble(),
+    };
     // 空态判据：无评估节点即无学情数据。单机版中做题/复习/自评都会落掌握记录，
     // 「无评估节点」等价于「无作答记录」；旧判据（weakPoints 为空且雷达全 0）
     // 因未评估节点也算薄弱点而基本永不触发。

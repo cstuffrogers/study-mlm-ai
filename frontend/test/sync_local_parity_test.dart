@@ -78,7 +78,8 @@ void main() {
     expect(LocalDb.attempts.length, attemptsBefore + 1);
     expect(LocalDb.signals.length, signalsBefore + 1);
     final attempt = LocalDb.attempts.whereType<Map>().last;
-    expect('${attempt['item_id']}', 'q_a02_1');
+    expect('${attempt['quiz_id']}', 'q_a02_1',
+        reason: '作答落库键为 quiz_id（与 LocalQuiz.submit 同键，弃用旧 item_id）');
     expect(attempt['is_correct'], true);
     final signal = LocalDb.signals.whereType<Map>().last;
     expect('${signal['node_id']}', 'kn_practice');

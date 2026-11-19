@@ -342,7 +342,7 @@ class LocalRouter {
       );
     }
     if (rest.length > 1 && rest[1] == 'fit') {
-      return LocalMastery.fitParameters();
+      return LocalMastery.fitParameters(routeId);
     }
     if (rest.length > 1 && rest[1] == 'status') {
       return LocalMastery.reviewStatus(routeId);
@@ -421,16 +421,21 @@ class LocalRouter {
             lastPosition: (e['last_position'] as num?)?.toInt() ?? 0,
           );
         } else if (type == 'quiz_attempt') {
+          // 与 `LocalQuiz.submit()` 落库同键：`quiz_id`（原 `item_id` 是旧字段名），
+          // 并补齐判分引用，保证跨路线过滤与错题回填时字段齐全。
           LocalDb.attempts.add({
-            'item_id': '${e['quiz_id'] ?? ''}',
+            'quiz_id': '${e['quiz_id'] ?? e['item_id'] ?? ''}',
             'test_id': '${e['test_id'] ?? ''}',
             'route_id': r,
             'node_id': '${e['node_id'] ?? ''}',
             'answer': '${e['answer'] ?? ''}',
+            'reference': '${e['reference'] ?? ''}',
+            'source_chunk_id': '${e['source_chunk_id'] ?? ''}',
             'is_correct': e['is_correct'] == true,
             'score': (e['score'] as num?)?.toDouble() ?? 0.0,
             'duration_ms': (e['duration_ms'] as num?)?.toInt() ?? 0,
             'error_category': '${e['error_category'] ?? ''}',
+            'confidence': '${e['confidence'] ?? 'mid'}',
             'created_at': nowIso(),
           });
         } else {
