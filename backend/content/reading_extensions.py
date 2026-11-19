@@ -871,8 +871,92 @@ def _d155_fix_quotes() -> None:
                         break
 
 
+def _d155_fix_quotes2() -> None:
+    """D155 第二轮：修复弯引号‘...’中的概括标签误用 + 2条改写引文修复为逐字原文。
+
+    第一轮只处理了「」引号，第二轮发现大量‘...’弯引号的概括标签。
+    本轮做精准去引号（不替换整字段，只去除引号字符），并修复2条可溯源的改写引文。
+    """
+    # ─── 概括标签去引号：(sid, title_prefix, field) → [标签文本列表] ───
+    LABEL_FIXES2: dict[tuple[str, str, str], list[str]] = {
+        ('sec_C_01', '《读苏联〈政治经济学教科书〉的谈话》', 'points[0]'): ['是一个伟大的学校'],
+        ('sec_C_01', '《读苏联〈政治经济学教科书〉的谈话》', 'points[1]'): ['政治工作是一切经济工作的生命线', '见物不见人'],
+        ('sec_C_04', '『鞍钢宪法』（两参一改三结合）作为历史经验', 'intro'): ['干部参加劳动、工人参加管理，改革不合理规章制度，工人、干部、技术人员三结合'],
+        ('sec_C_04', '《论十大关系》相关的建设性研究', 'intro'): ['建设性反思'],
+        ('sec_C_04', '《苏联社会主义经济问题》节选', 'points[1]'): ['生产资料不是商品'],
+        ('sec_A_07', '《〈政治经济学批判〉序言》', 'points[2]'): ['两个决不会'],
+        ('sec_A_08', '《资本论》第三卷', 'intro'): ['阶级分配图景'],
+        ('sec_A_08', '《工资、价格和利润》', 'intro'): ['工资上涨必然推动物价上涨'],
+        ('sec_A_13', '《辩证唯物主义 历史唯物主义》', 'points[2]'): ['把体系读厚'],
+        ('sec_A_13', '《实践论》', 'intro'): ['世界可知性'],
+        ('sec_A_14', '《家庭、私有制和国家的起源》', 'intro'): ['阶级、国家是生产发展到一定历史阶段的产物'],
+        ('sec_A_14', '《论一元论历史观的发展》', 'intro'): ['俄国马克思主义之父'],
+        ('sec_A_00', '《马克思恩格斯选集》（四卷本）', 'intro'): ['翻阅目录和序言，建立全集地图'],
+        ('sec_A_11', '《反杜林论》哲学篇（第一编·哲学）', 'points[0]'): ['世界的真正统一性在于它的物质性'],
+        ('sec_A_11', '《反杜林论》哲学篇（第一编·哲学）', 'points[2]'): ['论战体教科书'],
+        ('sec_A_11', '《自然辩证法》（节选）', 'points[1]'): ['劳动在从猿到人转变过程中的作用'],
+        ('sec_A_12', '《给维·伊·查苏利奇的复信草稿》', 'intro'): ['马克思反对把他的理论当作超历史的普遍规律'],
+        ('sec_A_12', '《给维·伊·查苏利奇的复信草稿》', 'points[1]'): ['把我关于西欧资本主义起源的历史概述彻底变成一般发展道路的历史哲学理论，会给我过多的荣誉，也会给我过多的侮辱。'],
+        ('sec_A_12', '《给维·伊·查苏利奇的复信草稿》', 'points[2]'): ['历史决定论'],
+        ('sec_B_04', '《在白色恐怖下如何健全党的组织工作》', 'intro'): ['地下条件'],
+        ('sec_B_04', '《在白色恐怖下如何健全党的组织工作》', 'points[2]'): ['开会—发文件'],
+        ('sec_B_04', '《怎样做一个好的领导者》', 'points[2]'): ['领导群众的方式与态度'],
+        ('sec_B_04', '《反对官僚主义》', 'intro'): ['国家机器可能由公仆变主人'],
+        ('sec_B_01', '《论权威》', 'intro'): ['要自由不要权威'],
+    }
+    # ─── 改写引文修复为逐字原文：(sid, title_prefix, field) → (旧引文, 新原文) ───
+    REWRITE_FIXES2: dict[tuple[str, str, str], tuple[str, str]] = {
+        ('sec_A_11', '《自然辩证法》（节选）', 'intro'):
+            ('辩证法是自然界实在的发展规律', '辩证法规律是自然界的实在的发展规律'),
+    }
+    _QUOTE_PAIRS = [
+        ('“', '”'), ('‘', '’'), ('「', '」'), ('『', '』'),
+    ]
+    for sid, exts in READING_EXTENSIONS.items():
+        for ext in exts:
+            title = ext.get('title', '')
+            fields = [('intro', ext.get('intro', ''))]
+            for i, p in enumerate(ext.get('points', [])):
+                fields.append((f'points[{i}]', p))
+            for field, text in fields:
+                # 去引号
+                matched = False
+                for (fsid, ftitle, ffield), labels in LABEL_FIXES2.items():
+                    if fsid == sid and title.startswith(ftitle) and ffield == field:
+                        for label_text in labels:
+                            for q_open, q_close in _QUOTE_PAIRS:
+                                old = f'{q_open}{label_text}{q_close}'
+                                if old in text:
+                                    new_text = text.replace(old, label_text)
+                                    if field == 'intro':
+                                        ext['intro'] = new_text
+                                    else:
+                                        idx = int(field[len('points['):-1])
+                                        ext['points'][idx] = new_text
+                                    text = new_text
+                                    matched = True
+                        if matched:
+                            break
+                if matched:
+                    continue
+                # 改写修复
+                for (fsid, ftitle, ffield), (old_q, new_q) in REWRITE_FIXES2.items():
+                    if fsid == sid and title.startswith(ftitle) and ffield == field:
+                        for q_open, q_close in _QUOTE_PAIRS:
+                            old = f'{q_open}{old_q}{q_close}'
+                            if old in text:
+                                new_text = text.replace(old, new_q)
+                                if field == 'intro':
+                                    ext['intro'] = new_text
+                                else:
+                                    idx = int(field[len('points['):-1])
+                                    ext['points'][idx] = new_text
+                                break
+
+
 _d155_fix_quotes()
-del _d155_fix_quotes
+_d155_fix_quotes2()
+del _d155_fix_quotes, _d155_fix_quotes2
 
 
 def extensions_for(section_id: str) -> list[dict]:

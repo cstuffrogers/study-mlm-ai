@@ -1375,8 +1375,78 @@ def _d155_fix_dim_quotes() -> None:
                     discs[i] = d.replace(old, new)
 
 
+def _d155_fix_dim_quotes2() -> None:
+    """D155 第二轮：修复 8 维度中弯引号‘...’『...』的概括标签误用。
+
+    第一轮只处理了「」引号，第二轮发现大量‘...’『...』弯引号的概括标签。
+    本轮做精准去引号（不替换整字段，只去除引号字符）。
+    """
+    # (section_id, field_prefix) → [标签文本列表]
+    DIM_LABEL_FIXES2: dict[tuple[str, str], list[str]] = {
+        ('sec_A_01', 'background'): ['大众的哲学'],
+        ('sec_A_03', 'background'): ['矛盾问题的精髓'],
+        ('sec_A_03', 'sections'): ['具体问题具体分析', '一刀切'],
+        ('sec_A_03', 'key_points'): ['矛盾问题的精髓', '具体问题具体分析'],
+        ('sec_A_04', 'background'): ['辩证法、逻辑、认识论三者一致', '辩证法十六要素'],
+        ('sec_A_04', 'discussion'): ['辩证法、逻辑、认识论三者一致'],
+        ('sec_C_01', 'background'): ['在资本主义社会和共产主义社会之间有一个革命转变时期'],
+        ('sec_C_01', 'key_points'): ['自由人民国家'],
+        ('sec_A_09', 'background'): ['终于发现的、可使劳动在经济上获得解放的政治形式'],
+        ('sec_B_06', 'discussion'): ['一国胜利论'],
+        ('sec_A_11', 'background'): ['半截子唯物主义'],
+        ('sec_A_11', 'key_points'): ['半截子', '基本内核'],
+        ('sec_A_11', 'discussion'): ['半截子'],
+        ('sec_A_12', 'background'): ['人的自我异化的积极扬弃'],
+        ('sec_A_12', 'discussion'): ['人的自我异化的积极扬弃'],
+        ('sec_B_09', 'background'): ['农民运动好不好'],
+        ('sec_A_13', 'background'): ['辩证唯物主义 = 辩证法四特征 + 哲学唯物主义三特征', '辩证唯物主义原理在社会生活和社会历史领域的推广'],
+        ('sec_A_13', 'discussion'): ['推广说'],
+    }
+    _QUOTE_PAIRS = [
+        ('“', '”'), ('‘', '’'), ('「', '」'), ('『', '』'),
+    ]
+    for sid, guide in CHAPTER_GUIDES.items():
+        for (fsid, field_prefix), labels in DIM_LABEL_FIXES2.items():
+            if fsid != sid:
+                continue
+            if field_prefix == 'background':
+                bg = guide.get('background', '')
+                for label in labels:
+                    for q_open, q_close in _QUOTE_PAIRS:
+                        old = f'{q_open}{label}{q_close}'
+                        if old in bg:
+                            guide['background'] = bg.replace(old, label)
+                            bg = guide['background']
+            elif field_prefix == 'sections':
+                for sec in guide.get('sections', []):
+                    body = sec.get('body', '')
+                    for label in labels:
+                        for q_open, q_close in _QUOTE_PAIRS:
+                            old = f'{q_open}{label}{q_close}'
+                            if old in body:
+                                sec['body'] = body.replace(old, label)
+                                body = sec['body']
+            elif field_prefix == 'key_points':
+                for i, kp in enumerate(guide.get('key_points', [])):
+                    for label in labels:
+                        for q_open, q_close in _QUOTE_PAIRS:
+                            old = f'{q_open}{label}{q_close}'
+                            if old in kp:
+                                guide['key_points'][i] = kp.replace(old, label)
+                                kp = guide['key_points'][i]
+            elif field_prefix == 'discussion':
+                for i, d in enumerate(guide.get('discussion', [])):
+                    for label in labels:
+                        for q_open, q_close in _QUOTE_PAIRS:
+                            old = f'{q_open}{label}{q_close}'
+                            if old in d:
+                                guide['discussion'][i] = d.replace(old, label)
+                                d = guide['discussion'][i]
+
+
 _d155_fix_dim_quotes()
-del _d155_fix_dim_quotes
+_d155_fix_dim_quotes2()
+del _d155_fix_dim_quotes, _d155_fix_dim_quotes2
 
 
 def build_route_nodes() -> tuple[list[dict], list[tuple[str, str]]]:
