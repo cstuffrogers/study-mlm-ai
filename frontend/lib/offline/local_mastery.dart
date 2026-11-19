@@ -337,6 +337,9 @@ class LocalMastery {
         'stability': round4(stability),
         'retention': round4(keep),
         'elapsed_days': round4(elapsed),
+        // 与后端 `review_service.due_reviews()` 同键：补齐下次复习时间，
+        // 复习页可直接展示「何时再复习」而不必再查单节点详情。
+        'next_review_at': rec['next_review_at'],
         'kind': 'due',
         '_risk': (1 - keep) * (1 + dependentsCount(nodeId)),
       });

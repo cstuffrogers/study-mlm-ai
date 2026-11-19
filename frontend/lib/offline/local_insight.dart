@@ -21,7 +21,9 @@ class LocalInsight {
       final dim = '${n['ability_dim'] ?? ''}';
       final rec = mastery[nodeId] as Map<String, dynamic>?;
       final score = dnum(rec?['score']);
-      radar[dim]?.add(score);
+      // 雷达口径与 overview() 一致：只对**已评估**节点求均值，未评估节点不记 0 分。
+      // 原先未评估节点按 score=0.0 计入，会把没测过的维度拉成 0 分，与分析页同一维度显示不同数值。
+      if (rec != null) radar[dim]?.add(score);
       final lv = rec == null ? 'unseen' : '${rec['level'] ?? 'unseen'}';
       dist[lv] = (dist[lv] ?? 0) + 1;
       // D136：与后端 `profile_service.build_profile()` 同口径 —— **未评估节点也算薄弱点**
@@ -102,12 +104,25 @@ class LocalInsight {
   static Map<String, dynamic> summary(
       String routeId, {String period = 'week'}) {
     final mastery = LocalMastery.masteryMap(routeId);
+    // period 时间窗（天）：week=近 7 天、month=近 30 天、all=不限。
+    // 按掌握记录的 updated_at 过滤节点，让档案页「近一周/近一月/全部」筛选真正生效
+    // （原先 period 只回填不参与计算，切换筛选数据毫无变化）。
+    final now = DateTime.now().toUtc();
+    final windowDays =
+        period == 'week' ? 7 : (period == 'month' ? 30 : null);
     final mastered = <String>[];
     final reinforce = <String>[];
     final tags = <String, dynamic>{};
     for (final n in OfflineContent.allNodes) {
       final rec = mastery['${n['id']}'] as Map<String, dynamic>?;
       if (rec == null) continue;
+      if (windowDays != null) {
+        final t = parseTime(rec['updated_at']);
+        if (t == null ||
+            t.isBefore(now.subtract(Duration(days: windowDays)))) {
+          continue;
+        }
+      }
       final score = dnum(rec['score']);
       final flags = ((rec['source_flags'] as Map?) ?? const {})
           .entries
@@ -115,7 +130,9 @@ class LocalInsight {
           .map((e) => e.key)
           .join('+');
       final name = '${n['name']}';
-      if (score >= 0.8) {
+      if (score >= 0.85) {
+        // 「已掌握」门槛与 LocalMastery.levelFromScore() 的 mastered 阈值（0.85）一致：
+        // 否则 0.8~0.85 的节点在总结里算「已掌握」、在掌握度分布里却是 proficient，两页数字对不上。
         mastered.add(name);
         tags[name] = flags.isEmpty ? 'quiz' : flags;
       } else if (score < 0.45) {
@@ -123,6 +140,9 @@ class LocalInsight {
         tags[name] = flags.isEmpty ? 'quiz' : flags;
       }
     }
+    // 文案以前端（实际展示层）为准：激励语（_encourage）、next_step、校准 tip 的措辞
+    // 与后端 motivation_service / calibration_service 略有出入；前端展示不依赖后端文案，
+    // 后端文案对齐需单独改动与部署，此处保持前端措辞统一。
     final nextStep = reinforce.isEmpty
         ? '进入下一章或更高阶内容'
         : '先补强《${reinforce.first}》';
@@ -537,6 +557,12 @@ class LocalInsight {
         }['${cal['verdict']}'] ??
         0.6;
     // 健康度：只对「真有数据」的维度加权，缺数据不补满分。
+    //
+    // 这是**有意的设计选择**：后端 `analytics_service._health_score()` 对缺数据维度
+    // 取默认 1.0 固定权重（avg_retention/avg_score 为空时按 1.0 计），前端作为实际展示层
+    // 改为剔除缺数据维度并按剩余维度重新归一——否则一次题都没做的新用户也会拿到虚高
+    // 的「学习健康度」。该口径差异仅影响两端健康度数值，不影响任何展示键名；后端如需对齐
+    // 需单独改动与部署，此处保持前端口径。
     //
     // 早先实现里 avgRetention 为空 → retentionPart 取 1.0、avgScore 为空 →
     // accPart 取 1.0，于是**一次题都没做**的新用户也拿到 54 分「学习健康度」，

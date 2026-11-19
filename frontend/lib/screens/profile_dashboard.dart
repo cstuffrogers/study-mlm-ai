@@ -32,6 +32,7 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen> {
   bool _loading = true;
   String? _error;
   String _period = 'week';
+  bool _loadingDone = false;
 
   @override
   void initState() {
@@ -39,20 +40,31 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen> {
     _load();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 页面重新可见时刷新数据（从章节测试返回后 initState 不执行，需主动刷新）
+    if (_loadingDone && !_loading && mounted) _load();
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final p = await _api.profile(routeId: widget.routeId);
       final s = await _api.summary(routeId: widget.routeId, period: _period);
+      if (!mounted) return;
       setState(() {
         _profile = p;
         _summary = s;
         _loading = false;
+        _loadingDone = true;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '$e';
         _loading = false;
+        _loadingDone = true;
       });
     }
   }
@@ -111,7 +123,10 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen> {
   Widget _buildBody() {
     final p = _profile!;
     final radarValues = p.abilityRadar.map((k, v) => MapEntry(k, (v as num).toDouble()));
-    final isEmpty = p.weakPoints.isEmpty && radarValues.values.every((v) => v == 0);
+    // 空态判据：无评估节点即无学情数据。单机版中做题/复习/自评都会落掌握记录，
+    // 「无评估节点」等价于「无作答记录」；旧判据（weakPoints 为空且雷达全 0）
+    // 因未评估节点也算薄弱点而基本永不触发。
+    final isEmpty = p.assessedNodes == 0;
 
     return ListView(
       padding: const EdgeInsets.all(16),

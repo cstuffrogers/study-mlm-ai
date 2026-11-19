@@ -194,12 +194,17 @@ class Profile {
   final List<WeakPoint> weakPoints;
   final Map<String, dynamic> masteryDistribution;
   final String summary;
+  /// 已评估 / 全部知识点数（与后端 build_profile 同键，用于空态判据）。
+  final int assessedNodes;
+  final int totalNodes;
   Profile({
     required this.routeId,
     required this.abilityRadar,
     required this.weakPoints,
     required this.masteryDistribution,
     required this.summary,
+    required this.assessedNodes,
+    required this.totalNodes,
   });
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
         routeId: j['route_id'] ?? '',
@@ -210,6 +215,8 @@ class Profile {
         masteryDistribution:
             (j['mastery_distribution'] as Map?)?.cast<String, dynamic>() ?? {},
         summary: j['summary'] ?? '',
+        assessedNodes: (j['assessed_nodes'] as num?)?.toInt() ?? 0,
+        totalNodes: (j['total_nodes'] as num?)?.toInt() ?? 0,
       );
 }
 

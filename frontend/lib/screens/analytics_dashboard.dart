@@ -62,11 +62,19 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   Map<String, dynamic>? _fit;
   bool _loading = true;
   String? _error;
+  bool _loadingDone = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 页面重新可见时刷新数据（从做题/复习返回后 initState 不执行，需主动刷新）
+    if (_loadingDone && !_loading && mounted) _load();
   }
 
   Future<void> _load() async {
@@ -81,16 +89,20 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       try {
         fit = await _reviewApi.fit(routeId: widget.routeId);
       } catch (_) {}
+      if (!mounted) return;
       setState(() {
         _data = d;
         _motivation = mot;
         _fit = fit;
         _loading = false;
+        _loadingDone = true;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '$e';
         _loading = false;
+        _loadingDone = true;
       });
     }
   }
@@ -180,7 +192,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             _kv('平均记忆保持率', avgRet == null ? '—' : '${(avgRet * 100).toStringAsFixed(0)}%'),
             _kv('到期积压', '$dueCount 项'),
             _kv('累计作答', '${d['total_attempts'] ?? 0} 题'),
-            _kv('近期平均分', d['avg_score'] == null ? '—' : '${((d['avg_score'] as num) * 100).toStringAsFixed(0)}%'),
+            _kv('平均得分', d['avg_score'] == null ? '—' : '${((d['avg_score'] as num) * 100).toStringAsFixed(0)}%'),
           ]),
         ),
         const SizedBox(height: 12),
