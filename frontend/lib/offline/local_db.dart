@@ -28,6 +28,28 @@ class LocalDb {
   static bool _ready = false;
   static Future<void>? _loading;
 
+  /// 写操作串行化队列的尾部（D159 并发安全）。
+  ///
+  /// 背景：quiz 提交 / 复习回写这类「读-改-写」跨越多个 await（flush、多次
+  /// upsert）。两个并发写入会在 await 间隙交错：同一份测试可能两次都通过
+  /// 「已提交」查重、同节点的稳定性增量互相覆盖。所有会变更数据的操作先
+  /// 进本队列，前一个彻底写完后下一个才开始。
+  ///
+  /// 注意：本队列**不可重入**——写任务内部再调 LocalDb.write 会死锁；
+  /// 内部调用（如 upsert 的读-改-写）保持同步段即可，不要再套锁。
+  static Future<void>? _writeLock;
+
+  /// 把写操作排进串行队列，FIFO 执行。
+  static Future<T> write<T>(Future<T> Function() task) {
+    final prev = _writeLock;
+    final base = prev ?? Future<void>.value();
+    final run = base.then<T>((_) => task());
+    // 只保留尾部占位：阻塞后续写入；错误已由调用方接收，这里吞掉错误，
+    // 避免队列链因未处理的异步异常而断掉。
+    _writeLock = run.then<void>((_) {}, onError: (_) {});
+    return run;
+  }
+
   /// routeId -> {nodeId: record}
   static Map<String, dynamic> mastery = {};
   /// routeId -> {sectionId: {status, anchor, updated_at}}
@@ -77,6 +99,7 @@ class LocalDb {
     try {
       return (jsonDecode(raw) as Map).cast<String, dynamic>();
     } catch (_) {
+      _quarantine(key, raw);
       return {};
     }
   }
@@ -87,8 +110,18 @@ class LocalDb {
     try {
       return jsonDecode(raw) as List;
     } catch (_) {
+      _quarantine(key, raw);
       return [];
     }
+  }
+
+  /// 文档解析失败时不静默丢弃：把原文隔离保存到 `<文档键>_corrupt`，
+  /// 内存里按空数据继续，用户数据不会「一坏全没」——出问题时仍可从隔离键
+  /// 找回原始文本（D159 版本迁移/数据安全）。
+  static void _quarantine(String key, String raw) {
+    final p = _prefs;
+    if (p == null) return;
+    p.setString(LocalStoreKeys.corruptKey(key), raw);
   }
 
   static Future<void> flush() async {
@@ -179,6 +212,32 @@ class LocalDb {
       out.add(rec);
     }
     return out;
+  }
+
+  // ------------------------------------------------------------ 时间比较
+
+  /// 时间戳尾部带时区标识：`Z`/`z` 或显式偏移（`+08:00` / `-0800`）。
+  static final RegExp _hasZone = RegExp(r'(?:Z|z|[+-]\d{2}:?\d{2})$');
+
+  static DateTime? _parseTime(dynamic v) {
+    if (v is! String || v.isEmpty) return null;
+    final dt = DateTime.tryParse(v);
+    if (dt == null) return null;
+    // 带 Z/偏移的时间戳已是 UTC；无时区信息的时间戳（如 data_compat._nowIso()
+    // 的本地墙钟写法）按本地时区解释——两种格式混存时必须归一到同一时刻，
+    // 否则比较会整体偏移一个时区差。
+    return _hasZone.hasMatch(v) ? dt.toUtc() : dt.toLocal().toUtc();
+  }
+
+  /// 按「时刻」比较两个时间戳字符串（升序）：
+  /// 优先解析成 DateTime——同一时刻可能写成 UTC `...Z` 或本地无时区两种格式，
+  /// 直接比字符串会因格式差异排错序（如 `...09:00:00Z` 与 `...09:00:00.500Z`）；
+  /// 解析失败退化为字符串比较，保证永不抛错。
+  static int compareTimeAsc(dynamic a, dynamic b) {
+    final ta = _parseTime(a);
+    final tb = _parseTime(b);
+    if (ta != null && tb != null) return ta.compareTo(tb);
+    return '$a'.compareTo('$b');
   }
 
   // ------------------------------------------------------------ 便捷读写

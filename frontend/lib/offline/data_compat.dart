@@ -178,6 +178,13 @@ class DataCompat {
     if (format is int && format > backupFormat) {
       throw FormatException('备份格式 v$format 比本版本（v$backupFormat）新，请先升级软件');
     }
+    // D159：数据结构版本同样不可高于本版本——否则新版写下的新增字段会被
+    // 老代码静默丢弃（老代码不认识、merge 不进去，也不报错）。
+    final bSchema = parsed['data_schema'];
+    if (bSchema is int && bSchema > DataCompat.schema) {
+      throw FormatException(
+          '备份数据结构 v$bSchema 比本版本（v$schema）新，请先升级软件再恢复');
+    }
 
     final counts = <String, int>{};
     final docs = parsed['docs'];

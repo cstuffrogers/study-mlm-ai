@@ -499,6 +499,17 @@ class LocalQuiz {
       String testId, List<Map<String, dynamic>> answers) async {
     await OfflineContent.ensureQuiz();
     await LocalDb.ensure();
+    // D159 并发安全：从「已提交」查重到掌握度回写跨越多个 await（flush×2、
+    // 每个节点一次 upsert）。两个并发提交会在 await 间隙交错：同一份测试
+    // 两次都通过查重 → 重复判分与重复作答流水；同节点的稳定性增量按旧快照
+    // 计算互相覆盖。整个写阶段走 LocalDb.write 串行队列，后一个提交读到的
+    // 状态必是前一个写完的终态。
+    return LocalDb.write(() => _submitLocked(testId, answers));
+  }
+
+  /// submit 的写阶段（调用方已持 LocalDb.write 串行锁，内部不得再进锁）。
+  static Future<Map<String, dynamic>> _submitLocked(
+      String testId, List<Map<String, dynamic>> answers) async {
     final raw = LocalDb.tests[testId];
     // D135：这两处原来抛裸 `Exception`，界面上拿不到状态码，只能显示
     // 「Exception: …」；后端是 404（测试不存在）/ 409（重复提交），这里对齐。
@@ -743,7 +754,9 @@ class LocalQuiz {
     // D136：一次提交里所有小题的 `created_at` 相同，只按时间倒序等于没定义顺序
     // （后端原为 SQL 无 tie-break，单机为不稳定排序）。并列按 quiz_id 升序，两端同式。
     rows.sort((a, b) {
-      final c = '${b['created_at']}'.compareTo('${a['created_at']}');
+      // D159：按时刻比较而非字符串——created_at 混有 `…Z` 与无时区两种格式
+      // 时字符串序会排错（如 `09:00:00Z` 与 `09:00:00.500Z`）。并列仍按 quiz_id 升序。
+      final c = LocalDb.compareTimeAsc(b['created_at'], a['created_at']);
       return c != 0 ? c : '${a['quiz_id']}'.compareTo('${b['quiz_id']}');
     });
     // D135：与后端 `quiz_routes.history()` 同式钳制 `max(1, min(limit, 500))`。

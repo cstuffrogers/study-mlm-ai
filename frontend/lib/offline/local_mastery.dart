@@ -416,46 +416,51 @@ class LocalMastery {
   ///  · 返回体补齐 `applied` / `reason` / `retention_now` / `review_count_delta`。
   static Future<Map<String, dynamic>> applyReview(
       String routeId, String nodeId, double correctRatio) async {
-    await LocalDb.ensure();
-    final existing = LocalDb.masteryFor(routeId)[nodeId];
-    if (existing is! Map) {
+    // D159 并发安全：「有无掌握记录」的检查与回写跨 upsert 的 await，两个并发
+    // 复习可能都通过检查、或互相覆盖稳定性增量。整段进 LocalDb.write 串行队列。
+    return LocalDb.write(() async {
+      await LocalDb.ensure();
+      final existing = LocalDb.masteryFor(routeId)[nodeId];
+      if (existing is! Map) {
+        return {
+          'node_id': nodeId,
+          'applied': false,
+          'reason': '尚无掌握记录',
+        };
+      }
+
+      final rec = record(routeId, nodeId);
+      final basis =
+          (rec['basis'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final gain = dnum(_cfg['gain'], 0.15);
+      final regress = dnum(_cfg['regress'], 0.2);
+      final base = dnum(basis['stability']) <= 0
+          ? stabilitySeed(dnum(rec['score']))
+          : dnum(basis['stability']);
+      final stability =
+          (base + (correctRatio >= 0.8 ? gain : -regress)).clamp(0.0, 1.0);
+      final acc = dnum(basis['accuracy']);
+      final out = await upsert(
+        routeId,
+        nodeId,
+        {
+          'stability': round4(stability),
+          if (acc > 0) 'accuracy': round4((acc + correctRatio) / 2),
+        },
+        'review',
+        scheduleReview: true,
+      );
       return {
         'node_id': nodeId,
-        'applied': false,
-        'reason': '尚无掌握记录',
-      };
-    }
-    final rec = record(routeId, nodeId);
-    final basis =
-        (rec['basis'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-    final gain = dnum(_cfg['gain'], 0.15);
-    final regress = dnum(_cfg['regress'], 0.2);
-    final base = dnum(basis['stability']) <= 0
-        ? stabilitySeed(dnum(rec['score']))
-        : dnum(basis['stability']);
-    final stability =
-        (base + (correctRatio >= 0.8 ? gain : -regress)).clamp(0.0, 1.0);
-    final acc = dnum(basis['accuracy']);
-    final out = await upsert(
-      routeId,
-      nodeId,
-      {
+        'applied': true,
         'stability': round4(stability),
-        if (acc > 0) 'accuracy': round4((acc + correctRatio) / 2),
-      },
-      'review',
-      scheduleReview: true,
-    );
-    return {
-      'node_id': nodeId,
-      'applied': true,
-      'stability': round4(stability),
-      'retention_now': round4(retention(0.0, stability)),
-      'next_review_at': out['next_review_at'],
-      'review_count_delta': 1,
-      'level': out['level'],
-      'score': out['score'],
-    };
+        'retention_now': round4(retention(0.0, stability)),
+        'next_review_at': out['next_review_at'],
+        'review_count_delta': 1,
+        'level': out['level'],
+        'score': out['score'],
+      };
+    });
   }
 
   static List<Map<String, dynamic>> interleaved(String routeId, {int n = 8}) {

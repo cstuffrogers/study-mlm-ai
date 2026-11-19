@@ -95,4 +95,9 @@ class LocalStoreKeys {
   // —— 其它 ——
   /// 学习记录同步队列
   static const String syncQueue = 'sync_queue_v1';
+
+  /// 损坏文档隔离键：`<文档键>_corrupt`。
+  /// LocalDb 读到解析失败的文档时，把原文原样存到这里，内存按空数据运行，
+  /// 保证坏数据可找回（不影响七份文档键本身的备份/恢复面）。
+  static String corruptKey(String docKey) => '${docKey}_corrupt';
 }

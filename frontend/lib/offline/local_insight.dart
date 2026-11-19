@@ -344,7 +344,8 @@ class LocalInsight {
         })
         .toList();
     final attempts = LocalDb.attemptsForRoute(routeId)
-      ..sort((a, b) => '${a['created_at']}'.compareTo('${b['created_at']}'));
+      // D159：按时刻排序（created_at 混格式时字符串序不可靠），取最近 10 条。
+      ..sort((a, b) => LocalDb.compareTimeAsc(a['created_at'], b['created_at']));
     final recent =
         attempts.length > 10 ? attempts.sublist(attempts.length - 10) : attempts;
     final avgRecent = recent.isEmpty
@@ -693,7 +694,8 @@ class LocalInsight {
     final rows = LocalDb.attemptsForRoute(routeId)
         .where((a) => a['is_correct'] != true)
         .toList()
-      ..sort((a, b) => '${b['created_at']}'.compareTo('${a['created_at']}'));
+      // D159：按时刻倒序（混合时区/格式的 created_at 不能直接比字符串）。
+      ..sort((a, b) => LocalDb.compareTimeAsc(b['created_at'], a['created_at']));
     final out = <Map<String, dynamic>>[];
     final seen = <String>{};
     for (final r in rows) {

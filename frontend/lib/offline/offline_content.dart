@@ -29,6 +29,10 @@ class OfflineContent {
   static final Map<String, Map<String, dynamic>> _sectionCache = {};
   static final Map<String, Map<String, dynamic>> _sectionMetaById = {};
   static final Map<String, List<Map<String, dynamic>>> _nodesBySection = {};
+  /// 节点 id → 节点定义。`node()` 是作答归属解析、错题回填、复习队列的
+  /// 热路径（每条作答都可能查一次），用 Map 索引把 O(节点数) 的线性扫描
+  /// 降为 O(1)，避免大数据量下分析页整链被拖慢。
+  static final Map<String, Map<String, dynamic>> _nodeById = {};
 
   static bool _metaReady = false;
   static bool _chunksReady = false;
@@ -67,6 +71,7 @@ class OfflineContent {
       for (final n in _list(_meta['nodes'])) {
         final sid = n['section_id'] as String? ?? '';
         (_nodesBySection[sid] ??= <Map<String, dynamic>>[]).add(n);
+        _nodeById['${n['id']}'] = n;
       }
       _metaReady = true;
     }();
@@ -152,12 +157,7 @@ class OfflineContent {
   static List<Map<String, dynamic>> nodesOf(String sectionId) =>
       List<Map<String, dynamic>>.from(_nodesBySection[sectionId] ?? const []);
 
-  static Map<String, dynamic>? node(String nodeId) {
-    for (final n in allNodes) {
-      if (n['id'] == nodeId) return n;
-    }
-    return null;
-  }
+  static Map<String, dynamic>? node(String nodeId) => _nodeById[nodeId];
 
   static double thresholdOf(String sectionId) {
     final t = sectionMeta(sectionId)?['unlock_threshold'];
