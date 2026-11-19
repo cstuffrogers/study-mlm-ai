@@ -954,9 +954,48 @@ def _d155_fix_quotes2() -> None:
                                 break
 
 
+def _d155_fix_quotes3() -> None:
+    """D155 第三轮：修复 how_to_use 字段中弯引号内改写冒充原文的 3 条。
+
+    这些引号内是完整句子，但与原著原文有细微差异（非逐字），
+    修正为可在库内逐字匹配的原文表述。
+    """
+    # (sid, title_prefix) → [(旧引文, 新原文)]
+    HOW_TO_USE_FIXES3: dict[tuple[str, str], list[tuple[str, str]]] = {
+        ('sec_C_01', '《大难临头，出路何在？》（1917）'):
+            [('国家垄断资本主义是社会主义最完备的物质准备',
+              '国家垄断资本主义是社会主义的最充分的物质准备')],
+        ('sec_C_06', '《关于妇女运动的决议》（1922.7）'):
+            [('妇女解放的第一个先决条件就是一切女性重新回到公共的劳动中去',
+              '妇女解放的第一个先决条件就是一切女性重新回到公共的事业中去')],
+        ('sec_A_05', '《〈政治经济学批判〉序言》'):
+            [('劳动所得应当不折不扣按平等权利属于社会一切成员',
+              '劳动所得应当不折不扣和按照平等的权利属于社会一切成员')],
+    }
+    _QUOTE_PAIRS = [
+        ('“', '”'), ('‘', '’'), ('「', '」'), ('『', '』'),
+    ]
+    for sid, exts in READING_EXTENSIONS.items():
+        for ext in exts:
+            title = ext.get('title', '')
+            htu = ext.get('how_to_use', '')
+            if not htu:
+                continue
+            for (fsid, ftitle), fixes in HOW_TO_USE_FIXES3.items():
+                if fsid != sid or not title.startswith(ftitle):
+                    continue
+                for old_q, new_q in fixes:
+                    for q_open, q_close in _QUOTE_PAIRS:
+                        old = f'{q_open}{old_q}{q_close}'
+                        if old in htu:
+                            ext['how_to_use'] = htu = htu.replace(old, new_q)
+                            break
+
+
 _d155_fix_quotes()
 _d155_fix_quotes2()
-del _d155_fix_quotes, _d155_fix_quotes2
+_d155_fix_quotes3()
+del _d155_fix_quotes, _d155_fix_quotes2, _d155_fix_quotes3
 
 
 def extensions_for(section_id: str) -> list[dict]:
