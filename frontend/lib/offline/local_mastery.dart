@@ -769,7 +769,14 @@ class LocalMastery {
       throw LocalApiException(404, '章节不存在: $sectionId');
     }
     final payload = await OfflineContent.sectionPayload(sectionId);
-    markProgress(routeId, sectionId);
+    // D162：不降级已完成状态。若本章已标记完成（completed/done），打开导读不应
+    // 把状态退回 in_progress——否则阅读章的 completed 判定（sectionProgress 依赖
+    // status == 'completed'）会失效，门控、路线状态与推荐联动随之回退。
+    final prog = progressOf(routeId, sectionId);
+    final curStatus = '${prog['status'] ?? ''}';
+    if (curStatus != 'completed' && curStatus != 'done') {
+      markProgress(routeId, sectionId);
+    }
     final meta = OfflineContent.sectionMeta(sectionId) ?? const {};
     return {
       'section_id': sectionId,
