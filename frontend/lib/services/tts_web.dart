@@ -144,29 +144,28 @@ bool ttsVoicesLoaded() {
 
 bool ttsAvailable() => true;
 
-/// 浏览器里的语音包（中文优先，其余排在后面也列出来，方便用户手选）。
+/// 浏览器里的语音包（**只列中文，英文等非中文语音一律不出现**）。
 ///
-/// 首发版只列中文项，结果「本机只有英文语音」时列表全空、用户以为功能没做；
-/// 现在非中文也列（页面会标注语言），选择权交给用户。
+/// 用户要求「语音包不要英文的」：避免用户手选英文语音去读普通话，导致发音怪异。
+/// 后端神经语音（晓晓等）本就是高质量中文语音，浏览器语音仅作兜底，故这里只保留
+/// voiceScore>0 的中文项；无任何中文语音时返回空表（朗读仍会走后端神经语音或
+/// 自动优选，不会因此静默）。
 Future<List<TtsVoiceOption>> ttsListVoices() async {
   _ensureVoices();
   if (_voices.isEmpty) _refreshVoices();
   final out = <TtsVoiceOption>[];
   for (final v in _voices) {
+    if (_voiceScore(v) <= 0) continue; // 非中文（英文等）一律不列
     out.add(TtsVoiceOption(
       name: v.name,
       label: v.name,
       locale: v.lang,
       network: v.localService == false,
-      chinese: _voiceScore(v) > 0,
+      chinese: true,
       gender: _genderOf(v),
     ));
   }
-  // 中文在前，同组内保持引擎给的顺序
-  out.sort((a, b) {
-    if (a.chinese != b.chinese) return a.chinese ? -1 : 1;
-    return 0;
-  });
+  // 仅剩中文，保持引擎给的顺序
   return out;
 }
 

@@ -91,10 +91,12 @@ void main() {
       expect(src, contains('_browserSpeak(t, id, rate)'));
     });
 
-    test('非中文的本机语音也列出来（否则本机只有英文时列表全空像没做）', () {
+    test('语音包只列中文，英文等非中文不出现', () {
       final src = _read('lib/services/tts_web.dart');
-      expect(src, contains('chinese: _voiceScore(v) > 0'));
-      expect(src, contains('out.sort'));
+      expect(src, contains('if (_voiceScore(v) <= 0) continue'),
+          reason: '非中文（英文等）语音必须过滤掉，不进语音包列表');
+      expect(src, contains('chinese: true'),
+          reason: '列出来的都是中文语音');
     });
   });
 
