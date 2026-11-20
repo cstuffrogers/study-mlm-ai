@@ -3,7 +3,7 @@
 设计：
   · 页面保存的凭证写入本机 backend/.llm_config.json（自动加入 .gitignore，
     不会进正文库/版本库），进程内立即 os.environ 生效，无需重启后端。
-  · 配置优先级：页面保存值 > backend/.env 环境变量 > 缺省值。
+  · 配置优先级：页面保存值 > 缺省值（**不再回落 .env**，运行时只认 web 端输入）。
   · GET 永不回传完整密钥，只给 masked 掩码与来源，避免前端泄露。
   · 清空某字段 = 恢复 .env / 缺省值。
   · 内置 provider 预设只帮用户填 base_url / model，不上传任何密钥。
@@ -32,8 +32,6 @@ _DEFAULTS = {
     "LLM_MODEL": "qwen-plus",
 }
 _LOCK = threading.Lock()
-# 进程启动时 .env 已由 app.py load_dotenv 载入；保存基线以便「清空页面值」时恢复。
-_ENV_BASELINE: dict[str, str] | None = None
 
 
 def _read_file() -> dict[str, str]:
@@ -54,26 +52,30 @@ def _baseline(key: str) -> str:
 def apply_to_environment() -> dict[str, str]:
     """把页面保存的值覆盖到 os.environ；返回实际生效的完整配置。
 
+    **只认 web 端（功能中心）写入的 .llm_config.json，不再从 .env 回填**：
+    页面没配或配空的项，用硬编码缺省值（仅 base_url / model 有），其余直接
+    从 os.environ 移除，避免 .env 里的旧值漏进运行时。web 端输入什么，
+    对话引擎就用什么。
+
     CloudLayer / LLMRouter 每次构造都重新读取 os.environ，因此保存后立即生效。
-    注意：仅移除页面覆盖值时，若 .env 原本给过该变量，os.environ.pop 会连同
-    .env 值一起丢掉；因此先保存一份进程启动时的 .env 基线，再按它恢复。
     """
-    global _ENV_BASELINE
-    if _ENV_BASELINE is None:
-        _ENV_BASELINE = {k: os.environ.get(k, "") for k in _KEYS}
     saved = _read_file()
+    eff: dict[str, str] = {}
     with _LOCK:
         for key in _KEYS:
             val = saved.get(key, "").strip()
             if val:
                 os.environ[key] = val
-            elif key in saved:
-                baseline = _ENV_BASELINE.get(key, "")
-                if baseline:
-                    os.environ[key] = baseline
+                eff[key] = val
+            else:
+                default = _DEFAULTS.get(key, "")
+                if default:
+                    os.environ[key] = default
+                    eff[key] = default
                 else:
                     os.environ.pop(key, None)
-        return {k: os.environ.get(k, _DEFAULTS.get(k, "")) for k in _KEYS}
+                    eff[key] = ""
+    return eff
 
 
 def masked(secret: str) -> str:
@@ -89,7 +91,7 @@ def current_status() -> dict:
     saved = _read_file()
     eff = apply_to_environment()
     key = eff.get("LLM_API_KEY", "")
-    sources = {k: ("页面配置" if saved.get(k, "").strip() else ".env/缺省") for k in _KEYS}
+    sources = {k: ("页面配置" if saved.get(k, "").strip() else "缺省") for k in _KEYS}
     return {
         "configured": bool(key and eff.get("LLM_BASE_URL") and eff.get("LLM_MODEL")),
         "masked_api_key": masked(key),

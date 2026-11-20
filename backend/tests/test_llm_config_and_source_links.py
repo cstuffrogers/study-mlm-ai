@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 
 import pytest
@@ -97,24 +98,36 @@ def test_llm_config_api_masks_secret_and_validates():
 
 
 def test_partial_save_does_not_reset_other_fields(tmp_path, monkeypatch):
-    """只改 model 时，未提交的 base_url / 密钥不能被重置（None ≠ 空字符串）。"""
+    """只改 model 时，web 上已保存的 base_url / 密钥不能被重置（None ≠ 空字符串）。
+
+    新语义：运行时只认 web 端（.llm_config.json），不再从 .env 回填。
+    """
     from services import llm_config_service as svc
 
     fake = tmp_path / "cfg.json"
+    # 模拟用户此前已在 web 端保存过的配置
+    fake.write_text(json.dumps({
+        "LLM_API_KEY": "web-saved-secret",
+        "LLM_BASE_URL": "https://example.com/v1",
+        "LLM_MODEL": "model-a",
+    }), encoding="utf-8")
     monkeypatch.setattr(svc, "_CONFIG_PATH", fake)
-    monkeypatch.setattr(svc, "_ENV_BASELINE", {
-        k: os.environ.get(k, "") for k in svc._KEYS
-    })
-    monkeypatch.setenv("LLM_API_KEY", "test-secret-key")
-    monkeypatch.setenv("LLM_BASE_URL", "https://example.com/v1")
-    monkeypatch.setenv("LLM_MODEL", "model-a")
+    # .env 里放不同的值，验证它们不会漏进运行时
+    monkeypatch.setenv("LLM_API_KEY", "env-secret-should-not-leak")
+    monkeypatch.setenv("LLM_BASE_URL", "https://env-should-not-leak.example")
+    monkeypatch.setenv("LLM_MODEL", "env-model-should-not-leak")
     st = svc.save({"api_key": "", "model": "model-b",
                    "base_url": None, "max_retries": None})
     assert st["base_url"] == "https://example.com/v1"
     assert st["model"] == "model-b"
     assert st["configured"] is True
-    assert st["masked_api_key"] != "test-secret-key"
-    assert "LLM_BASE_URL" not in fake.read_text(encoding="utf-8")
+    assert st["masked_api_key"] != "web-saved-secret"
+    assert st["masked_api_key"] != "env-secret-should-not-leak"
+    # base_url=None 表示不改动，web 上已保存的地址应原样留在文件里
+    assert "https://example.com/v1" in fake.read_text(encoding="utf-8")
+    # .env 的旧值不得出现在生效配置里
+    assert st["base_url"] != "https://env-should-not-leak.example"
+    assert st["model"] != "env-model-should-not-leak"
 
 
 def test_llm_config_runtime_refresh(monkeypatch):
