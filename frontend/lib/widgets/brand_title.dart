@@ -1,15 +1,16 @@
-// 首页品牌标题：「唯物」/「马哲精读」两行，带红底金字与描边。
+// 首页品牌标题：「唯物」/「马哲精读」两行，金色毛笔字，强有力、豪迈。
 //
 // 为什么要单做一个 Widget：原先是 GradientHeader 里的一行纯文本「马列毛思想AI伴读」，
 // 14 个字挤在 24px 的字号里，被右侧红白人物像压成省略号。用户要求改成
 // 「唯物」+「马哲精读」两行，并且字体/颜色要有特色、贴合红白主视觉。
 //
-// 设计口径（不要自由发挥）：
-//  · 两行都是**白字**，第二行「马哲精读」配金色下划线与字距拉开的副标签，
-//    保证与 AppColors.heroGradient（深红→红→赭）对比度足够（白/红 ≈ 7:1）。
-//  · 金色只做**描边、下划线、小方章**，不做满字金——满字金在红底上对比度掉到 2.6:1，
-//    字号一大就发闷，且大面积金字显俗。
+// 设计口径（金色毛笔字风格）：
+//  · 两行都是**金色**（AppColors.gold），体现豪迈有力的毛笔字风格。
+//  · 用多层 shadows 做深色描边（深红棕，与 heroGradient 背景融合），模拟毛笔
+//    粗厚笔画的力道，金色字在深红底上更突出、有"写"出来的质感。
+//  · 字号一大一小形成节奏，字距拉开，体现"豪迈"；字重 w900 增强力量感。
 //  · 字体只用随包捆绑的 Deng（assets/fonts/Deng.ttf），不吃网络字体，离线可用。
+//  · 右上角保留金色小方章作视觉锚点；第二行保留金色下划线收束。
 //  · 本组件的高度在**未缩放**状态下由 [BrandTitle.baseHeight] 给出，
 //    供 GradientHeader 预留头部高度（大字号时由头部按 textScaler 放大，不溢出）。
 import 'package:flutter/material.dart';
@@ -20,11 +21,24 @@ class BrandTitle extends StatelessWidget {
   const BrandTitle({super.key});
 
   /// 未缩放状态下的两行总高（含行距），供头部测量用。
-  static const double baseHeight = 68;
+  static const double baseHeight = 78;
 
   /// 第一行字号 / 第二行字号 —— 一大一小形成节奏，而不是同样大小堆两行。
-  static const double _line1 = 25;
-  static const double _line2 = 21;
+  static const double _line1 = 32;
+  static const double _line2 = 27;
+
+  /// 深色描边阴影色：深红棕，与 heroGradient（深红→红→赭）背景融合，
+  /// 在金色字四周形成粗厚笔画，模拟毛笔落纸的力道。
+  static const Color _stroke = Color(0xBD1F0E06);
+
+  /// 描边阴影列表：上下左右 + 斜角 + 底部，形成粗厚描边，让金字有"写"出来的质感。
+  static const List<Shadow> _brushStroke = [
+    Shadow(color: _stroke, blurRadius: 7, offset: Offset(-2, -2)),
+    Shadow(color: _stroke, blurRadius: 7, offset: Offset(2, -2)),
+    Shadow(color: _stroke, blurRadius: 7, offset: Offset(-2, 2)),
+    Shadow(color: _stroke, blurRadius: 7, offset: Offset(2, 2)),
+    Shadow(color: _stroke, blurRadius: 5, offset: Offset(0, 3)),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +46,7 @@ class BrandTitle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 「唯物」：带轻微字距，右上角加一枚金色小方章作视觉锚点
+        // 「唯物」：金色大字，毛笔描边，字距拉开，右上角加一枚金色小方章作视觉锚点
         Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,14 +56,12 @@ class BrandTitle extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 fontFamily: 'Deng',
-                color: Colors.white,
+                color: AppColors.gold,
                 fontSize: _line1,
-                height: 1.12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 4.0,
-                shadows: [
-                  Shadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 1)),
-                ],
+                height: 1.1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 6.0,
+                shadows: _brushStroke,
               ),
             ),
             const SizedBox(width: 6),
@@ -77,7 +89,7 @@ class BrandTitle extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        // 「马哲精读」：白字 + 金色下划线，字距拉开一点，压住上一行的重量
+        // 「马哲精读」：金色毛笔字 + 金色下划线，字距拉开一点，压住上一行的重量
         Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,17 +99,18 @@ class BrandTitle extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 fontFamily: 'Deng',
-                color: Colors.white,
+                color: AppColors.gold,
                 fontSize: _line2,
-                height: 1.15,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2.0,
+                height: 1.12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4.0,
+                shadows: _brushStroke,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             Container(
-              width: 96,
-              height: 2,
+              width: 104,
+              height: 2.5,
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
                   AppColors.gold,

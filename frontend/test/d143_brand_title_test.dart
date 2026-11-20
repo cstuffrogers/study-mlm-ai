@@ -2,7 +2,8 @@
 //
 // 锁三件事：
 //  ① 首页标题是两行「唯物」/「马哲精读」，不再有「马列毛思想AI伴读」那串；
-//  ② 两行各自有样式特色（字距/金色下划线/小方章），且**不是**满字金（红底对比度）；
+//  ② 两行都是**金色毛笔字**（AppColors.gold + 多层描边阴影模拟粗厚笔画），
+//     配金色下划线/小方章，强有力、豪迈；
 //  ③ 功能中心不再有「学习路线」入口，但其余入口都在（别顺手删多了）。
 import 'dart:io';
 
@@ -31,13 +32,23 @@ void main() {
       expect(title, contains("'马哲精读'"));
     });
 
-    test('两行都是白字（红底对比度），金色只用于描边/下划线/方章', () {
+    test('两行都是金色毛笔字，配描边阴影与金色下划线/方章', () {
       final src = _read('lib/widgets/brand_title.dart');
-      // 两处 Text 都用 Colors.white；出现金色的地方必须带上 AppColors.gold
-      expect('Colors.white'.allMatches(src).length, greaterThanOrEqualTo(2));
-      expect(src, contains('AppColors.gold'));
-      // 不能把整行文字设成金色：红底 + 金字对比度只有 2.6:1
-      expect(src, isNot(contains('color: AppColors.gold,\n                fontSize')));
+      // 两处 Text 都用 AppColors.gold（金色毛笔字）；
+      // 用多层 shadows 做深色描边，模拟毛笔粗厚笔画的力道
+      expect(src, contains('color: AppColors.gold'));
+      final goldCount = src.split('AppColors.gold').length - 1;
+      expect(goldCount, greaterThanOrEqualTo(2),
+          reason: '金色应出现在两处文字及装饰中');
+      expect(src, contains('shadows: _brushStroke'),
+          reason: '金色字必须带描边阴影，模拟毛笔笔画');
+      expect(src, contains('_brushStroke'),
+          reason: '描边阴影列表应被引用');
+      // 不再是白字
+      expect(src, isNot(contains('color: Colors.white,')),
+          reason: '已改为金色毛笔字，不应再是白字');
+      // 保留金色下划线与小方章
+      expect(src, contains('AppColors.gold.withValues'));
     });
 
     testWidgets('两行文字真实渲染出来，且上下排列（不是一行）', (t) async {
