@@ -143,6 +143,8 @@ class DataCompat {
       'format': backupFormat,
       'data_schema': schema,
       'client_version': AppMeta.clientVersion,
+      'user_id': LocalDb.userId,
+      'route_id': LocalDb.routeId,
       'exported_at': _nowIso(),
       'docs': {
         LocalStoreKeys.mastery: LocalDb.mastery,
@@ -226,7 +228,13 @@ class DataCompat {
       if (incoming is! Map) return;
       for (final e in incoming.entries) {
         if (e.value is! Map) continue;
-        current[e.key] = e.value;
+        // 字段级合并：同名记录以备份为准，但备份记录里缺失的字段保留本地
+        // 已有值，避免旧备份（缺新字段）整体覆盖把本地字段清空。
+        final existing = current[e.key];
+        current[e.key] = (existing is Map)
+            ? {...existing.cast<String, dynamic>(),
+                ...e.value.cast<String, dynamic>()}
+            : e.value;
       }
       counts[key] = incoming.length;
     }
@@ -245,8 +253,18 @@ class DataCompat {
         if (inner is! Map) continue; // 非对象条目丢弃，保护既有路线文档
         final existing = current[route];
         if (existing is Map) {
-          final merged = Map<String, dynamic>.from(existing)
-            ..addAll(inner.cast<String, dynamic>());
+          // 逐条字段级合并：同名节点记录以备份为准，但备份缺失的字段保留
+          // 本地已有值，避免旧备份把新字段整体覆盖掉。
+          final merged = Map<String, dynamic>.from(existing);
+          for (final r in inner.entries) {
+            final ex = merged[r.key];
+            if (r.value is Map) {
+              merged[r.key] = (ex is Map)
+                  ? {...ex.cast<String, dynamic>(),
+                      ...r.value.cast<String, dynamic>()}
+                  : r.value;
+            }
+          }
           current[route] = merged;
         } else {
           current[route] = inner;

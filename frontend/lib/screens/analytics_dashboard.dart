@@ -187,6 +187,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 ]),
               );
             }),
+            const SizedBox(height: 8),
+            const Text('五级按掌握度得分划分：未学 / 入门 / 熟悉 / 熟练 / 精通；'
+                '得分由准确性、难度、稳定性、对话参与、费曼表达五项加权合成。',
+                style: TextStyle(fontSize: 11, height: 1.5, color: AppColors.ink400)),
           ]),
         ),
         const SizedBox(height: 12),
@@ -197,6 +201,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             _kv('到期积压', '$dueCount 项'),
             _kv('累计作答', '${d['total_attempts'] ?? 0} 题'),
             _kv('平均得分', d['avg_score'] == null ? '—' : '${((d['avg_score'] as num) * 100).toStringAsFixed(0)}%'),
+            const SizedBox(height: 8),
+            const Text('保持率按记忆半衰期衰减估算：距上次复习越久越低，到期积压会拉低健康度。',
+                style: TextStyle(fontSize: 11, height: 1.5, color: AppColors.ink400)),
           ]),
         ),
         const SizedBox(height: 12),
@@ -232,6 +239,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 ]),
               );
             }),
+            const SizedBox(height: 8),
+            const Text('维度得分 = 该维度已评估知识点的掌握度均值（未评估节点不记 0 分）。',
+                style: TextStyle(fontSize: 11, height: 1.5, color: AppColors.ink400)),
           ]),
         ),
         const SizedBox(height: 12),

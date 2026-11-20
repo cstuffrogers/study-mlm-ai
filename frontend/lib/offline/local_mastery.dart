@@ -577,8 +577,11 @@ class LocalMastery {
         // 后端 `review_service.fit_parameters()` 无样本分支同样回 `n`，补齐同键。
         'n': rows.length,
         'message': '复习日志不足（${rows.length}/6），继续积累后再拟合',
+        'succ_rate': 0.0,
+        'lapse_rate': 0.0,
         'current': current,
         'suggested': null,
+        'note': '样本不足，无法拟合 FSRS 参数',
       };
     }
     final succ =

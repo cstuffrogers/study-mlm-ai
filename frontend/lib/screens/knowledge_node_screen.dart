@@ -100,6 +100,12 @@ class _KnowledgeNodeScreenState extends State<KnowledgeNodeScreen> {
         ],
         if (basis.isNotEmpty) ...[
           _title('掌握依据（五信号）'),
+          const Padding(
+            padding: EdgeInsets.only(left: 2, bottom: 6),
+            child: Text('掌握度由准确性、难度、稳定性、对话参与、费曼表达五项加权合成（权重见离线配置），'
+                '各信号取 0~1，掌握度总分同样为 0~1。',
+                style: TextStyle(fontSize: 11, height: 1.5, color: AppColors.ink400)),
+          ),
           _card(Column(
             children: basis.entries.map((e) {
               final v = (e.value as num?)?.toDouble() ?? 0.0;
