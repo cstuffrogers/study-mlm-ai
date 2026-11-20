@@ -249,7 +249,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     padding: EdgeInsets.zero,
                   )),
               _row('作者 / 版权', hasAuthor ? AppMeta.author : '未声明'),
-              _row('软件许可', '${AppMeta.licenseName}（仅覆盖代码与自撰材料）'),
+              _row('软件许可', '${AppMeta.licenseName}（代码与自撰材料，禁止商用）'),
               const SizedBox(height: 8),
               Text(
                 '本项目为个人非官方学习工具，与任何政党、政府机关、出版社或研究机构'

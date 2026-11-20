@@ -24,7 +24,9 @@ void main() {
     expect(AppMeta.isValidUrl(AppMeta.releasesUrl), isTrue);
     // 署名与 LICENSE 一致
     expect(AppMeta.author, 'xxmz contributors');
-    expect(AppMeta.licenseName, 'MIT');
+    expect(AppMeta.licenseName, 'CC BY-NC 4.0');
+    expect(AppMeta.licenseName, isNot('MIT'),
+        reason: '项目已改为开源但禁止商用，许可名不能是 MIT');
     expect(AppMeta.isValidUrl(''), isFalse);
     expect(AppMeta.isValidUrl('github.com/owner/repo'), isFalse);
     expect(AppMeta.isValidUrl('https://example.com/placeholder'), isFalse);
@@ -55,7 +57,7 @@ void main() {
     expect(find.textContaining('github.com/cstuffrogers/study-mlm-ai'),
         findsWidgets);
     expect(find.text('xxmz contributors'), findsOneWidget);
-    expect(find.textContaining('MIT'), findsWidgets);
+    expect(find.textContaining('CC BY-NC'), findsWidgets);
     expect(find.text('最新版本下载'), findsOneWidget);
     final openBtn = find.widgetWithText(OutlinedButton, '打开 GitHub');
     expect(openBtn, findsOneWidget);

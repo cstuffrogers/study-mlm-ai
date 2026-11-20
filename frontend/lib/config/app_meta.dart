@@ -32,7 +32,8 @@ class AppMeta {
   static const author = 'xxmz contributors';
 
   /// 软件许可（只覆盖代码与自撰辅助材料，不覆盖原著正文与译文）。
-  static const licenseName = 'MIT';
+  /// CC BY-NC 4.0：源码公开，允许非商业使用，**禁止商用**。
+  static const licenseName = 'CC BY-NC 4.0';
 
   /// 正文权利声明的文件名（仓库根目录），关于页给出仓库内路径提示。
   static const contentNoticeDoc = 'CONTENT-NOTICE.md';
