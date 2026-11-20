@@ -1,9 +1,12 @@
 // 学习分析看板（P3）— 学习健康度 + 掌握分布 + 保持率 + 校准 + 错因 + 短板 + 动机 + FSRS 拟合
 import 'package:flutter/material.dart';
+import '../offline/local_db.dart';
 import '../offline/local_quiz.dart';
 import '../services/analytics_service_api.dart';
+import '../services/api_client.dart';
 import '../services/motivation_service_api.dart';
 import '../services/review_service_api.dart';
+import '../services/sync_controller.dart';
 import '../widgets/motivation_banner.dart';
 import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
@@ -63,6 +66,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   bool _loading = true;
   String? _error;
   bool _loadingDone = false;
+  bool _busyReset = false;
 
   @override
   void initState() {
@@ -233,8 +237,62 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         const SizedBox(height: 12),
         AnimatedEntrance(delayMs: 260, child: _fitCard()),
         const SizedBox(height: 24),
+        _dataManageCard(),
       ],
     );
+  }
+
+  /// 数据管理：本机数据清除入口（使用说明里承诺的「应用内可重置进度」）。
+  Widget _dataManageCard() {
+    return _sectionCard('数据管理', [
+      const Text(
+        '学习进度、作答记录、掌握度、复习计划与学情信号都存于本机。'
+        '如需清空重来，可重置学习进度（阅读笔记与原文标注不受影响，操作不可恢复）。',
+        style: TextStyle(fontSize: 12, height: 1.6, color: AppColors.ink500),
+      ),
+      const SizedBox(height: 10),
+      OutlinedButton.icon(
+        onPressed: _busyReset ? null : _resetProgress,
+        icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+        label: const Text('重置学习进度'),
+      ),
+    ]);
+  }
+
+  Future<void> _resetProgress() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('重置学习进度？'),
+        content: const Text(
+          '将清除：掌握度、章节进度、作答记录、测验记录、复习计划与学情信号。\n\n'
+          '阅读笔记、划线与书签**不会**被清除。此操作不可恢复，建议先到「本机数据」页复制一份备份。',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('确认重置')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busyReset = true);
+    try {
+      await LocalDb.resetAll();
+      // 清掉离线待同步队列：重置前的事件若回灌会把旧进度又写回来。
+      await SyncController.clearQueue();
+      // 清缓存：重置后各接口要立刻返回空数据，而不是命中重置前的缓存。
+      ApiClient.invalidatePrefix();
+      if (!mounted) return;
+      setState(() => _busyReset = false);
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busyReset = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('重置失败：$e')));
+    }
   }
 
   Widget _fitCard() {

@@ -574,6 +574,8 @@ class LocalMastery {
     if (rows.length < 6) {
       return {
         'available': false,
+        // 后端 `review_service.fit_parameters()` 无样本分支同样回 `n`，补齐同键。
+        'n': rows.length,
         'message': '复习日志不足（${rows.length}/6），继续积累后再拟合',
         'current': current,
         'suggested': null,

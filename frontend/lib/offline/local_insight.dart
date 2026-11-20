@@ -725,13 +725,20 @@ class LocalInsight {
       'status': 'recorded',
     }];
     if (test is Map) {
-      test['appeals'] = list;
-      LocalDb.tests[testId] = test;
+      // 用 Map<String, dynamic>.from 重建：`test` 可能是 Map<String, String>
+      // （例如外部写入的纯字符串记录），直接 `test['appeals'] = list` 会因
+      // 值类型不符在运行时抛 TypeError。
+      final t = Map<String, dynamic>.from(test);
+      t['appeals'] = list;
+      LocalDb.tests[testId] = t;
       LocalDb.flushKey('tests');
     }
     return {
       'status': 'recorded',
       'message': '申诉已在本机记录；单机版不改变既有评分，建议对照原文自行复核。',
+      // 后端 `/api/quiz/appeal` 回 `appeal_id = ap_{test_id}_{item_id}`；单机补齐同形键
+      // （不改变「本机只记录、不进审核队列」的语义）。
+      'appeal_id': 'ap_${testId}_$itemId',
       'test_id': testId,
       'item_id': itemId,
       'count': list.length,

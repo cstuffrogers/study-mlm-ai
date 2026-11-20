@@ -276,8 +276,10 @@ class LocalRouter {
       return LocalInsight.nodeDetail(rest[2], routeId);
     }
     if (rest.length > 1 && rest[1] == 'summary') {
+      // 后端 `GET /api/mastery/summary` 的 period 走 query；GET 时 body 恒为空，
+      // 只看 body 会把 `?period=month` 静默吞掉、筛选永远停在 week。
       return LocalInsight.summary(routeId,
-          period: '${body['period'] ?? 'week'}');
+          period: '${query['period'] ?? body['period'] ?? 'week'}');
     }
     if (rest.length > 1 && rest[1] == 'record') {
       // 供阅读页直接记录一次自评

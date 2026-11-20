@@ -220,29 +220,38 @@ class DataCompat {
   static Map<String, int> _mergeDocs(Map<String, dynamic> docs,
       {required bool keepCurrentApiKey}) {
     final counts = <String, int>{};
+    // 单层对象文档：只合并 Map 条目（非对象条目静默丢弃，防止备份把
+    // 对话/测验文档里的既有记录整体换成非法值）。
     void mergeMap(String key, Map<String, dynamic> current, Object? incoming) {
       if (incoming is! Map) return;
-      current.addAll(incoming.cast<String, dynamic>());
+      for (final e in incoming.entries) {
+        if (e.value is! Map) continue;
+        current[e.key] = e.value;
+      }
       counts[key] = incoming.length;
     }
 
     /// 两层文档（routeId -> {nodeId / sectionId: 记录}）必须**逐条合并**：
     /// 直接 addAll 会把整条路线的旧记录盖掉，造成「恢复一次丢了一条线」。
+    ///
+    /// 防御：备份可能被篡改/伪造。`inner` 不是 Map 时**跳过**而不是照单覆盖——
+    /// 否则一个字符串就能把某条路线的整份掌握/进度文档盖成垃圾，后续读取整线失效。
     void mergeNested(String key, Map<String, dynamic> current, Object? incoming) {
       if (incoming is! Map) return;
       var added = 0;
       for (final e in incoming.entries) {
         final route = '${e.key}';
         final inner = e.value;
+        if (inner is! Map) continue; // 非对象条目丢弃，保护既有路线文档
         final existing = current[route];
-        if (inner is Map && existing is Map) {
+        if (existing is Map) {
           final merged = Map<String, dynamic>.from(existing)
             ..addAll(inner.cast<String, dynamic>());
           current[route] = merged;
         } else {
           current[route] = inner;
         }
-        added += inner is Map ? inner.length : 1;
+        added += inner.length;
       }
       counts[key] = added;
     }
@@ -278,10 +287,13 @@ class DataCompat {
       final current = key == LocalStoreKeys.attempts
           ? LocalDb.attempts
           : LocalDb.signals;
-      // 按内容去重合并，顺序保留（本机在前、备份在后），不丢任一侧
-      final seen = current.map((e) => jsonEncode(e)).toSet();
+      // 按内容去重合并，顺序保留（本机在前、备份在后），不丢任一侧。
+      // 只接受 Map 条目：非对象条目（字符串/数字等伪造数据）直接丢弃，
+      // 避免脏条目混进作答/信号流水，拖垮后续按 Map 读取的统计。
+      final seen = current.whereType<Map>().map((e) => jsonEncode(e)).toSet();
       var added = 0;
       for (final item in incoming) {
+        if (item is! Map) continue;
         if (seen.add(jsonEncode(item))) {
           current.add(item);
           added++;

@@ -1,5 +1,6 @@
 // 测试历史 / 错题本 — 逐题作答记录，可按错题过滤，展开看题面/答案/解析/溯源
 import 'package:flutter/material.dart';
+import '../offline/local_mastery.dart';
 import '../offline/local_quiz.dart';
 import '../services/content_service_api.dart';
 import '../widgets/chunk_tag.dart';
@@ -117,9 +118,11 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.line),
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+      child: Material(
+        color: Colors.white,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 14),
           childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
           leading: Container(
@@ -146,7 +149,7 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
             if ((r['error_reason'] ?? '').toString().isNotEmpty)
               _kv('诊断', r['error_reason'].toString(), AppColors.ink500),
             if ((r['created_at'] ?? '').toString().isNotEmpty)
-              _kv('时间', r['created_at'].toString().split('.').first, AppColors.ink400),
+              _kv('时间', _timeLabel(r['created_at'].toString()), AppColors.ink400),
             if ((r['source_chunk_id'] ?? '').toString().isNotEmpty)
               Align(
                 alignment: Alignment.centerLeft,
@@ -162,6 +165,7 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -200,4 +204,14 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
   }
 
   String _errLabel(String e) => LocalQuiz.errorLabel(e);
+
+  /// 作答时间：原始 ISO 串（UTC 带 Z）直接展示会与用户本地时间差一个时区，
+  /// 统一解析后按本地时区显示到分钟；解析失败退化为原串（去掉毫秒）。
+  String _timeLabel(String raw) {
+    final t = parseTime(raw);
+    if (t == null) return raw.split('.').first;
+    final p = t.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${p.year}-${two(p.month)}-${two(p.day)} ${two(p.hour)}:${two(p.minute)}';
+  }
 }

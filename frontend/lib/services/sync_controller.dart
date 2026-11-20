@@ -54,6 +54,16 @@ class SyncController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 清空离线待同步队列（重置学习进度时调用，避免重置前的旧事件回灌覆盖）。
+  static Future<void> clearQueue() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.remove(_kQueue);
+    } catch (_) {
+      // 插件不可用（如纯单测环境）时静默降级
+    }
+  }
+
   /// 上报学习进度（断点续学）。离线则入队。
   Future<void> reportProgress(String sectionId, int lastPosition,
       {String routeId = 'route_A', String status = 'in_progress'}) async {

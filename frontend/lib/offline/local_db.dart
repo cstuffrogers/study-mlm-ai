@@ -65,6 +65,13 @@ class LocalDb {
   /// 学情信号（对话/费曼）：[{node_id, type, intensity, created_at}]
   static List<dynamic> signals = [];
 
+  // ------------------------------------------------------------ 数据生命周期上限
+  // 作答流水与学情信号没有上限会让存储随使用无限膨胀（每条 flush 全量序列化）。
+  // 界面只读最近窗口（历史 200 条 / 动机 14 天），统计也只取最近样本：
+  // 保留最近 3000 条作答、500 条信号，落盘前裁剪，够覆盖正常使用的多年数据。
+  static const int maxAttempts = 3000;
+  static const int maxSignals = 500;
+
   static String get userId => kDemoUserId;
 
   static String get routeId =>
@@ -127,6 +134,7 @@ class LocalDb {
   static Future<void> flush() async {
     if (!_ready) return;
     if (_memoryOnly || _prefs == null) return;
+    _trim();
     final p = _prefs!;
     await p.setString(_kMastery, jsonEncode(mastery));
     await p.setString(_kProgress, jsonEncode(progress));
@@ -143,6 +151,7 @@ class LocalDb {
   /// 漏掉 break 会让任意单键 flush 实际把全部文档都写一遍。
   static Future<void> flushKey(String key) async {
     if (!_ready || _memoryOnly || _prefs == null) return;
+    _trim();
     final p = _prefs!;
     switch (key) {
       case 'mastery':
@@ -260,6 +269,16 @@ class LocalDb {
         <String, dynamic>{};
     m[sectionId] = rec;
     progress[route] = m;
+  }
+
+  /// 落盘前裁剪超出上限的流水（列表按「最新在后」保留尾部）。
+  static void _trim() {
+    if (attempts.length > maxAttempts) {
+      attempts = attempts.sublist(attempts.length - maxAttempts);
+    }
+    if (signals.length > maxSignals) {
+      signals = signals.sublist(signals.length - maxSignals);
+    }
   }
 
   static Map<String, dynamic>? dialogue(String id) =>

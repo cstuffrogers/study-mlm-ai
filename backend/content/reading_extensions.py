@@ -636,7 +636,7 @@ def _d155_fix_quotes() -> None:
     LABEL_FIXES: dict[tuple[str, str, str], str] = {
         ('sec_C_01', '《论粮食税》', 'intro'): '列宁 → 斯大林 → 毛泽东',
         ('sec_C_01', '《大难临头，出路何在？》', 'points[2]'): '监督办法是众所周知和轻而易举的',
-        ('sec_C_01', '《十月革命四周年》', 'points[1]'): '我们用革命的办法夺得了政权，现在要用改良主义的办法（即退却）来建设',
+        ('sec_C_01', '《十月革命四周年》', 'points[1]'): '我们用革命的办法夺得了政权，现在要用改良主义的办法（即退却）来建设。',
         ('sec_C_02', '《论联合政府》', 'intro'): '革命向建设过渡',
         ('sec_C_02', '《新民主主义的经济建设》', 'points[1]'): '谁领导、为谁',
         ('sec_C_03', '《论联合政府》', 'intro'): '废除一党专政、成立联合政府',
@@ -646,14 +646,14 @@ def _d155_fix_quotes() -> None:
         ('sec_C_04', '《法德农民问题》', 'points[0]'): '既是劳动者又是私有者',
         ('sec_C_04', '《关于农业合作化问题》', 'points[1]'): '干部是决定的因素',
         ('sec_C_04', '《关于农业合作化问题》', 'points[2]'): '是否增产',
-        ('sec_A_06', '《哲学的贫困》', 'intro'): '我们的这一世界观，首先在马克思的《哲学的贫困》和《共产主义宣言》中问世',
+        ('sec_A_06', '《哲学的贫困》', 'intro'): '我们的这一世界观，首先在马克思的《哲学的贫困》和《共产主义宣言》中问世。',
         ('sec_A_06', '《哲学的贫困》', 'points[2]'): '工人阶级解放的条件就是要消灭一切阶级',
         ('sec_A_06', '《法俄革命之比较观》', 'intro'): '中国人第一次怎样给一场社会主义革命定位',
         ('sec_A_06', '《庶民的胜利》', 'intro'): '胜利的是什么主义',
         ('sec_A_06', '《庶民的胜利》', 'intro'): '十月革命在中国如何被讲述',
         ('sec_A_07', '《神圣家族》', 'intro'): '唯物主义必须把自己的理论用到社会领域',
         ('sec_A_07', '《由经济上解释中国近代思想变动的原因》', 'intro'): '唯物史观是什么',
-        ('sec_A_07', '《由经济上解释中国近代思想变动的原因》', 'intro'): '为什么孔子能支配中国人心两千年、又为什么这套思想在近代失效力',
+        ('sec_A_07', '《由经济上解释中国近代思想变动的原因》', 'intro'): '为什么孔子能支配中国人心两千年、又为什么这套思想在近代失效力？',
         ('sec_A_08', '《资本论》第一卷 第十一至十三章', 'intro'): '劳动过程如何被资本改造',
         ('sec_A_09', '《1848 年至 1850 年的法兰西阶级斗争》', 'intro'): '革命死了！——革命万岁！',
         ('sec_A_09', '《一八七一年的巴黎', 'points[2]'): '怎么发生、怎么被扑灭',
@@ -992,10 +992,65 @@ def _d155_fix_quotes3() -> None:
                             break
 
 
+def _d160_fix_language() -> None:
+    """D160 第八轮：语言规范性修复。
+
+    1. how_to_use 中用引号包裹、但非原著逐字引文的概括短语 → 去掉引号，保留为普通描述文本；
+    2. 一处弯引号“”开、直角引号」合的配对错误 → 改为与开引号一致的弯引号闭合；
+    3. 错别字「抡要」→「纲要」（sec_A_13《辩证唯物主义 历史唯物主义》how_to_use）。
+    """
+    # (sid, title_prefix) → [应去除引号的概括短语]
+    HOW_TO_USE_LABEL_STRIP: dict[tuple[str, str], list[str]] = {
+        ('sec_C_01', '《论合作社》'): ['建设时期怎么对待商品、合作社与国家'],
+        ('sec_A_09', '《1848 年至 1850'): ['各阶级如何把自己的失败误认为胜利'],
+        ('sec_B_06', '《帝国主义和社会主义运动中的分裂》'): ['垄断→超额利润→工人贵族→社会沙文主义'],
+        ('sec_B_08', '《目前形势和我们的任务》'): ['哪一条是政治前提（人心）、哪一条是纯技术'],
+        ('sec_B_08', '《我们的战略》'): ['不放过任何合法机会、到群众所在的一切地方去'],
+        ('sec_B_08', '《关于一九二四至二六年党对国民党的关系》'): ['帮助资产阶级建党和被资产阶级夺权'],
+        ('sec_B_10', '《学习和时局》'): ['整风之后如何对待历史与犯错误的同志'],
+        ('sec_C_06', '《女子解放与改造的商榷》'): ['私有制怎样使妇女降到家庭内的从属地位'],
+        ('sec_A_13', '《辩证唯物主义 历史唯物主义》'): ['辩证法四特征 / 哲学唯物主义三特征'],
+        ('sec_A_11', '《反杜林论》哲学篇（第一编·哲学）'): ['辩证法四特征 / 哲学唯物主义三特征'],
+        ('sec_B_04', '《党内组织及宣传教育问题议决案》'): ['在别人党里工作时，自己的组织形式怎么不被稀释'],
+        ('sec_B_01', '《中国职工运动简史'): ['为什么必须灌输、必须有一个职业革命家组织'],
+    }
+    _QUOTE_PAIRS = [
+        ('“', '”'), ('‘', '’'), ('「', '」'), ('『', '』'),
+    ]
+    for sid, exts in READING_EXTENSIONS.items():
+        for ext in exts:
+            title = ext.get('title', '')
+            htu = ext.get('how_to_use', '')
+            if not htu:
+                continue
+            matched = False
+            for (fsid, ftitle), phrases in HOW_TO_USE_LABEL_STRIP.items():
+                if fsid != sid or not title.startswith(ftitle):
+                    continue
+                matched = True
+                for phrase in phrases:
+                    for q_open, q_close in _QUOTE_PAIRS:
+                        quoted = f'{q_open}{phrase}{q_close}'
+                        if quoted in htu:
+                            ext['how_to_use'] = htu = htu.replace(quoted, phrase)
+                            break
+            if matched and '抡要' in htu:
+                ext['how_to_use'] = htu.replace('抡要', '纲要')
+
+    # 引号配对错误：sec_B_08《中国职工运动简史》第七章 points[0] 以“开、以」合
+    for ext in READING_EXTENSIONS.get('sec_B_08', []):
+        if not ext.get('title', '').startswith('《中国职工运动简史》第七章'):
+            continue
+        for i, p in enumerate(ext.get('points', [])):
+            if '一种欺骗」——' in p:
+                ext['points'][i] = p.replace('一种欺骗」——', '一种欺骗”——')
+
+
 _d155_fix_quotes()
 _d155_fix_quotes2()
 _d155_fix_quotes3()
-del _d155_fix_quotes, _d155_fix_quotes2, _d155_fix_quotes3
+_d160_fix_language()
+del _d155_fix_quotes, _d155_fix_quotes2, _d155_fix_quotes3, _d160_fix_language
 
 
 def extensions_for(section_id: str) -> list[dict]:
