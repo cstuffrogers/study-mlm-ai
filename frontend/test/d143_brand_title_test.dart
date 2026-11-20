@@ -2,8 +2,8 @@
 //
 // 锁三件事：
 //  ① 首页标题是两行「唯物」/「马哲精读」，不再有「马列毛思想AI伴读」那串；
-//  ② 两行都是**金色毛笔字**（AppColors.gold + 多层描边阴影模拟粗厚笔画），
-//     配金色下划线/小方章，强有力、豪迈；
+//  ② 两行都是**行楷金色字**（MaShanZheng 字体 + ShaderMask 亮金渐变），
+//     配金色下划线/小方章，四周**无黑影**（不用描边阴影，那是被否定的方案）；
 //  ③ 功能中心不再有「学习路线」入口，但其余入口都在（别顺手删多了）。
 import 'dart:io';
 
@@ -32,22 +32,25 @@ void main() {
       expect(title, contains("'马哲精读'"));
     });
 
-    test('两行都是金色毛笔字，配描边阴影与金色下划线/方章', () {
+    test('两行都是行楷金色字，四周无黑影，配金色下划线/方章', () {
       final src = _read('lib/widgets/brand_title.dart');
-      // 两处 Text 都用 AppColors.gold（金色毛笔字）；
-      // 用多层 shadows 做深色描边，模拟毛笔粗厚笔画的力道
-      expect(src, contains('color: AppColors.gold'));
-      final goldCount = src.split('AppColors.gold').length - 1;
-      expect(goldCount, greaterThanOrEqualTo(2),
-          reason: '金色应出现在两处文字及装饰中');
-      expect(src, contains('shadows: _brushStroke'),
-          reason: '金色字必须带描边阴影，模拟毛笔笔画');
-      expect(src, contains('_brushStroke'),
-          reason: '描边阴影列表应被引用');
-      // 不再是白字
-      expect(src, isNot(contains('color: Colors.white,')),
-          reason: '已改为金色毛笔字，不应再是白字');
+      // 行楷字体：MaShanZheng（随包捆绑的开源行书）
+      expect(src, contains("fontFamily = 'MaShanZheng'"));
+      expect(src, contains('fontFamily: fontFamily'));
+      // 亮金渐变着色（ShaderMask），不是暗金单色
+      expect(src, contains('ShaderMask'));
+      expect(src, contains('BlendMode.srcIn'));
+      expect(src, contains('_brightGold'));
+      // 用户明确要求「四周不能有黑影」：不得再有描边/投影阴影
+      expect(src, isNot(contains('shadows:')),
+          reason: '描边阴影就是用户否定的「黑影」，必须移除');
+      expect(src, isNot(contains('Shadow(')),
+          reason: '不得使用任何 Shadow，否则字四周会出现暗色轮廓');
+      expect(src, isNot(contains('_brushStroke')));
+      // 行楷只有一个字重，不要合成加粗（会把书法笔画糊掉）
+      expect(src, isNot(contains('FontWeight.w900')));
       // 保留金色下划线与小方章
+      expect(src, contains('AppColors.gold'));
       expect(src, contains('AppColors.gold.withValues'));
     });
 

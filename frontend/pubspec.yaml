@@ -81,6 +81,12 @@ flutter:
     - family: Deng
       fonts:
         - asset: assets/fonts/Deng.ttf
+    # 行楷（Ma Shan Zheng，Google Fonts 开源字体，OFL 许可可商用）：
+    # 仅供首页品牌标题「唯物 / 马哲精读」使用。为保证离线可用与包体，
+    # 已用 fontTools 子集化到只含标题用字 + ASCII + 中文标点（约 38KB）。
+    - family: MaShanZheng
+      fonts:
+        - asset: assets/fonts/MaShanZheng-Regular.ttf
     - family: WarnSym
       fonts:
         - asset: assets/fonts/WarnSym.ttf
