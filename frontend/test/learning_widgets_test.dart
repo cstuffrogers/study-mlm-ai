@@ -121,15 +121,15 @@ void main() {
       'mastered': 2,
       'streak_days': 5,
       'milestones': [
-        {'label': '贯通 1 个知识点', 'achieved': true},
-        {'label': '贯通 3 个知识点', 'achieved': false},
+        {'label': '目标：贯通 1 个知识点', 'achieved': true},
+        {'label': '目标：贯通 3 个知识点', 'achieved': false},
       ],
       'next_best_action': {'kind': 'light_review', 'label': '做一轮交错复习', 'reason': '先清掉遗忘积压'},
     };
     await t.pumpWidget(_host(MotivationBanner(state: state)));
     expect(find.text('稳步推进'), findsOneWidget);
     expect(find.textContaining('弄懂一个概念'), findsOneWidget);
-    expect(find.text('贯通 1 个知识点'), findsOneWidget);
+    expect(find.text('目标：贯通 1 个知识点'), findsOneWidget);
     expect(find.textContaining('交错复习'), findsOneWidget);
   });
 

@@ -317,8 +317,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             style: const TextStyle(fontSize: 12, color: AppColors.ink500))
       else ...[
         _kv('复习成功率', '${((fit['succ_rate'] ?? 0) * 100).toStringAsFixed(0)}%'),
-        _kv('当前 gain', '${cur['gain']}'),
-        _kv('建议 gain', '${sug['gain']}'),
+        _kv('当前增益系数', '${cur['gain']}'),
+        _kv('建议增益系数', '${sug['gain']}'),
         const SizedBox(height: 4),
         Text('${fit['note'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.ink700)),
       ],

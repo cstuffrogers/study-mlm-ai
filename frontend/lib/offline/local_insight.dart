@@ -382,21 +382,21 @@ class LocalInsight {
     for (final step in [1, 3, 6, OfflineContent.allNodes.length]) {
       milestones.add({
         'key': 'master_$step',
-        'label': '贯通 $step 个知识点',
+        'label': '目标：贯通 $step 个知识点',
         'achieved': mastered >= step,
       });
     }
     for (final step in [3, 7]) {
       milestones.add({
         'key': 'streak_$step',
-        'label': '连续学习 $step 天',
+        'label': '目标：连续学习 $step 天',
         'achieved': streak >= step,
       });
     }
     for (final step in [10, 25, 50]) {
       milestones.add({
         'key': 'attempts_$step',
-        'label': '累计作答 $step 题',
+        'label': '目标：累计作答 $step 题',
         'achieved': attempts.length >= step,
       });
     }
