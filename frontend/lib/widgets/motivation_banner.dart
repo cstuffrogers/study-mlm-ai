@@ -1,6 +1,7 @@
 // 动机/挫折调节横幅（P3 D14）— 分级鼓励 + 里程碑 + 最小下一步
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'knowledge_node_list_sheet.dart';
 
 class MotivationBanner extends StatelessWidget {
   final Map<String, dynamic> state;
@@ -109,6 +110,38 @@ class MotivationBanner extends StatelessWidget {
               }).toList(),
             ),
           ],
+          // 知识点掌握统计（可点击展开知识点列表，按书籍分组，再点知识点进入深入学习）
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _statTap(
+                context: context,
+                icon: Icons.check_circle,
+                color: AppColors.success,
+                label: '已掌握',
+                count: state['mastered'] ?? 0,
+                nodes: (state['mastered_nodes'] as List?)
+                        ?.cast<Map<String, dynamic>>() ??
+                    const [],
+                kind: 'mastered',
+                routeId: state['route_id'] as String? ?? '',
+              ),
+              _statTap(
+                context: context,
+                icon: Icons.warning_amber_outlined,
+                color: AppColors.warning,
+                label: '薄弱',
+                count: state['weak'] ?? 0,
+                nodes: (state['weak_nodes'] as List?)
+                        ?.cast<Map<String, dynamic>>() ??
+                    const [],
+                kind: 'weak',
+                routeId: state['route_id'] as String? ?? '',
+              ),
+            ],
+          ),
           if (nextBest.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
@@ -143,6 +176,38 @@ class MotivationBanner extends StatelessWidget {
               ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _statTap({
+    required BuildContext context,
+    required IconData icon,
+    required Color color,
+    required String label,
+    required dynamic count,
+    required List<Map<String, dynamic>> nodes,
+    required String kind,
+    required String routeId,
+  }) {
+    final n = count is int ? count : 0;
+    return GestureDetector(
+      onTap: () => showKnowledgeNodeList(
+          context, nodes: nodes, routeId: routeId, kind: kind),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text('$label $n 个',
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+        ]),
       ),
     );
   }

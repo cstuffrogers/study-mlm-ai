@@ -11,7 +11,9 @@
       "avg_score"
     ],
     "GET /api/motivation/state": [
-      "avg_recent_accuracy"
+      "avg_recent_accuracy",
+      "mastered_nodes[]",
+      "weak_nodes[]"
     ],
     "GET /api/routes/route_A/sections/sec_A_00/gating": [
       "reason",
@@ -173,11 +175,14 @@
         "encouragement",
         "frustration",
         "mastered",
+        "mastered_nodes",
         "milestones",
         "next_best_action",
         "proficient",
         "route_id",
-        "streak_days"
+        "streak_days",
+        "weak",
+        "weak_nodes"
       ],
       "frustration": [
         "drivers",
@@ -193,6 +198,16 @@
         "kind",
         "label",
         "reason"
+      ],
+      "weak_nodes[]": [
+        "level",
+        "name",
+        "node_id",
+        "score",
+        "section_id",
+        "title",
+        "work",
+        "work_short"
       ]
     },
     "GET /api/quiz/history": {

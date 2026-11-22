@@ -14,7 +14,27 @@ from services.learning_db import session_scope
 from services import mastery_service as ms
 from services import review_service
 from content.knowledge_graph import KNOWLEDGE_NODES
+from content.routes import SECTIONS
 from model.models_learning import QuizAttempt, StruggleSignal
+
+# section_id -> 章节摘要，用于把知识点关联到所属书籍（work/title/work_short）
+_SECTION_INDEX = {s["id"]: s for s in SECTIONS}
+
+
+def _node_brief(n: dict, m_map: dict) -> dict:
+    """知识点摘要：关联所属书籍，附掌握度。"""
+    sec = _SECTION_INDEX.get(n.get("section_id", ""), {})
+    rec = m_map.get(n["id"], {})
+    return {
+        "node_id": n["id"],
+        "name": n["name"],
+        "section_id": n.get("section_id", ""),
+        "work": sec.get("work", ""),
+        "work_short": sec.get("work_short", ""),
+        "title": sec.get("title", ""),
+        "score": round(rec.get("score", 0.0), 3),
+        "level": rec.get("level", "unseen"),
+    }
 
 # 里程碑定义（key, 文案, 达成条件由 _milestones 计算）
 _MASTER_STEPS = [1, 3, 6, len(KNOWLEDGE_NODES)]
@@ -88,6 +108,12 @@ async def motivation_state(user_id: str, route_id: str) -> dict:
     # 5) 下一步（easy win 优先，降低受挫时负荷）
     next_best = _next_best_action(level, m_map, due_count, avg_recent)
 
+    # 6) 已掌握 / 薄弱知识点列表（供前端「进度平稳」卡片点击展开查看）
+    mastered_nodes = [_node_brief(n, m_map) for n in KNOWLEDGE_NODES
+                      if m_map.get(n["id"], {}).get("level") == "mastered"]
+    weak_nodes = [_node_brief(n, m_map) for n in KNOWLEDGE_NODES
+                  if m_map.get(n["id"], {}).get("level") in ("unseen", "beginner")]
+
     return {
         "route_id": route_id,
         "frustration": {"level": level, "score": frustration, "drivers": drivers},
@@ -95,10 +121,13 @@ async def motivation_state(user_id: str, route_id: str) -> dict:
         "avg_recent_accuracy": None if avg_recent is None else round(avg_recent, 3),
         "mastered": mastered,
         "proficient": proficient,
+        "weak": len(weak_nodes),
         "due_count": due_count,
         "streak_days": streak,
         "milestones": milestones,
         "next_best_action": next_best,
+        "mastered_nodes": mastered_nodes,
+        "weak_nodes": weak_nodes,
     }
 
 

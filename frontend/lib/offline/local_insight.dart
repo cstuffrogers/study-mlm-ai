@@ -362,6 +362,31 @@ class LocalInsight {
         mastered++;
       }
     }
+    // 已掌握 / 薄弱知识点列表（供「进度平稳」卡片点击展开查看）
+    final masteredNodes = <Map<String, dynamic>>[];
+    final weakNodes = <Map<String, dynamic>>[];
+    for (final n in OfflineContent.allNodes) {
+      final nodeId = n['id'] as String;
+      final rec = (mastery[nodeId] as Map?)?.cast<String, dynamic>() ?? const {};
+      final lv = rec['level'] as String? ?? 'unseen';
+      final secId = n['section_id'] as String? ?? '';
+      final sec = OfflineContent.sectionMeta(secId) ?? const {};
+      final brief = <String, dynamic>{
+        'node_id': nodeId,
+        'name': n['name'] as String? ?? '',
+        'section_id': secId,
+        'work': sec['work'] as String? ?? '',
+        'work_short': sec['work_short'] as String? ?? '',
+        'title': sec['title'] as String? ?? '',
+        'score': dnum(rec['score'], 0.0),
+        'level': lv,
+      };
+      if (lv == 'mastered') {
+        masteredNodes.add(brief);
+      } else if (lv == 'unseen' || lv == 'beginner') {
+        weakNodes.add(brief);
+      }
+    }
     final dueCount = LocalMastery.dueReviews(routeId).length;
     final struggleLoad = math.min(
         1.0, signals.fold<double>(0.0, (a, s) => a + dnum(s['intensity'])) / 3.0);
@@ -415,11 +440,14 @@ class LocalInsight {
       'avg_recent_accuracy': avgRecent == null ? null : round4(avgRecent),
       'mastered': mastered,
       'proficient': proficient,
+      'weak': weakNodes.length,
       'due_count': dueCount,
       'streak_days': streak,
       'total_attempts': attempts.length,
       'milestones': trimmed,
       'next_best_action': _nextBest(level, mastery, dueCount, avgRecent),
+      'mastered_nodes': masteredNodes,
+      'weak_nodes': weakNodes,
     };
   }
 
