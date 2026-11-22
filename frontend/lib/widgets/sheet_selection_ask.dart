@@ -152,6 +152,7 @@ class _AskBar extends StatelessWidget {
         children: [
           Row(mainAxisSize: MainAxisSize.min, children: [
             _mini(Icons.copy_rounded, '复制', AppColors.ink700, onCopy),
+            const Spacer(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: SpeakButton(id: speakId, compact: true, text: text),

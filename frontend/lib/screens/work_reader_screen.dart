@@ -228,6 +228,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         final i = ids.indexOf(focus);
         if (i >= 0) focusPara = i;
       }
+      // 文本已重新加载，清掉该书的分页缓存，避免用旧文本的分页结果。
+      _pageCache.removeWhere((k, _) => k.startsWith('${widget.work}|'));
       setState(() {
         _paragraphs = list;
         _focusPara = focusPara;
@@ -287,17 +289,32 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     }
   }
 
-  Future<void> _savePrefs() async {
+  /// 只写当前页码（翻页高频，避免每次全量 encode 书签/笔记/高亮造成卡顿）。
+  Future<void> _saveLastPage() async {
     final sp = await SharedPreferences.getInstance();
-    await sp.setDouble(_k(LocalStoreKeys.readerFontSize), _fontSize);
+    await sp.setInt(_k(LocalStoreKeys.readerLastPage), _page);
+  }
+
+  /// 只写书签/笔记/高亮（标注变更低频，单独写避免连带无关 key）。
+  Future<void> _saveAnnotations() async {
+    final sp = await SharedPreferences.getInstance();
     await sp.setString(_k(LocalStoreKeys.readerBookmarks),
         jsonEncode(_bookmarks.map((e) => e.toJson()).toList()));
     await sp.setString(_k(LocalStoreKeys.readerNotes),
         jsonEncode(_notes.map((e) => e.toJson()).toList()));
     await sp.setString(_k(LocalStoreKeys.readerHighlights),
         jsonEncode(_highlights.map((e) => e.toJson()).toList()));
-    await sp.setInt(_k(LocalStoreKeys.readerLastPage), _page);
   }
+
+  /// 只写字号（改字号时用）。
+  Future<void> _saveFontSize() async {
+    final sp = await SharedPreferences.getInstance();
+    await sp.setDouble(_k(LocalStoreKeys.readerFontSize), _fontSize);
+  }
+
+  /// 分页缓存：同一本书、同一字号、同一视口、同一系统字号缩放下，
+  /// 分页测量结果不变。命中缓存可跳过 TextPainter 逐行测量（进入/返回卡顿主因）。
+  static final Map<String, ReaderDoc> _pageCache = <String, ReaderDoc>{};
 
   Future<void> _buildDoc(Size size) async {
     final width = size.width - _padding.left - _padding.right;
@@ -306,7 +323,15 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     // 分页测量必须带上系统字号缩放：渲染侧的 Text 会自动应用 textScaler，
     // 测量侧不带就会低估行高，末尾那一行被挤出页面（用户实报）。
     final scaler = MediaQuery.textScalerOf(context);
-    final doc = ReaderPaginator.paginate(paragraphs: _paragraphs, width: width, height: height, style: _textStyle(), textScaler: scaler);
+    // 分页缓存：同一本书 + 字号 + 视口 + 系统缩放的测量结果不变，
+    // 命中缓存直接用，跳过 TextPainter 逐行测量（进入/返回卡顿主因）。
+    final cacheKey = '${widget.work}|$_fontSize|$width|$height|${scaler.scale}';
+    final cached = _pageCache[cacheKey];
+    final doc = cached ?? ReaderPaginator.paginate(
+      paragraphs: _paragraphs, width: width, height: height,
+      style: _textStyle(), textScaler: scaler,
+    );
+    if (cached == null) _pageCache[cacheKey] = doc;
     final sp = await SharedPreferences.getInstance();
     final last = sp.getInt(_k(LocalStoreKeys.readerLastPage)) ?? 0;
     // 定位优先级：本次要跳到的分片 > 重排前停留页 > 上次进度
@@ -364,7 +389,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     await _pc?.animateToPage(p, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
     if (!mounted) return;
     setState(() => _page = p);
-    _savePrefs();
+    _saveLastPage();
     // 连续朗读中手动翻页：从新的一页重新开始念，而不是停掉。
     if (auto != null && _autoMode != null && p != _autoPage) _autoSpeak(p);
   }
@@ -382,7 +407,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       _docSize = null;
       _building = false;
     });
-    _savePrefs();
+    _saveFontSize();
   }
 
   /// 只打开/收起会话浮窗，不发送任何内容。
@@ -579,7 +604,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         }
       }
     });
-    _savePrefs();
+    _saveAnnotations();
     _snack(isEdit ? '已更新标注' : '已保存标注');
   }
 
@@ -601,7 +626,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     ).then((ok) {
       if (ok == true) {
         setState(() => _highlights.removeWhere((x) => identical(x, h)));
-        _savePrefs();
+        _saveAnnotations();
         _snack('已删除标注');
       }
     });
@@ -618,7 +643,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         _snack('已加书签');
       }
     });
-    _savePrefs();
+    _saveAnnotations();
   }
 
   /// 学习路线入口：这本书在哪些章里出现（主线主书 / 延伸阅读），点一下直接跳导读页。
@@ -740,7 +765,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 icon: const Icon(Icons.delete_outline, size: 18),
                 onPressed: () {
                   setState(() => _bookmarks.remove(b));
-                  _savePrefs();
+                  _saveAnnotations();
                   Navigator.pop(context);
                 },
               ),
@@ -770,7 +795,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 },
                 onDelete: () {
                   setState(() => _notes.remove(n));
-                  _savePrefs();
+                  _saveAnnotations();
                   Navigator.pop(context);
                   _snack('已删除笔记');
                 },
@@ -794,7 +819,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 },
                 onDelete: () {
                   setState(() => _highlights.removeWhere((x) => identical(x, h)));
-                  _savePrefs();
+                  _saveAnnotations();
                   Navigator.pop(context);
                   _snack('已删除标注');
                 },
@@ -917,9 +942,11 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   void _onSelectionChanged(SelectedContent? sel) {
     final t = (sel?.plainText ?? '').trim();
     if (t.isNotEmpty && t.length < 500) {
+      // 选区文本没变（点了已选区域）就不重建，避免无谓的整页重绘（卡顿主因之一）。
+      if (t == _selected) return;
       // 换了一段选区：旧浮框消失，它上面的朗读必须跟着停，
       // 否则会一直念着上一段选中的文字（用户实报）。
-      if (_selected != t && _selected.isNotEmpty) ttsStop();
+      if (_selected.isNotEmpty) ttsStop();
       setState(() => _selected = t);
       return;
     }
@@ -1074,7 +1101,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         // 左右滑动翻页也停朗读（用户实报：翻到下一页，上一页还在念）
         _stopSpeechIfPageChanged(i);
         setState(() => _page = i);
-        _savePrefs();
+        _saveLastPage();
         // 连续朗读中手动滑到别的页：跟到新的一页接着念（不是停）。
         // 自动翻页时 _autoPage 已经等于 i，这里不会重复触发。
         if (_autoMode != null && i != _autoPage) _autoSpeak(i);
@@ -1154,14 +1181,20 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _mini(Icons.copy_rounded, '复制', AppColors.ink700, () => _copyText(_selected)),
-              _mini(Icons.color_lens_rounded, '标色', AppColors.gold, () => _annotateSelection()),
-              _mini(Icons.checklist_rounded, '笔记', AppColors.info, () => _annotateSelection()),
+              const Spacer(),
+              _mini(Icons.color_lens_rounded, '标色/标签/笔记', AppColors.gold, () => _annotateSelection()),
+              const Spacer(),
               // 朗读当前选中的文字（与全站 TTS 一致）
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                 child: SpeakButton(id: 'reader-sel-${widget.work}-$_page-${_selected.length}', compact: true, text: _selected),
               ),
-              const SizedBox(width: 2),
+              const Spacer(),
+              _mini(Icons.close_rounded, '关闭', AppColors.ink400, () {
+                ttsStop();
+                setState(() => _selected = '');
+              }),
+              const Spacer(),
               const _DragHint(),
             ],
           ),
@@ -1374,7 +1407,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     if (mounted) setState(() => _page = p);
     final pc = _pc;
     if (pc != null && pc.hasClients) pc.jumpToPage(p);
-    _savePrefs();
+    _saveLastPage();
   }
 
   /// 收掉连续朗读（用户点停止 / 读到末尾 / 被别的朗读接管）。

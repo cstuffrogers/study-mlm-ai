@@ -38,15 +38,18 @@ class SelectionAskPanel extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisSize: MainAxisSize.min, children: [
           _mini(Icons.copy_rounded, '复制', AppColors.ink700, onCopy),
+          const Spacer(),
           if (onAnnotate != null) _mini(Icons.color_lens_rounded, '标色', AppColors.gold, onAnnotate!),
+          const Spacer(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: SpeakButton(id: speakId, compact: true, text: text),
           ),
-          const SizedBox(width: 2),
-          const _DragHandle(),
+          const Spacer(),
           if (onDismiss != null)
             _mini(Icons.close_rounded, '关闭', AppColors.ink400, onDismiss!),
+          const Spacer(),
+          const _DragHandle(),
         ]),
         const SizedBox(height: 6),
         Wrap(spacing: 4, runSpacing: 4, children: ChatMode.values.map((m) {
