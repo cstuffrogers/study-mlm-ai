@@ -1013,12 +1013,13 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final mq = MediaQuery.of(context);
-                      // 分页高度用**不含软键盘**的视口高度：输入标签/笔记时软键盘
-                      // 弹出/收起会改变 constraints.maxHeight，若直接用作分页高度，
-                      // 每次都触发 _buildDoc 重新分页（页数多时逐行测量整本书，
-                      // 输入/退出各卡一次）。加上 viewInsets.bottom 抵消键盘高度，
-                      // 键盘弹出/收起分页高度不变，不再重新分页。
-                      final size = Size(constraints.maxWidth, constraints.maxHeight + mq.viewInsets.bottom);
+                      // 分页尺寸用**不含软键盘的物理视口**：IME 弹出时 mq.size.height 变小
+                      // 但 viewInsets.bottom 增大，两者之和恒定。整数化避免浮点精度导致
+                      // needBuild 误判触发 _buildDoc 重新分页（页数多时逐行测量整本书，
+                      // 输入/退出各卡一次）。
+                      final vpHeight = (mq.size.height + mq.viewInsets.bottom).round();
+                      final vpWidth = mq.size.width.round();
+                      final size = Size(vpWidth.toDouble(), vpHeight.toDouble());
                       final needBuild = _doc == null ||
                           _docSize != size ||
                           _docScaler != MediaQuery.textScalerOf(context);
@@ -1529,8 +1530,6 @@ class _AnnotatedPage extends StatelessWidget {
         children.add(const SizedBox(height: ReaderPaginator.paraGap));
       }
     }
-    // 每页用 RepaintBoundary 隔离 paint：保存标注 / 输入 / 退出时，
-    // 只重绘当前页，不连带其他缓存页整片重绘（页数多时成本随页数增长）。
     // 每页用 RepaintBoundary 隔离 paint：保存标注 / 输入 / 退出时，
     // 只重绘当前页，不连带其他缓存页整片重绘（页数多时成本随页数增长）。
     return RepaintBoundary(

@@ -37,9 +37,10 @@ class SelectionAskPanel extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppShadows.soft),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisSize: MainAxisSize.min, children: [
-          _mini(Icons.copy_rounded, '复制', AppColors.ink700, onCopy),
+          SizedBox(width: 46, child: _mini(Icons.copy_rounded, '复制', AppColors.ink700, onCopy)),
           const Spacer(),
-          if (onAnnotate != null) _mini(Icons.color_lens_rounded, '标色', AppColors.gold, onAnnotate!),
+          if (onAnnotate != null)
+            SizedBox(width: 46, child: _mini(Icons.color_lens_rounded, '标色', AppColors.gold, onAnnotate!)),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -47,7 +48,7 @@ class SelectionAskPanel extends StatelessWidget {
           ),
           const Spacer(),
           if (onDismiss != null)
-            _mini(Icons.close_rounded, '关闭', AppColors.ink400, onDismiss!),
+            SizedBox(width: 46, child: _mini(Icons.close_rounded, '关闭', AppColors.ink400, onDismiss!)),
         ]),
         const SizedBox(height: 6),
         Wrap(spacing: 4, runSpacing: 4, children: ChatMode.values.map((m) {
