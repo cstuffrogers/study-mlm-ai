@@ -35,10 +35,8 @@ def _items():
 def test_sec_a08_guide_covers_relative_surplus():
     g = guide_for("sec_A_08")
     assert g, "sec_A_08 必须有导读"
-    concepts = [c[0] for c in g["core_concepts"]]
-    assert any("相对剩余价值" in c for c in concepts), concepts
     headings = " ".join(s["heading"] + s["body"] for s in g["sections"])
-    for kw in ("协作", "分工", "机器"):
+    for kw in ("协作", "分工", "机器", "相对剩余价值"):
         assert kw in headings, f"导读缺「{kw}」这一节内容：{kw} 不在 sections 里"
     # 导读必须给学员指到原文，且不得出现内部开发术语
     assert "查看原文" in g["source_note"]

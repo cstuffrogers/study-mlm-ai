@@ -66,11 +66,21 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
   String _selected = '';
 
   void _onSelectionChanged(SelectedContent? sel) {
-    final t = (sel?.plainText ?? '').trim();
+    _acceptSelection(sel?.plainText ?? '');
+  }
+
+  /// 延伸阅读自定义可选渲染（SelectableText）的选择回调。
+  /// SelectableText 传的是 TextSelection，这里转成文本后走同一套选区逻辑。
+  void _onExtSelectionChanged(String t) {
+    _acceptSelection(t);
+  }
+
+  void _acceptSelection(String t) {
+    final s = t.trim();
     // 与 work_reader_screen 一致：忽略空选区，只接受 <800 字的新锚点。
     // 关闭选区由 _dismissSelection() 显式完成，不再被 onSelectionChanged(null) 抢跑。
-    if (t.isNotEmpty && t.length < 800 && t != _selected) {
-      setState(() => _selected = t);
+    if (s.isNotEmpty && s.length < 800 && s != _selected) {
+      setState(() => _selected = s);
     }
   }
 
@@ -240,24 +250,11 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
     final bg = (g['background'] ?? '').toString();
     if (bg.isNotEmpty) parts.add('写作背景。$bg');
 
-    final concepts = (g['core_concepts'] as List?) ?? const [];
-    if (concepts.isNotEmpty) parts.add('核心概念。');
-    for (final c in concepts) {
-      final l = (c as List?) ?? const [];
-      if (l.isNotEmpty) parts.add('${l[0]}：${l.length > 1 ? l[1] : ''}');
-    }
-
     final sections = (g['sections'] as List?) ?? const [];
     if (sections.isNotEmpty) parts.add('正文导读。');
     for (final s in sections) {
       final m = (s as Map?) ?? const {};
       parts.add('${m['heading'] ?? ''}。${m['body'] ?? ''}');
-    }
-
-    final keyPoints = (g['key_points'] as List?) ?? const [];
-    if (keyPoints.isNotEmpty) parts.add('要点提炼。');
-    for (final k in keyPoints) {
-      parts.add(k.toString());
     }
 
     final discussion = (g['discussion'] as List?) ?? const [];
@@ -423,8 +420,6 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
         child: Text('该章暂无导读内容', style: TextStyle(color: AppColors.ink400)),
       );
     }
-    final concepts = (g['core_concepts'] as List?) ?? const [];
-    final keyPoints = (g['key_points'] as List?) ?? const [];
     final discussion = (g['discussion'] as List?) ?? const [];
     final sections = (g['sections'] as List?) ?? const [];
     final links = _sourceLinks;
@@ -452,23 +447,11 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                     ? (blockLinks['background'] as Map).cast<String, dynamic>() : null),
             const SizedBox(height: 14),
           ],
-          if (concepts.isNotEmpty) ...[
-            _sectionTitle('核心概念', '核心概念'),
-            ...concepts.asMap().entries.map((e) => _conceptTile(e.value,
-                link: _linkAt(blockLinks['concepts'], e.key))),
-            const SizedBox(height: 10),
-          ],
           if (sections.isNotEmpty) ...[
             _sectionTitle('正文导读', '正文导读', key: _readingKey),
             ...sections.asMap().entries.map((e) => _bodyBlock(e.value,
                 link: _linkAt(blockLinks['sections'], e.key))),
             const SizedBox(height: 6),
-          ],
-          if (keyPoints.isNotEmpty) ...[
-            _sectionTitle('要点提炼', '要点提炼'),
-            ...keyPoints.asMap().entries.map((e) => _bullet(e.value.toString(),
-                AppColors.brand, link: _linkAt(blockLinks['key_points'], e.key))),
-            const SizedBox(height: 10),
           ],
           if (discussion.isNotEmpty) ...[
             _sectionTitle('思考题（可用于会话演练）', '思考题'),
@@ -498,9 +481,9 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               child: Text(
                 g['source_note'].toString(),
                 style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.ink400,
-                  height: 1.5,
+                  fontSize: 12,
+color: AppColors.ink400,
+height: 1.5,
                 ),
               ),
             ),
@@ -549,7 +532,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.92),
-                              fontSize: 12.5,
+                              fontSize: 13.5,
                             ),
                           ),
                         ),
@@ -570,7 +553,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                         '著者：$author',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.82),
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -847,8 +830,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
         Text(
           text,
           style: const TextStyle(
-            fontSize: 15,
-            height: 1.75,
+            fontSize: 16,
+height: 1.75,
             color: AppColors.ink700,
           ),
         ),
@@ -856,57 +839,6 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
       ],
     ),
   );
-
-  Widget _conceptTile(dynamic c, {Map<String, dynamic>? link}) {
-    final list = (c as List?) ?? const [];
-    final name = list.isNotEmpty ? list[0].toString() : '';
-    final desc = list.length > 1 ? list[1].toString() : '';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.brand.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brand,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            desc,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.6,
-              color: AppColors.ink700,
-            ),
-          ),
-          _linkRow(link),
-        ],
-      ),
-    );
-  }
 
   Widget _bodyBlock(dynamic s, {Map<String, dynamic>? link}) {
     final m = (s as Map?) ?? const {};
@@ -930,8 +862,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                 child: Text(
                   heading,
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 15.5,
+fontWeight: FontWeight.w800,
                     color: AppColors.ink700,
                   ),
                 ),
@@ -942,8 +874,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           Text(
             body,
             style: const TextStyle(
-              fontSize: 15,
-              height: 1.8,
+              fontSize: 16,
+height: 1.8,
               color: AppColors.ink700,
             ),
           ),
@@ -972,8 +904,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 14.5,
-                  height: 1.6,
+                  fontSize: 15.5,
+height: 1.6,
                   color: AppColors.ink700,
                 ),
               ),
@@ -1004,6 +936,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               child: Text(
                 n['name']?.toString() ?? '',
                 style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.ink700,
                 ),
@@ -1026,8 +959,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               n['definition'].toString(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11.5,
+                style: const TextStyle(
+                fontSize: 13,
                 height: 1.5,
                 color: AppColors.ink400,
               ),
@@ -1083,8 +1016,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                 child: Text(
                   '延伸阅读（选学·不计入掌握度）',
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 15.5,
+fontWeight: FontWeight.w800,
                     color: AppColors.ink700,
                   ),
                 ),
@@ -1097,7 +1030,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
             child: Text(
               '主线之外的可选读物，按正统性与敏感性分档标注；绿色可正面学、红色仅供批判。',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: 12.5,
                 height: 1.5,
                 color: AppColors.ink400,
               ),
@@ -1131,9 +1064,9 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           child: Text(
             '${_kindLabel[kind] ?? kind} · $n',
             style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: color,
+              fontSize: 12.5,
+fontWeight: FontWeight.w700,
+color: color,
             ),
           ),
         ),
@@ -1180,9 +1113,9 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w800,
-              color: isContested ? const Color(0xFF991B1B) : AppColors.ink700,
+              fontSize: 16,
+fontWeight: FontWeight.w800,
+color: isContested ? const Color(0xFF991B1B) : AppColors.ink700,
             ),
           ),
           if (author.isNotEmpty)
@@ -1190,12 +1123,22 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 author,
-                style: const TextStyle(fontSize: 12.5, color: AppColors.ink400),
+                style: const TextStyle(fontSize: 13, color: AppColors.ink400),
               ),
             ),
           const SizedBox(height: 8),
-          // 正文（Markdown 渲染；争议版本自动变红框）
-          ChatMarkdown(text: bodyMd, baseColor: AppColors.ink700),
+          // 正文（自定义可选渲染：选中弹释义浮框，不弹系统复制条）
+          _SelectableExtensionText(
+            md: bodyMd,
+            baseStyle: const TextStyle(
+              fontSize: 15,
+height: 1.55,
+color: AppColors.ink700,
+fontFamily: 'Deng',
+              fontFamilyFallback: ['Deng', 'Roboto', 'WarnSym'],
+            ),
+            onSelectionChanged: _onExtSelectionChanged,
+          ),
           // 怎么用
           if (howto.isNotEmpty)
             Padding(
@@ -1213,7 +1156,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                     child: Text.rich(
                       TextSpan(
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           height: 1.55,
                           color: AppColors.ink500,
                           fontFamily: 'Deng',
@@ -1225,9 +1168,9 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                             style: TextStyle(fontWeight: FontWeight.w700),
                           ),
                           ...extensionMarkupSpans(
-                            howto,
-                            const TextStyle(
-                              fontSize: 13,
+                              howto,
+                              const TextStyle(
+                              fontSize: 14,
                               height: 1.55,
                               color: AppColors.ink500,
                               fontFamily: 'Deng',
@@ -1254,16 +1197,16 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                     child: Text.rich(
                       TextSpan(
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 13.5,
                           height: 1.5,
                           color: color,
                           fontFamily: 'Deng',
                           fontFamilyFallback: const ['Deng', 'Roboto', 'WarnSym'],
                         ),
                         children: extensionMarkupSpans(
-                          caution,
-                          TextStyle(
-                            fontSize: 12.5,
+                            caution,
+                            TextStyle(
+                            fontSize: 13.5,
                             height: 1.5,
                             color: color,
                             fontFamily: 'Deng',
@@ -1296,7 +1239,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                 ),
                 label: const Text(
                   '阅读原文',
-                  style: TextStyle(fontSize: 12, color: AppColors.brand),
+                  style: TextStyle(fontSize: 12.5, color: AppColors.brand),
                 ),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1325,7 +1268,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
                 ),
                 label: const Text(
                   '阅读原文（权威文库）',
-                  style: TextStyle(fontSize: 12, color: AppColors.brand),
+                  style: TextStyle(fontSize: 12.5, color: AppColors.brand),
                 ),
                 onPressed: () => openExternal(link),
               ),
@@ -1426,3 +1369,78 @@ List<TextSpan> extensionMarkupSpans(String text, TextStyle base) {
 /// 剥掉全部 Markdown 强调标记，用于朗读与纯文本场合（不朗读星号）。
 String stripExtensionMarkup(String text) =>
     text.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*', dotAll: true), (m) => m.group(1) ?? '');
+
+/// 延伸阅读正文的可选渲染：选中文字弹本页释义浮框，屏蔽系统 copy 工具条。
+///
+/// 说明：`ChatMarkdown` 的 `MarkdownBody(selectable: true)` 内层 `SelectableText.rich`
+/// 用默认 `contextMenuBuilder`，选中会弹系统复制条，外层 `SelectionArea` 的空工具条
+/// 无法覆盖内层。这里改用 `SelectableText.rich` 并显式传空工具条，选择事件交回
+/// 本页 `_onExtSelectionChanged`，从而弹出释义/追问浮框。
+///
+/// 只覆盖延伸阅读正文（纯文本 + 列表 + 少量 `**加粗**`，无数学/链接），
+/// 其余正文仍走 `ChatMarkdown`，避免影响对话气泡等场景。
+class _SelectableExtensionText extends StatelessWidget {
+  final String md;
+  final TextStyle baseStyle;
+  final void Function(String selectedText)? onSelectionChanged;
+
+  const _SelectableExtensionText({
+    required this.md,
+    required this.baseStyle,
+    this.onSelectionChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = md.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) {
+        final raw = line.trim();
+        if (raw.isEmpty) return const SizedBox(height: 6);
+        // 卡片外框已是红边（contested），批判标记不重复标注，直接剔除
+        final clean = raw
+            .replaceAll('【批判对象·非借鉴】', '')
+            .replaceAll('【/批判对象】', '');
+        final isList = clean.startsWith('- ');
+        final text = isList ? '• ${clean.substring(2)}' : clean;
+        // 渲染文本（去掉 ** 标记）用于按选区偏移截取选中文本
+        final plain =
+            text.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => m.group(1) ?? '');
+        return Padding(
+          padding: EdgeInsets.only(bottom: 5, left: isList ? 8.0 : 0),
+          child: SelectableText.rich(
+            _toTextSpan(text, baseStyle),
+            contextMenuBuilder: (ctx, state) => const SizedBox.shrink(),
+            onSelectionChanged: onSelectionChanged == null
+                ? null
+                : (selection, cause) {
+                    final start = selection.start;
+                    final end = selection.end;
+                    if (start >= 0 && end > start && end <= plain.length) {
+                      onSelectionChanged!(plain.substring(start, end));
+                    }
+                  },
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// 简单解析 **加粗** 标记，其余按纯文本处理。
+  TextSpan _toTextSpan(String text, TextStyle base) {
+    final parts = text.split(RegExp(r'\*\*(.+?)\*\*'));
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].isEmpty) continue;
+      final bold = i % 2 == 1;
+      spans.add(
+        TextSpan(
+          text: parts[i],
+          style: bold ? base.copyWith(fontWeight: FontWeight.w700) : base,
+        ),
+      );
+    }
+    return TextSpan(children: spans);
+  }
+}

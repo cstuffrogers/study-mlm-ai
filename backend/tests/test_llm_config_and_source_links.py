@@ -33,7 +33,7 @@ def test_guide_response_includes_source_links():
     assert sl["chapter"]["chunk_count"] > 0
     assert len(sl["nodes"]) == len(r["nodes"])
     assert set(sl["blocks"]) >= {
-        "background", "concepts", "sections", "key_points", "discussion"
+        "background", "sections", "discussion"
     }
 
 
