@@ -1012,7 +1012,13 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final size = Size(constraints.maxWidth, constraints.maxHeight);
+                      final mq = MediaQuery.of(context);
+                      // 分页高度用**不含软键盘**的视口高度：输入标签/笔记时软键盘
+                      // 弹出/收起会改变 constraints.maxHeight，若直接用作分页高度，
+                      // 每次都触发 _buildDoc 重新分页（页数多时逐行测量整本书，
+                      // 输入/退出各卡一次）。加上 viewInsets.bottom 抵消键盘高度，
+                      // 键盘弹出/收起分页高度不变，不再重新分页。
+                      final size = Size(constraints.maxWidth, constraints.maxHeight + mq.viewInsets.bottom);
                       final needBuild = _doc == null ||
                           _docSize != size ||
                           _docScaler != MediaQuery.textScalerOf(context);
@@ -1523,18 +1529,24 @@ class _AnnotatedPage extends StatelessWidget {
         children.add(const SizedBox(height: ReaderPaginator.paraGap));
       }
     }
-    return SelectionArea(
-      // 屏蔽系统自带的「copy/share」工具条：本页选中即弹自己的追问浮框（复制/朗读/标色 + 五模式），
-      // 两套浮窗同时出现会互相遮挡，用户也分不清该点哪一个。
-      contextMenuBuilder: (context, state) => const SizedBox.shrink(),
-      onSelectionChanged: onSelectionChanged,
-      child: Padding(
-        padding: padding,
-        child: SingleChildScrollView(
-          // 分页是「精确装下」的，正常不产生滚动；但混排中英数字时行宽可能与
-          // 测量有差，留一手可滚，避免最末一行被直接裁掉看不见。
-          physics: const ClampingScrollPhysics(),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+    // 每页用 RepaintBoundary 隔离 paint：保存标注 / 输入 / 退出时，
+    // 只重绘当前页，不连带其他缓存页整片重绘（页数多时成本随页数增长）。
+    // 每页用 RepaintBoundary 隔离 paint：保存标注 / 输入 / 退出时，
+    // 只重绘当前页，不连带其他缓存页整片重绘（页数多时成本随页数增长）。
+    return RepaintBoundary(
+      child: SelectionArea(
+        // 屏蔽系统自带的「copy/share」工具条：本页选中即弹自己的追问浮框（复制/朗读/标色 + 五模式），
+        // 两套浮窗同时出现会互相遮挡，用户也分不清该点哪一个。
+        contextMenuBuilder: (context, state) => const SizedBox.shrink(),
+        onSelectionChanged: onSelectionChanged,
+        child: Padding(
+          padding: padding,
+          child: SingleChildScrollView(
+            // 分页是「精确装下」的，正常不产生滚动；但混排中英数字时行宽可能与
+            // 测量有差，留一手可滚，避免最末一行被直接裁掉看不见。
+            physics: const ClampingScrollPhysics(),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+          ),
         ),
       ),
     );
