@@ -1194,8 +1194,6 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 ttsStop();
                 setState(() => _selected = '');
               }),
-              const Spacer(),
-              const _DragHint(),
             ],
           ),
           const SizedBox(height: 6),
@@ -1441,19 +1439,23 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   }
 
   void _annotateSelection() {
+    final sel = _selected;
+    // 收起释义浮框：标注弹层打开后不再需要它，且浮框与输入法候选框叠加
+    // 会导致每次按键触发重绘（填入内容卡顿的主因）。
+    if (sel.isNotEmpty) setState(() => _selected = '');
     final page = _doc!.pages[_page];
     // 在当前页所有段落里找包含选中文本的段落 + 字符偏移，保证黄底高亮精确落在选中片段上
     final candidates = page.paraIndexes.isNotEmpty ? page.paraIndexes : <int>[0];
     for (final para in candidates) {
       final pText = para < _paragraphs.length ? _paragraphs[para] : '';
-      final i = _selected.isEmpty ? -1 : pText.indexOf(_selected);
+      final i = sel.isEmpty ? -1 : pText.indexOf(sel);
       if (i >= 0) {
-        _editAnnotations(_page, para, selStart: i, selEnd: i + _selected.length);
+        _editAnnotations(_page, para, selStart: i, selEnd: i + sel.length);
         return;
       }
     }
     final para = candidates.first;
-    _editAnnotations(_page, para, selStart: 0, selEnd: _selected.length.clamp(0, (_paragraphs.length > para ? _paragraphs[para].length : 0)));
+    _editAnnotations(_page, para, selStart: 0, selEnd: sel.length.clamp(0, (_paragraphs.length > para ? _paragraphs[para].length : 0)));
   }
 
   Widget _mini(IconData ic, String label, Color c, VoidCallback onTap) {
@@ -1647,18 +1649,6 @@ class _AnnotatedPage extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// 小型「可拖动」提示图标，让用户一眼知道追问条可以移动。
-class _DragHint extends StatelessWidget {
-  const _DragHint();
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: '按住拖动',
-      child: Icon(Icons.drag_indicator, size: 16, color: AppColors.ink400),
     );
   }
 }

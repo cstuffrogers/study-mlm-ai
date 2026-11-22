@@ -48,8 +48,6 @@ class SelectionAskPanel extends StatelessWidget {
           const Spacer(),
           if (onDismiss != null)
             _mini(Icons.close_rounded, '关闭', AppColors.ink400, onDismiss!),
-          const Spacer(),
-          const _DragHandle(),
         ]),
         const SizedBox(height: 6),
         Wrap(spacing: 4, runSpacing: 4, children: ChatMode.values.map((m) {
@@ -146,14 +144,4 @@ class _MovableChatFabState extends State<MovableChatFab> {
       ),
     );
   }
-}
-
-/// 拖拽把手图标（可移动浮层的视觉提示）。
-class _DragHandle extends StatelessWidget {
-  const _DragHandle();
-  @override
-  Widget build(BuildContext context) => const Tooltip(
-        message: '按住拖动',
-        child: Icon(Icons.drag_indicator, size: 16, color: AppColors.ink400),
-      );
 }
