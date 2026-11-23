@@ -144,7 +144,7 @@ async def collect_metrics(user_id: str) -> dict:
     routes_completed = _routes_completed_in_memory(mastery_by_route, lp_rows)
 
     # 对话完成数：进程内对话历史中「有用户提问且有 AI 回复」的会话数
-    dialogues_completed = _dialogues_completed(user_id)
+    dialogues_completed = await _dialogues_completed(user_id)
 
     return {
         "mastered_count": mastered_count,
@@ -221,11 +221,11 @@ def _routes_completed_in_memory(
     return done
 
 
-def _dialogues_completed(user_id: str) -> int:
-    """完成对话数：有用户提问且有 AI 回复的会话数（进程内历史，与对话历史页同源）。"""
+async def _dialogues_completed(user_id: str) -> int:
+    """完成对话数：有用户提问且有 AI 回复的会话数（主库持久化，重启不丢）。"""
     n = 0
-    for d in dialogue_store.list_dialogues(user_id):
-        msgs = dialogue_store.get_messages(d["id"])
+    for d in await dialogue_store.list_dialogues(user_id):
+        msgs = await dialogue_store.get_messages(d["id"])
         has_user = any(m.get("role") == "user" for m in msgs)
         has_ai = any(m.get("role") == "assistant" for m in msgs)
         if has_user and has_ai:

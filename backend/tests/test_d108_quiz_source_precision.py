@@ -20,6 +20,7 @@ sys.path.insert(0, str(BACKEND))
 
 from content.book_chunks import all_book_chunks  # noqa: E402
 from content.routes import SECTIONS  # noqa: E402
+from content.reading_extensions import extensions_for  # noqa: E402
 
 BANK = BACKEND / "content" / "quiz_bank"
 CJK = re.compile(r"[\u4e00-\u9fff]")
@@ -48,9 +49,25 @@ def _norm(s: str) -> str:
 
 
 def test_no_cross_book_source_in_quiz_bank():
-    """真实分片溯源的著作必须等于本章 local_work（不许拿别章的原文项上）。"""
+    """真实分片溯源的著作必须属于本章考点范围（不许拿别章的原文项上）。
+
+    本章考点范围 = `local_work`（主书）∪ 本章延伸阅读所挂的著作。
+    背景：有些章节标题就跨两部书（如 sec_A_03「实践的辩证法：从《实践论》到《矛盾论》」），
+    该类章节的知识点本就考第二部书的内容，把溯源锚到延伸阅读里的《矛盾论》分片是
+    正确的考据；若只认 `local_work`，就会把这些合法溯源误判成「跨书」。
+    """
     chunks = {c["id"]: c for c in _chunks()}
     sec = _sections()
+    # 章节 id → 允许的著作集合（主书 + 延伸阅读挂接的著作）
+    allowed: dict[str, set[str]] = {}
+    for sid, s in sec.items():
+        works = {s.get("local_work", "")}
+        for ext in extensions_for(sid):
+            w = str(ext.get("local_work") or "")
+            if w:
+                works.add(w)
+        works.discard("")
+        allowed[sid] = works
     bad = []
     for it in _items():
         cid = str(it.get("source_chunk_id") or "")
@@ -60,9 +77,11 @@ def test_no_cross_book_source_in_quiz_bank():
         if c is None:
             bad.append((it["id"], cid, "分片不存在"))
             continue
-        want = sec.get(it.get("section_id") or "", {}).get("local_work", "")
-        if want and c["source"] != want:
-            bad.append((it["id"], cid, f"属《{c['source']}》，本章为《{want}》"))
+        sid = it.get("section_id") or ""
+        want = allowed.get(sid, set())
+        if want and c["source"] not in want:
+            bad.append((it["id"], cid,
+                        f"属《{c['source']}》，本章允许 {sorted(want)}"))
     assert not bad, bad
 
 

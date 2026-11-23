@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from services.learning_startup import ensure_learning_ready
 from services.learning_db import session_scope
@@ -101,3 +101,23 @@ async def history(user_id: str = "demo_user", limit: int = 100,
         })
     wrong = sum(1 for r in rows if not r["is_correct"])
     return {"user_id": user_id, "total": len(rows), "wrong": wrong, "rows": rows}
+
+
+@router.delete("/attempt/{attempt_id}")
+async def delete_attempt(attempt_id: str, user_id: str = "demo_user") -> dict:
+    """删除单条作答记录（错题本删除）。
+
+    只删除该条 QuizAttempt，不回滚已写入的掌握度——掌握度是多次作答的累积信号，
+    删除单条记录不应抹掉学习成果。若用户认为掌握度失准，可重新作答刷新。
+    """
+    await ensure_learning_ready()
+    async with session_scope() as s:
+        existing = (await s.execute(
+            select(QuizAttempt).where(
+                QuizAttempt.id == attempt_id, QuizAttempt.user_id == user_id
+            )
+        )).scalar_one_or_none()
+        if existing is None:
+            raise HTTPException(status_code=404, detail="作答记录不存在")
+        await s.execute(delete(QuizAttempt).where(QuizAttempt.id == attempt_id))
+    return {"deleted": attempt_id}

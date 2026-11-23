@@ -84,17 +84,25 @@ class LocalQuiz {
       chosen.add(it);
     }
 
+    // 与后端 `quiz_service._select_items()` 同口径：特殊题型（应用/主观）只占
+    // 总名额的 1/3（至少 1 题）。题库扩充后每知识点都有费曼自述题，若全部优先，
+    // 一章 12 个知识点会把名额占满成论述题，客观题一道不剩。
+    final specialCap = math.max(1, cap ~/ 3);
+    var specialTaken = 0;
     for (final it in items) {
+      if (specialTaken >= specialCap) break;
       final type = '${it['type'] ?? ''}';
-      // 与后端 `quiz_service._select_items()` 同口径：特殊题型 = 应用题 / 主观题。
-      // 早先这里还把 `error_diagnosis` 当特殊题型必选，后端并不如此——题库一旦
-      // 超过 12 题就会被裁时，两端的选题集合不同，同一章两边出的题不一样。
       if (type == 'application' || it['subjective'] == true) {
+        final before = chosen.length;
         add(it);
+        if (chosen.length > before) specialTaken++;
       }
     }
     final covered = <String>{};
     for (final it in items) {
+      final type = '${it['type'] ?? ''}';
+      // 每知识点保底一道客观题
+      if (type == 'application' || it['subjective'] == true) continue;
       final nid = '${it['node_id'] ?? ''}';
       if (covered.contains(nid)) continue;
       add(it);
@@ -354,19 +362,28 @@ class LocalQuiz {
     if (['因为', '所以', '因此', '只有', '才能'].any(answer.contains)) {
       logic = math.min(1.0, logic + 0.05);
     }
-    final conceptLayer = guard.blocked || hasDeviation ? 0.3 : 1.0;
+    var conceptLayer = guard.blocked || hasDeviation ? 0.3 : 1.0;
+    // 与后端 `_grade_subjective()` 同口径：极短作答（几乎未答）不给分，
+    // 否则一个 “X” 能靠「术语没写错」拿到 ≈0.83 而被当成答对。
+    var term = terminology;
+    if (answer.trim().length < 10) {
+      term = math.min(term, 0.2);
+      logic = math.min(logic, 0.1);
+      conceptLayer = math.min(conceptLayer, 0.2);
+    }
     final suggestions = <String>[];
-    if (terminology < 0.6) suggestions.add('建议使用正统术语，避免西马/修正主义话语');
+    if (term < 0.6) suggestions.add('建议使用正统术语，避免西马/修正主义话语');
     if (logic < 0.7) suggestions.add('论证偏简，建议补充"原理—推理—结论"的完整链条');
     if (conceptLayer < 0.6) suggestions.add('存在概念层次混淆，注意区分"实践"与"理论活动"');
     return {
-      'terminology_orthodoxy': round4(terminology),
+      'terminology_orthodoxy': round4(term),
       'logic_coherence': round4(logic),
       'concept_layer': round4(conceptLayer),
       'suggestions':
           suggestions.isEmpty ? ['表述基本符合要求，可补充一个原文例证'] : suggestions,
-      'score': round4((terminology + logic + conceptLayer) / 3),
+      'score': round4((term + logic + conceptLayer) / 3),
       'stance': guard.blocked || hasDeviation ? 'block' : 'pass',
+      'grading_source': 'heuristic',  // 离线本地近似评分
     };
   }
 
@@ -746,7 +763,8 @@ class LocalQuiz {
 
   // ------------------------------------------------------------ 历史
   static Map<String, dynamic> history(
-      {bool onlyWrong = false, int limit = 100, String? sectionId}) {    var rows = LocalDb.attempts
+      {bool onlyWrong = false, int limit = 100, String? sectionId}) {
+    var rows = LocalDb.attempts
         .whereType<Map>()
         .map((e) => e.cast<String, dynamic>())
         .toList();
@@ -812,6 +830,32 @@ class LocalQuiz {
       'items': enriched,
       'count': enriched.length,
     };
+  }
+
+  /// 删除单条错题/作答记录（错题本删除）。
+  /// [attemptId] 为 history 返回的 `attempt_id`（单机侧格式 `test_id/quiz_id`；
+  /// 若记录自带 `id` 字段也兼容）。只删记录，不回滚已累积的掌握度信号。
+  static Future<Map<String, dynamic>> deleteAttempt(String attemptId) async {
+    // 与后端 DELETE /api/quiz/attempt/{id} 同语义：只删一条记录。
+    // （同一章重复作答可能产生相同 test_id/quiz_id，不能一次抹完）
+    final attempts = LocalDb.attempts;
+    var idx = -1;
+    for (var i = 0; i < attempts.length; i++) {
+      final e = attempts[i];
+      if (e is! Map) continue;
+      final rec = e.cast<String, dynamic>();
+      final composed = '${rec['test_id'] ?? ''}/${rec['quiz_id'] ?? ''}';
+      if (composed == attemptId || '${rec['id'] ?? ''}' == attemptId) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
+      throw LocalApiException(404, '作答记录不存在');
+    }
+    attempts.removeAt(idx);
+    await LocalDb.flushKey('attempts');
+    return {'deleted': attemptId};
   }
 
   static Map<String, dynamic> listTests({int limit = 50}) {

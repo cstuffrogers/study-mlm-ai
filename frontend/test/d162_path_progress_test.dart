@@ -68,18 +68,30 @@ void main() {
     throw StateError('离线题库缺少选择题，无法构造提交用例');
   }
 
+  /// 题库扩充后一章抽 8~12 题，只答固定 3 题会被未答项拉低掌握度；
+  /// 故按 start 返回的全部题目作答：客观题取题库答案，主观/应用题给一段自述。
   Future<void> submitSectionQuiz({bool allCorrect = true}) async {
-    final (sid, items) = await firstChoiceSection();
+    final (sid, _) = await firstChoiceSection();
+    final bank = {
+      for (final it in OfflineContent.quizItems(sid)) '${it['id']}': it
+    };
     final seed =
         await ApiClient.post('/api/quiz/section/$sid/start', {'user_id': 'u'});
     final testId = '${seed['test_id']}';
-    final answers = items
-        .map((it) => {
-              'item_id': it['id'],
-              'answer': allCorrect ? '${it['answer'] ?? 'A'}' : 'X',
-              'confidence': 'high',
-            })
-        .toList();
+    final items = ((seed['items'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>();
+    final answers = items.map((it) {
+      final src = bank['${it['id']}'] ?? const <String, dynamic>{};
+      final isOpen = it['subjective'] == true || it['application'] == true;
+      final good = isOpen
+          ? '实践是检验真理的唯一标准，只有在改造客观世界的实践中才能验证认识的真理性。'
+          : '${src['answer'] ?? 'A'}';
+      return {
+        'item_id': it['id'],
+        'answer': allCorrect ? good : 'X',
+        'confidence': 'high',
+      };
+    }).toList();
     await ApiClient.post('/api/quiz/$testId/submit',
         {'user_id': 'u', 'answers': answers});
   }

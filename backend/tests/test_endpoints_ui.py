@@ -101,9 +101,9 @@ async def test_dialogue_history_roundtrip():
     """对话历史：写入一条会话消息后 list/messages 可回读（轻量进程内）。"""
     from services import dialogue_store
     d_id = "dlg_" + uuid.uuid4().hex[:6]
-    dialogue_store.ensure_dialogue(d_id, user_id="demo_user", mode="explain")
-    dialogue_store.append_message(d_id, "user", "什么是实践？")
-    dialogue_store.append_message(d_id, "assistant", "实践是认识的基础。", source_chunks=["CH-ME-TH-01-1"])
+    await dialogue_store.ensure_dialogue(d_id, user_id="demo_user", mode="explain")
+    await dialogue_store.append_message(d_id, "user", "什么是实践？")
+    await dialogue_store.append_message(d_id, "assistant", "实践是认识的基础。", source_chunks=["CH-ME-TH-01-1"])
     lst = await dialogue_routes.list_dialogues("demo_user")
     assert any(d["id"] == d_id for d in lst["dialogues"])
     msgs = await dialogue_routes.get_messages(d_id, 50)

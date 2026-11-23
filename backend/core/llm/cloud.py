@@ -52,6 +52,10 @@ class CloudLayer:
         # 传入各家通用的关闭开关；非推理模型会忽略或报参数错误，届时自动重试。
         self.disable_thinking = os.getenv(
             "LLM_DISABLE_THINKING", "1").strip().lower() in ("1", "true", "yes")
+        # 评分专用配置（task="grade"）：评分是结构化短输出，参数可更激进，
+        # 降低 token 消耗与延迟；未配置时回落主模型配置。
+        self.grade_model = os.getenv("LLM_GRADE_MODEL", "").strip() or self.model
+        self.grade_max_tokens = _env_int("LLM_GRADE_MAX_TOKENS", 1000)
         self.enabled = bool(self.api_key and self.base_url and self.model)
 
     async def run(self, req: LLMRequest, interactive: bool = False) -> LLMResponse:
@@ -112,7 +116,15 @@ class CloudLayer:
         _THINK = {"thinking": {"type": "disabled"}}
         _ENABLE = {"enable_thinking": False}
         _BOTH = {"thinking": {"type": "disabled"}, "enable_thinking": False}
-        if self.disable_thinking:
+        # 评分任务（task="grade"）用专用参数：更小 max_tokens、更低 temperature、
+        # 可选更轻量模型，降低评分成本；非评分任务用全局配置。
+        eff_model = self.grade_model if req.task == "grade" else self.model
+        eff_max_tokens = self.grade_max_tokens if req.task == "grade" else self.max_tokens
+        eff_temperature = 0.1 if req.task == "grade" else 0.3
+        # 评分任务强制关闭思维链（评分只要结构化 JSON，不需要推理过程，
+        # 关闭可显著降低 token 消耗与延迟）
+        force_disable_think = req.task == "grade"
+        if self.disable_thinking or force_disable_think:
             variants: list[tuple[str, Optional[dict]]] = [
                 ("thinking", _THINK),          # 实测长 prompt 5/5 成功，最稳
                 ("enable_thinking", _ENABLE),
@@ -137,10 +149,10 @@ class CloudLayer:
                     break
                 try:
                     create_kwargs = dict(
-                        model=self.model,
+                        model=eff_model,
                         messages=[{"role": "user", "content": req.prompt}],
-                        temperature=0.3,
-                        max_tokens=self.max_tokens,
+                        temperature=eff_temperature,
+                        max_tokens=eff_max_tokens,
                         extra_body=extra,
                     )
                     # 单请求也受总预算约束，避免逐级降级把 WS 超时拖爆。
@@ -153,7 +165,7 @@ class CloudLayer:
                     if text.strip():
                         if name != variants[0][0]:
                             logger.info("云 LLM 用兼容参数 %s 成功返回正文", name)
-                        return LLMResponse(text=text, source="cloud", model=self.model)
+                        return LLMResponse(text=text, source="cloud", model=eff_model)
                     # 正文为空：预算被 reasoning_content 吃光。同一参数重试几乎
                     # 必然还是空，直接换下一组兼容策略（不能把思维链当答案）。
                     reason_len = len(getattr(msg, "reasoning_content", "") or "")

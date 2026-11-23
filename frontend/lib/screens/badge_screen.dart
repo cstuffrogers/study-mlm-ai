@@ -105,7 +105,9 @@ class _BadgeScreenState extends State<BadgeScreen> {
                 children: [
                   _buildSummary(),
                   const SizedBox(height: 16),
-                  if (_metrics.isNotEmpty) _buildMetrics(),
+                  if ((_summary['earned'] as num?)?.toInt() == 0)
+                    _buildEmptyHint()
+                  else if (_metrics.isNotEmpty) _buildMetrics(),
                   const SizedBox(height: 16),
                   for (final cat in _categories()) _buildCategory(cat),
                 ],
@@ -151,6 +153,39 @@ class _BadgeScreenState extends State<BadgeScreen> {
         SnackBar(content: Text('分享失败：$e')),
       );
     }
+  }
+
+  // ------------------------------------------------------------ 空态引导
+  Widget _buildEmptyHint() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.info_outline, color: AppColors.ink400, size: 22),
+            const SizedBox(width: 8),
+            Text('还没有获得任何勋章',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink700)),
+          ]),
+          const SizedBox(height: 8),
+          const Text(
+            '勋章通过学习行为触发授予：完成答题、复习、路线学习、连续打卡、经典著作对话等都会逐步点亮勋章。\n\n'
+            '· 掌握知识点 → 「知识掌握」类勋章\n'
+            '· 完成路线章节 → 「路线」类勋章\n'
+            '· 答题正确率达标 → 「答题」类勋章\n'
+            '· 连续学习天数达标 → 「连续学习」类勋章\n'
+            '· 与 AI 对话探讨 → 「对话」类勋章',
+            style: TextStyle(fontSize: 12.5, height: 1.7, color: AppColors.ink500),
+          ),
+        ],
+      ),
+    );
   }
 
   // ------------------------------------------------------------ 分类

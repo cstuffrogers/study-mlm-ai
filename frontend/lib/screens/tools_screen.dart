@@ -30,7 +30,7 @@ class ToolsScreen extends StatelessWidget {
       _ToolItem('对话历史', '会话回看 · 防偏离标记', Icons.forum_outlined, AppColors.success,
           (_) => const DialogueHistoryScreen()),
       _ToolItem('错题本', '测试历史 · 逐题回顾', Icons.fact_check_outlined, AppColors.warning,
-          (_) => TestHistoryScreen(routeId: routeId)),
+          (_) => TestHistoryScreen(routeId: routeId, onlyWrongDefault: true)),
       _ToolItem('我的勋章', '成就徽章 · 达成条件 · 进度追踪',
           Icons.emoji_events_rounded, AppColors.gold,
           (_) => BadgeScreen(routeId: routeId)),

@@ -27,6 +27,36 @@ def _load_bank():
     return d["items"] if isinstance(d, dict) else d
 
 
+_BANK_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "content", "quiz_bank")
+
+
+def _answer_key() -> dict[str, dict]:
+    """全题库 id → 原题（含正确答案），供测试按真实答案作答。"""
+    out: dict[str, dict] = {}
+    for name in sorted(os.listdir(_BANK_DIR)):
+        if not name.endswith(".json"):
+            continue
+        with io.open(os.path.join(_BANK_DIR, name), encoding="utf-8") as f:
+            d = json.load(f)
+        for it in (d["items"] if isinstance(d, dict) else d):
+            out[it["id"]] = it
+    return out
+
+
+def _correct_answers(items: list[dict]) -> list[dict]:
+    """按题库真实正确答案作答：客观题取 answer，主观题给一段合理自述。"""
+    key = _answer_key()
+    out = []
+    for it in items:
+        src = key.get(it["id"], {})
+        if it.get("subjective"):
+            ans = "实践是检验真理的唯一标准，因为只有在改造客观世界的实践中才能验证思维的真理性。"
+        else:
+            ans = str(src.get("answer") or "A")
+        out.append({"item_id": it["id"], "answer": ans})
+    return out
+
+
 @pytest.mark.asyncio
 async def test_quiz_bank_every_item_has_source():
     """FR-022：每题必须带 source_chunk_id（缺则拒绝出题）"""
@@ -52,7 +82,7 @@ async def test_submit_grades_and_maps_five_levels():
     await ensure_learning_ready()
     u = uid()
     t = await quiz_service.start_section_test(u, "sec_A_02", "route_A")
-    sub = await quiz_service.submit_test(t["test_id"], u, [{"item_id": it["id"], "answer": "A"} for it in t["items"]])
+    sub = await quiz_service.submit_test(t["test_id"], u, _correct_answers(t["items"]))
     assert 0.0 <= sub["total_score"] <= 1.0
     # 五级映射合法
     valid = {"unseen", "beginner", "familiar", "proficient", "mastered"}

@@ -106,22 +106,22 @@ async def dialogue_ws(ws: WebSocket) -> None:
                     ).model_dump_json())
                     continue
 
-                # 轻量对话历史落库（进程内），供前端「对话历史页」回看
+                # 对话历史落库（主库持久化 + 进程内缓存），供对话勋章计数与回看
                 try:
-                    dialogue_store.ensure_dialogue(
+                    await dialogue_store.ensure_dialogue(
                         u.dialogue_id, user_id=getattr(u, "user_id", "demo_user") or "demo_user",
                         mode=u.mode)
-                    dialogue_store.append_message(
+                    await dialogue_store.append_message(
                         u.dialogue_id, "user", u.content, mode=u.mode,
                         selected_text=u.selected_text, paragraph_id=u.paragraph_id)
                     if result.get("blocked"):
-                        dialogue_store.append_message(
+                        await dialogue_store.append_message(
                             u.dialogue_id, "assistant",
                             "[已拦截] " + str(result["blocked"].get("reason", "内容不合规")),
                             mode=u.mode, is_safe=False, guard_result=result["blocked"])
                     else:
                         ai = result["ai_message"]
-                        dialogue_store.append_message(
+                        await dialogue_store.append_message(
                             u.dialogue_id, "assistant", ai.get("content", ""), mode=ai.get("mode", u.mode),
                             source_chunks=_chunk_ids(ai),
                             is_safe=ai.get("is_safe", True), guard_result=ai.get("guard", {}))

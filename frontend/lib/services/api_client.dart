@@ -58,6 +58,15 @@ class ApiClient {
     return resp;
   }
 
+  /// 删除类写操作（如错题本删除作答记录）。与 post 同语义：成功后让相关 GET 失效。
+  static Future<Map<String, dynamic>> delete(String path,
+      {Map<String, String>? query, bool invalidate = true}) async {
+    final resp = await _run(() => LocalRouter.delete(path, query ?? const {}));
+    if (!invalidate) return resp;
+    invalidatePrefix('/api/');
+    return resp;
+  }
+
   static Future<Map<String, dynamic>> _run(
       Future<Map<String, dynamic>> Function() task) async {
     try {

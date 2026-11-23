@@ -16,11 +16,18 @@ from services.learning_db import session_scope
 from services import mastery_service as ms
 from core.verify.triple_check import TripleCheck
 from core.guard.orthodoxy import OrthodoxyGuard
+from core.llm.router import LLMRouter
+from core.grading.rubric import build_rubric_card
 from content.knowledge_graph import get_node
 from model.models_learning import QuizItem, QuizAttempt, SectionTest, DiagnosticTest
 
 # 立场偏移关键词（用于客观题“选了西马/修正主义话术”判定为 stance_deviation）
 _DEVIATION_KEYWORDS = ("市场社会主义", "资产阶级", "宪法爱国", "交往理性", "单向度", "博弈论", "去革命")
+
+# 主观题评分预筛阈值（5 档触发：只模糊区间调 LLM，省成本）
+_GRADE_TIER_HIGH = 0.90   # 启发式预分 ≥ 此值视为明显好，不调 LLM
+_GRADE_TIER_LOW = 0.40    # 启发式预分 ≤ 此值视为明显差，不调 LLM
+_GRADE_MIN_LEN = 10       # 作答最短字数，低于则不调 LLM
 
 _tc = TripleCheck(guard=OrthodoxyGuard())
 
@@ -57,7 +64,12 @@ async def _items_for_section(section_id: str) -> list[QuizItem]:
 
 
 def _select_items(items: list[QuizItem]) -> list[QuizItem]:
-    """从题库选出 8-12 题：特殊题型必选 + 保证每知识点至少 1 题 + 余量顺序补齐。"""
+    """从题库选出 8-12 题：特殊题型限额优先 + 保证每知识点至少 1 题 + 余量顺序补齐。
+
+    题库扩充后每个知识点都有一道费曼自述题，若仍「特殊题型全部优先」，
+    一章 12 个知识点就会把 12 个名额全占成论述题，学习者拿不到客观题。
+    因此特殊题型只占总名额的 1/3（至少 1 题），其余留给知识点的客观题。
+    """
     cap = max(QUIZ_SIZE_MIN, min(QUIZ_SIZE_MAX, len(items)))
     if len(items) <= cap:
         return list(items)
@@ -69,16 +81,26 @@ def _select_items(items: list[QuizItem]) -> list[QuizItem]:
             chosen.append(it)
             chosen_ids.add(it.id)
 
-    # 1) 特殊题型优先（应用/主观/费曼）
+    # 1) 特殊题型优先（应用/主观/费曼），但限额，避免整份卷子全是论述题
+    special_cap = max(1, cap // 3)
+    special_taken = 0
     for it in items:
+        if special_taken >= special_cap:
+            break
         if it.type == "application" or it.subjective:
+            before = len(chosen)
             _add(it)
-    # 2) 每个知识点保底 1 题
+            if len(chosen) > before:
+                special_taken += 1
+    # 2) 每个知识点保底 1 题（客观题优先，让每个知识点至少有一道可判对错的题）
     seen_nodes: set[str] = set()
     for it in items:
-        if it.node_id not in seen_nodes:
-            seen_nodes.add(it.node_id)
-            _add(it)
+        if it.node_id in seen_nodes:
+            continue
+        if it.type == "application" or it.subjective:
+            continue
+        seen_nodes.add(it.node_id)
+        _add(it)
     # 3) 余量按原顺序补齐
     for it in items:
         _add(it)
@@ -207,22 +229,196 @@ def _err_advice(code: str) -> str:
     return _ERROR_ADVICE.get((code or "").strip(), "")
 
 
+def _prescreen_subjective(quiz: QuizItem, answer: str) -> dict:
+    """5 档预筛：决定是否调 LLM 精评，省成本。
+
+    tier 0: 空/超短作答 → 不调 LLM
+    tier 1: stance=block（非豁免）→ 不调 LLM
+    tier 2: 启发式预分 >0.90 或 <0.40 → 不调 LLM
+    tier 3: 预分 0.40-0.90 → 调 LLM
+    """
+    ans = (answer or "").strip()
+    if len(ans) < _GRADE_MIN_LEN:
+        return {"tier": 0, "pre_score": 0.0, "stance_status": "pass",
+                "exempt": bool(quiz.exempt_marked), "text_len": len(ans)}
+    tc = _tc.check(ans, retrieved_context=quiz.explanation, mode="feynman")
+    stance_status = tc["stance"]["status"]
+    exempt = bool(quiz.exempt_marked)
+    # tier 1: 立场 block（非豁免）→ 不调 LLM
+    if stance_status == "block" and not exempt:
+        return {"tier": 1, "pre_score": 0.3, "stance_status": stance_status,
+                "exempt": exempt, "text_len": len(ans)}
+    # 启发式预分（与 _grade_subjective 同口径）
+    has_deviation = any(k in ans for k in _DEVIATION_KEYWORDS)
+    dev_active = has_deviation and not exempt
+    stance_ok = stance_status == "pass" or exempt
+    term_status = tc["terminology"]["status"]
+    terminology = 1.0 if (stance_ok and term_status == "pass" and not dev_active) else 0.35
+    logic = 0.9 if len(ans) >= 20 else 0.5
+    if any(x in ans for x in ("因为", "所以", "因此", "只有", "才能")):
+        logic = min(1.0, logic + 0.05)
+    concept = 1.0 if (not dev_active and (stance_status != "block" or exempt)) else 0.3
+    pre_score = round((terminology + logic + concept) / 3, 4)
+    if pre_score >= _GRADE_TIER_HIGH or pre_score <= _GRADE_TIER_LOW:
+        return {"tier": 2, "pre_score": pre_score, "stance_status": stance_status,
+                "exempt": exempt, "text_len": len(ans)}
+    return {"tier": 3, "pre_score": pre_score, "stance_status": stance_status,
+            "exempt": exempt, "text_len": len(ans)}
+
+
+def _build_batch_grade_prompt(tasks: list[tuple[str, QuizItem, str, dict]]) -> str:
+    """构造批量评分 prompt：多题合并，一次调用返回多题 JSON。
+
+    锚定基准卡（原文+术语+误用+踩分点），LLM 只评语义三维度，立场由系统把关。
+    """
+    parts = [
+        "你是正统马哲体系的阅卷人，对以下多道题的作答逐题评分。",
+        "立场红线由系统把关，你只评语义三维度（术语准确度/逻辑自洽/概念层次），不要判断立场。",
+        "",
+        "【评分 rubric】（每维度 0-1）",
+        "1. terminology_orthodoxy：术语准确度，是否准确运用核心术语，有无误用",
+        "2. logic_coherence：逻辑自洽，原理—推理—结论链条是否完整",
+        "3. concept_layer：概念层次，是否触及概念在体系中的真实含义",
+        "",
+        "【输出】严格 JSON 数组，每题一个对象，不要其他文字：",
+        '[{"item_id":"题号","terminology_orthodoxy":0.0,"logic_coherence":0.0,'
+        '"concept_layer":0.0,"score":0.0,"suggestions":["..."],"issues":["..."],"confidence":0.0}]',
+        "confidence 是对本评分的把握度（0-1）。",
+        "",
+        "=" * 40,
+    ]
+    for qid, q, answer, rubric in tasks:
+        parts.append(f"【题目 {qid}】")
+        parts.append(f"知识节点：{q.node_id}")
+        parts.append(f"题目：{q.stem}")
+        parts.append(f"标准解析：{rubric['explanation'] or '（无）'}")
+        if rubric["source_text"]:
+            parts.append(f"原文分片：{rubric['source_text'][:200]}")
+        if rubric["terms"]:
+            parts.append(f"核心术语（应准确运用）：{'、'.join(rubric['terms'][:6])}")
+        if rubric["misconceptions"]:
+            parts.append(f"常见误用（出现扣分）：{'、'.join(rubric['misconceptions'][:4])}")
+        if rubric["rubric_points"]:
+            parts.append("踩分点清单：")
+            for p in rubric["rubric_points"]:
+                parts.append(f"  - {p}")
+        parts.append(f"【用户作答】{answer}")
+        parts.append("")
+    return "\n".join(parts)
+
+
+def _parse_batch_grade_response(text: str, item_ids: list[str]) -> dict[str, dict]:
+    """解析批量评分返回的 JSON 数组，按 item_id 映射。失败返回空。"""
+    import json as _json
+    import re as _re
+    results: dict[str, dict] = {}
+    if not text:
+        return results
+    def _try_parse(data):
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict) and "item_id" in item:
+                    results[str(item["item_id"])] = item
+    try:
+        _try_parse(_json.loads(text))
+        if results:
+            return results
+    except (ValueError, _json.JSONDecodeError):
+        pass
+    m = _re.search(r"\[[\s\S]*\]", text)
+    if m:
+        try:
+            _try_parse(_json.loads(m.group(0)))
+        except (ValueError, _json.JSONDecodeError):
+            pass
+    return results
+
+
+def _apply_stance_correction(quiz: QuizItem, answer: str, llm_data: dict) -> dict:
+    """维度隔离 + 立场校正 + 术语后置复核。
+
+    LLM 只提供语义三维度，立场由系统校验决定（维度隔离，防立场漂移）。
+    防高分洗白：stance=block 时总分封顶 0.35，概念层封顶 0.3。
+    术语后置复核：TripleCheck 术语红线判误用时，术语分封顶 0.35。
+    """
+    def _clamp(v):
+        try:
+            return max(0.0, min(1.0, float(v)))
+        except (TypeError, ValueError):
+            return 0.0
+    terminology = _clamp(llm_data.get("terminology_orthodoxy"))
+    logic = _clamp(llm_data.get("logic_coherence"))
+    concept = _clamp(llm_data.get("concept_layer"))
+    suggestions = list(llm_data.get("suggestions") or [])
+    issues = list(llm_data.get("issues") or [])
+    confidence = _clamp(llm_data.get("confidence"))
+
+    # 系统立场校验（维度隔离：立场不采信 LLM）
+    tc = _tc.check(answer, retrieved_context=quiz.explanation, mode="feynman")
+    stance_status = tc["stance"]["status"]
+    exempt = bool(quiz.exempt_marked)
+    has_deviation = any(k in (answer or "") for k in _DEVIATION_KEYWORDS)
+    dev_active = has_deviation and not exempt
+
+    # 术语后置复核：系统判术语误用或偏离关键词 → 术语分封顶
+    if tc["terminology"]["status"] != "pass" or dev_active:
+        terminology = min(terminology, 0.35)
+
+    grading_source = "llm"
+    # 防高分洗白：stance=block（非豁免）→ 概念层与术语层封顶
+    if stance_status == "block" and not exempt:
+        concept = min(concept, 0.3)
+        terminology = min(terminology, 0.35)
+        grading_source = "llm_stance_adjusted"
+    # 低置信标记
+    if confidence < 0.5:
+        grading_source = "llm_low_conf"
+
+    score = round((terminology + logic + concept) / 3, 4)
+    return {
+        "terminology_orthodoxy": round(terminology, 4),
+        "logic_coherence": round(logic, 4),
+        "concept_layer": round(concept, 4),
+        "suggestions": suggestions or ["表述基本符合要求，可补充一个原文例证"],
+        "score": score,
+        "stance": "pass" if exempt else ("block" if dev_active else stance_status),
+        "issues": issues,
+        "confidence": round(confidence, 4),
+        "grading_source": grading_source,
+    }
+
+
 def _grade_subjective(quiz: QuizItem, answer: str) -> dict:
-    """三维度批改：术语正统性 / 逻辑自洽 / 概念层次（FR-014），给建议不代写"""
+    """三维度批改：术语正统性 / 逻辑自洽 / 概念层次（FR-014），给建议不代写。
+
+    FR-022 豁免：故意错误项（辩难/批判对象，exempt_marked=True）不做偏离惩罚，
+    避免因作答中提及错误话术被防偏离引擎误杀，与 _grade_application 对齐。
+    """
     tc = _tc.check(answer, retrieved_context=quiz.explanation, mode="feynman")
     stance = tc["stance"]
     term = tc["terminology"]
     # 显式偏离关键词（西马/修正主义话术）——直接拉低术语正统性
     has_deviation = any(k in (answer or "") for k in _DEVIATION_KEYWORDS)
-    terminology_orthodoxy = 1.0 if (stance["status"] == "pass" and term["status"] == "pass" and not has_deviation) else 0.35
+    # 豁免：故意错误项不做偏离惩罚（与 _grade_application 对齐）
+    exempt = bool(quiz.exempt_marked)
+    dev_active = has_deviation and not exempt
+    # 豁免时立场判定视为通过（偏离话术是故意错误项的正常内容）
+    stance_ok = stance["status"] == "pass" or exempt
+    terminology_orthodoxy = 1.0 if (stance_ok and term["status"] == "pass" and not dev_active) else 0.35
     # 逻辑自洽（启发式：长度与关键词覆盖）
     logic = 0.9 if len(answer.strip()) >= 20 else 0.5
     if any(x in answer for x in ("因为", "所以", "因此", "只有", "才能")):
         logic = min(1.0, logic + 0.05)
     # 概念层次（是否混入近义/错误用法）
     concept_layer = 1.0
-    if stance["status"] == "block" or has_deviation:
+    if not exempt and (stance["status"] == "block" or has_deviation):
         concept_layer = 0.3
+    # 几乎未作答（极短、无内容）不应靠「术语没写错」白拿高分：
+    # 早先一个 "X" 能得 (1.0+0.5+1.0)/3≈0.83，直接被判为答对。
+    if len((answer or "").strip()) < 10:
+        terminology_orthodoxy = min(terminology_orthodoxy, 0.2)
+        logic = min(logic, 0.1)
+        concept_layer = min(concept_layer, 0.2)
     suggestions = []
     if terminology_orthodoxy < 0.6:
         suggestions.append("建议使用正统术语，避免西马/修正主义话语（如“市场社会主义”“交往理性”）")
@@ -237,7 +433,7 @@ def _grade_subjective(quiz: QuizItem, answer: str) -> dict:
         "concept_layer": round(concept_layer, 4),
         "suggestions": suggestions or ["表述基本符合要求，可补充一个原文例证"],
         "score": score,
-        "stance": "block" if has_deviation else stance["status"],
+        "stance": "pass" if exempt else ("block" if has_deviation else stance["status"]),
     }
 
 
@@ -305,6 +501,40 @@ async def submit_test(test_id: str, user_id: str, answers: list[dict]) -> dict:
         section_id, route_id = test.section_id, test.route_id
 
     ans_by_id = {a["item_id"]: a for a in answers}
+
+    # 主观题评分：5 档预筛 + 维度隔离 + 批量 LLM（立场由系统，语义由 LLM）
+    # 先收集主观题，模糊区间（tier 3）批量调 LLM，其余直接启发式，省成本。
+    subjective_grades: dict[str, dict] = {}
+    subjective_llm_tasks: list[tuple[str, QuizItem, str, dict]] = []
+    router = LLMRouter()
+    for qid in item_ids:
+        q = quiz_map.get(qid)
+        if q is None or not q.subjective:
+            continue
+        ans_text = ans_by_id.get(qid, {}).get("answer", "")
+        ps = _prescreen_subjective(q, ans_text)
+        if ps["tier"] == 3:
+            rubric = build_rubric_card(
+                q.node_id, q.source_chunk_id or "", q.explanation or "")
+            subjective_llm_tasks.append((qid, q, ans_text, rubric))
+        else:
+            fb = _grade_subjective(q, ans_text)
+            fb["grading_source"] = "heuristic"
+            subjective_grades[qid] = fb
+    if subjective_llm_tasks:
+        batch_prompt = _build_batch_grade_prompt(subjective_llm_tasks)
+        resp = await router.generate(batch_prompt, task="grade", complexity=0.3)
+        batch_results = _parse_batch_grade_response(
+            resp.text, [t[0] for t in subjective_llm_tasks])
+        for qid, q, ans_text, rubric in subjective_llm_tasks:
+            if qid in batch_results:
+                subjective_grades[qid] = _apply_stance_correction(
+                    q, ans_text, batch_results[qid])
+            else:
+                fb = _grade_subjective(q, ans_text)
+                fb["grading_source"] = "heuristic"
+                subjective_grades[qid] = fb
+
     review = []
     node_stats: dict[str, dict] = {}  # node_id -> {correct, total, diff_sum, feynman}
     item_scores = []
@@ -344,7 +574,7 @@ async def submit_test(test_id: str, user_id: str, answers: list[dict]) -> dict:
                                   confidence=(a.get("confidence") or ""),
                                   subjective_feedback=fb))
             elif q.subjective:
-                fb = _grade_subjective(q, ans_text)
+                fb = subjective_grades.get(qid) or _grade_subjective(q, ans_text)
                 score = fb["score"]
                 item_scores.append(score)
                 st = node_stats.setdefault(q.node_id, {"correct": 0, "total": 0, "diff_sum": 0.0,

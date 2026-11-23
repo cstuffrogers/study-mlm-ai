@@ -28,14 +28,24 @@ void main() {
     });
   });
 
-  testWidgets('WeakPointCard 显示阻塞章数与深入学习按钮', (t) async {
-    var tapped = false;
+  testWidgets('WeakPointCard 显示深入学习与补学按钮', (t) async {
+    var deep = false;
+    var test = false;
     final w = WeakPoint(nodeId: 'kn_practice', name: '实践', score: 0.3, level: 'beginner', blockingSections: 3, sectionId: 'sec_A_02');
-    await t.pumpWidget(_host(WeakPointCard(item: w, onReinforce: () => tapped = true)));
+    await t.pumpWidget(_host(WeakPointCard(
+      item: w,
+      onReinforce: () => test = true,
+      onDeepLearn: () => deep = true,
+    )));
     expect(find.text('实践'), findsOneWidget);
-    expect(find.text('阻塞后续 3 章'), findsOneWidget);
+    // 深入学习按钮（替代原阻塞后续标签）
+    expect(find.text('深入学习'), findsOneWidget);
     await t.tap(find.text('深入学习'));
-    expect(tapped, true);
+    expect(deep, true);
+    // 补学按钮（测试）
+    expect(find.text('补学'), findsOneWidget);
+    await t.tap(find.text('补学'));
+    expect(test, true);
   });
 
   testWidgets('RecommendationCard 展示一句话理由 + 一键进入', (t) async {

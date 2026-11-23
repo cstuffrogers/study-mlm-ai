@@ -1,4 +1,4 @@
-// 薄弱点卡（T042）— 含"阻塞后续N章"标签 + 深入学习
+// 薄弱点卡（T042）— 深入学习按钮（替代阻塞后续标签）+ 补学按钮（测试）
 import 'package:flutter/material.dart';
 import '../models/learning_models.dart';
 import 'mastery_badge.dart';
@@ -7,8 +7,9 @@ import '../theme/app_theme.dart';
 class WeakPointCard extends StatelessWidget {
   final WeakPoint item;
   final VoidCallback? onReinforce;
+  final VoidCallback? onDeepLearn;
 
-  const WeakPointCard({super.key, required this.item, this.onReinforce});
+  const WeakPointCard({super.key, required this.item, this.onReinforce, this.onDeepLearn});
 
   @override
   Widget build(BuildContext context) {
@@ -47,22 +48,18 @@ class WeakPointCard extends StatelessWidget {
                     MasteryBadge(level: item.level, score: item.score, dense: true),
                   ],
                 ),
-                if (item.blockingSections > 0)
+                if (onDeepLearn != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 7),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        minimumSize: Size.zero,
                       ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.link, size: 11, color: Color(0xFFB91C1C)),
-                        const SizedBox(width: 4),
-                        Text('阻塞后续 ${item.blockingSections} 章',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFFB91C1C))),
-                      ]),
+                      onPressed: onDeepLearn,
+                      icon: const Icon(Icons.menu_book_outlined, size: 14, color: AppColors.brand),
+                      label: const Text('深入学习',
+                          style: TextStyle(fontSize: 11.5, color: AppColors.brand)),
                     ),
                   ),
               ],
@@ -75,7 +72,7 @@ class WeakPointCard extends StatelessWidget {
                 minimumSize: Size.zero,
               ),
               onPressed: onReinforce,
-              child: const Text('深入学习', style: TextStyle(fontSize: 12)),
+              child: const Text('补学', style: TextStyle(fontSize: 12)),
             ),
         ],
       ),

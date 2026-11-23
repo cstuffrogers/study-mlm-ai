@@ -24,6 +24,10 @@ class LocalRouter {
           String path, Map<String, dynamic> body) =>
       _dispatch('POST', path, const {}, body);
 
+  static Future<Map<String, dynamic>> delete(
+          String path, Map<String, String> query) =>
+      _dispatch('DELETE', path, query, const {});
+
   static Future<Map<String, dynamic>> _dispatch(
     String method,
     String path,
@@ -255,6 +259,10 @@ class LocalRouter {
         limit: int.tryParse(query['limit'] ?? '') ?? 100,
         sectionId: query['section_id'],
       );
+    }
+    // /api/quiz/attempt/{attemptId}  删除单条错题记录
+    if (method == 'DELETE' && rest.length > 2 && rest[1] == 'attempt') {
+      return LocalQuiz.deleteAttempt(rest[2]);
     }
     if (rest.length > 1 && rest[1] == 'appeal') {
       return LocalInsight.appeal(

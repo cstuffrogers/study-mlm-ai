@@ -48,12 +48,19 @@ class DialogueApi {
 }
 
 class QuizHistoryApi {
-  Future<Map<String, dynamic>> history({String userId = kDemoUserId, bool onlyWrong = false, int limit = 100}) =>
+  Future<Map<String, dynamic>> history(
+          {String userId = kDemoUserId, bool onlyWrong = false, int limit = 100}) =>
       ApiClient.get('/api/quiz/history', query: {
         'user_id': userId,
         'only_wrong': '$onlyWrong',
         'limit': '$limit',
       });
+
+  /// 删除单条错题/作答记录（错题本删除）。
+  Future<Map<String, dynamic>> deleteAttempt(String attemptId,
+          {String userId = kDemoUserId}) =>
+      ApiClient.delete('/api/quiz/attempt/${Uri.encodeComponent(attemptId)}',
+          query: {'user_id': userId});
 }
 
 class AuthApi {

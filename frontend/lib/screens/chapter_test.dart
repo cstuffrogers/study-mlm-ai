@@ -504,6 +504,25 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
     return '这一知识点还没有真正掌握：对照上方解析回看原句，再用自己的话复述一遍原理。';
   }
 
+  Widget _gradingSourceTag(dynamic src) {
+    final s = '${src ?? ''}';
+    final label = switch (s) {
+      'llm' => 'AI 语义精评',
+      'llm_low_conf' => 'AI 语义精评（低置信）',
+      'llm_stance_adjusted' => 'AI 语义精评（立场校正）',
+      'heuristic' => '本地近似评分',
+      _ => null,
+    };
+    if (label == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10,
+              color: s.startsWith('llm') ? const Color(0xFF2563EB) : const Color(0xFF6B7280))),
+    );
+  }
+
   Widget _buildReviewCard(Map<String, dynamic> r) {
     final correct = r['is_correct'] == true;
     final fb = (r['subjective_feedback'] as Map?)?.cast<String, dynamic>();
@@ -543,6 +562,7 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
                   '逻辑 ${((fb['logic_coherence'] ?? 0) * 100).toStringAsFixed(0)}% · '
                   '概念层次 ${((fb['concept_layer'] ?? 0) * 100).toStringAsFixed(0)}%',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+              _gradingSourceTag(fb['grading_source']),
               ...((fb['suggestions'] as List?) ?? const []).map((s) => Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text('· $s', style: const TextStyle(fontSize: 12, color: Color(0xFFB45309))),

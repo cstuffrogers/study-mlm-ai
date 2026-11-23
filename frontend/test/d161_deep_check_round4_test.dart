@@ -91,18 +91,30 @@ void main() {
   }
 
   /// 提交一章章节测验（经 ApiClient，触发写后缓存失效，与真实页面同路径）。
+  /// 题库扩充后一章会抽 8~12 题，只答固定 3 题会被其余未答项拉低掌握度，
+  /// 因此这里按 start 返回的**全部题目**作答：客观题取题库答案，主观/应用题给一段自述。
   Future<void> submitSectionQuiz({bool allCorrect = true}) async {
-    final (sid, items) = await firstChoiceSection();
+    final (sid, _) = await firstChoiceSection();
+    final bank = {
+      for (final it in OfflineContent.quizItems(sid)) '${it['id']}': it
+    };
     final seed =
         await ApiClient.post('/api/quiz/section/$sid/start', {'user_id': 'u'});
     final testId = '${seed['test_id']}';
-    final answers = items
-        .map((it) => {
-              'item_id': it['id'],
-              'answer': allCorrect ? '${it['answer'] ?? 'A'}' : 'X',
-              'confidence': 'high',
-            })
-        .toList();
+    final items = ((seed['items'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>();
+    final answers = items.map((it) {
+      final src = bank['${it['id']}'] ?? const <String, dynamic>{};
+      final isOpen = it['subjective'] == true || it['application'] == true;
+      final good = isOpen
+          ? '实践是检验真理的唯一标准，只有在改造客观世界的实践中才能验证认识的真理性。'
+          : '${src['answer'] ?? 'A'}';
+      return {
+        'item_id': it['id'],
+        'answer': allCorrect ? good : 'X',
+        'confidence': 'high',
+      };
+    }).toList();
     await ApiClient.post('/api/quiz/$testId/submit',
         {'user_id': 'u', 'answers': answers});
   }
@@ -270,8 +282,9 @@ void main() {
     expect(answered.isNotEmpty,
         equals((rec['score'] as num).toDouble() < 0.8));
 
-    // 分析看板：平均得分应为 1.0，健康度为有限整数。
-    expect((ov['avg_score'] as num).toDouble(), closeTo(1.0, 0.001));
+    // 分析看板：平均得分应接近 1.0（主观/费曼题按三维度评分，不会精确等于 1.0），
+    // 健康度为有限整数。
+    expect((ov['avg_score'] as num).toDouble(), closeTo(1.0, 0.05));
     expect(ov['health_score'], isA<int>());
     expect(ov['health_score'] as int, greaterThanOrEqualTo(0));
     expect(ov['health_score'] as int, lessThanOrEqualTo(100));
@@ -292,7 +305,8 @@ void main() {
     final weak = (p['weak_points'] as List).cast<Map<String, dynamic>>();
     expect(weak.any((w) => '${w['node_id']}' == nodeId), isTrue);
 
-    expect((ov['avg_score'] as num).toDouble(), closeTo(0.0, 0.001));
+    // 全错时平均得分应接近（启发式评分会残留极少分值，不允许成规模得分）。
+    expect((ov['avg_score'] as num).toDouble(), lessThan(0.1));
     expect(ov['health_score'], isA<int>());
     expect((mot['frustration'] as Map)['score'], isA<num>());
     expect(((mot['frustration'] as Map)['score'] as num).isFinite, isTrue);
@@ -847,9 +861,9 @@ void main() {
       expect(rec.containsKey(k), isTrue, reason: '单机作答记录缺少键 $k');
     }
 
-    // 分析接口消费一致：总分与作答数吻合。
+    // 分析接口消费一致：总分与作答数吻合（主观题按三维度评分，故用 0.05 容差）。
     final ov = LocalInsight.overview(routeA);
     expect(ov['total_attempts'], LocalDb.attempts.length);
-    expect((ov['avg_score'] as num).toDouble(), closeTo(1.0, 0.001));
+    expect((ov['avg_score'] as num).toDouble(), closeTo(1.0, 0.05));
   });
 }

@@ -9,7 +9,13 @@ import '../theme/app_theme.dart';
 
 class TestHistoryScreen extends StatefulWidget {
   final String routeId;
-  const TestHistoryScreen({super.key, this.routeId = 'route_A'});
+  /// 错题本入口传 true：只收录错题（默认只看错题），仍可手动切换看全部。
+  final bool onlyWrongDefault;
+  const TestHistoryScreen({
+    super.key,
+    this.routeId = 'route_A',
+    this.onlyWrongDefault = false,
+  });
 
   @override
   State<TestHistoryScreen> createState() => _TestHistoryScreenState();
@@ -20,10 +26,12 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
   bool _loading = true;
   bool _onlyWrong = false;
   String? _error;
+  final Set<String> _deleting = {};
 
   @override
   void initState() {
     super.initState();
+    _onlyWrong = widget.onlyWrongDefault;
     _load();
   }
 
@@ -44,7 +52,7 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFBF7F5),
       appBar: AppBar(
-        title: const Text('测试历史 / 错题本'),
+        title: Text(widget.onlyWrongDefault ? '错题本' : '测试历史 / 错题本'),
         actions: [
           IconButton(
             tooltip: _onlyWrong ? '显示全部' : '只看错题',
@@ -162,11 +170,76 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
                   ),
                 ),
               ),
+            // 错题右下方删除按钮：点删除先确认「是否已掌握」，再真正删除记录。
+            if (!correct)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: TextButton.icon(
+                    onPressed: _deleting.contains(_attemptId(r))
+                        ? null
+                        : () => _confirmDelete(r),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('删除'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      minimumSize: Size.zero,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     ),
     );
+  }
+
+  String _attemptId(Map<String, dynamic> r) => '${r['attempt_id'] ?? ''}';
+
+  /// 删除前先问「是否已掌握」：已掌握→删除记录（掌握度是累积信号，不因删记录回退）；
+  /// 未掌握→提示先补学，并保留记录。
+  Future<void> _confirmDelete(Map<String, dynamic> r) async {
+    final id = _attemptId(r);
+    if (id.isEmpty || _deleting.contains(id)) return;
+    final mastered = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('是否已掌握这道题？'),
+        content: const Text('已掌握：删除这条错题记录，不再出现在错题本（已累积的掌握度不受影响）。\n未掌握：建议先补学，保留这条错题继续复习。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('未掌握，先保留'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('已掌握，删除'),
+          ),
+        ],
+      ),
+    );
+    if (mastered != true) return;
+    setState(() => _deleting.add(id));
+    try {
+      await QuizHistoryApi().deleteAttempt(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已删除该错题记录')),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('删除失败：$e')),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting.remove(id));
+    }
   }
 
   Widget _kv(String k, String v, Color color) => Padding(

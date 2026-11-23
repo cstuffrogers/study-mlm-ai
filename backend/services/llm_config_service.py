@@ -26,10 +26,13 @@ logger = logging.getLogger(__name__)
 _CONFIG_PATH = Path(__file__).resolve().parents[1] / ".llm_config.json"
 _KEYS = ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL", "LLM_MAX_CONCURRENT",
          "LLM_MAX_RETRIES", "LLM_TIMEOUT", "LLM_INTERACTIVE_TIMEOUT",
-         "LLM_MAX_TOKENS", "LLM_DISABLE_THINKING")
+         "LLM_MAX_TOKENS", "LLM_DISABLE_THINKING",
+         "LLM_GRADE_MODEL", "LLM_GRADE_MAX_TOKENS")
 _DEFAULTS = {
     "LLM_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "LLM_MODEL": "qwen-plus",
+    # 评分专用：结构化短输出，默认更小 max_tokens 省 token
+    "LLM_GRADE_MAX_TOKENS": "1000",
 }
 _LOCK = threading.Lock()
 
@@ -104,6 +107,9 @@ def current_status() -> dict:
         "max_tokens": _safe_int(eff.get("LLM_MAX_TOKENS"), 2048),
         "disable_thinking": str(eff.get("LLM_DISABLE_THINKING", "1")).lower()
                             in ("1", "true", "yes"),
+        # 评分专用配置（task="grade"）：评分用更轻量参数，未配置则回落主模型
+        "grade_model": eff.get("LLM_GRADE_MODEL", "") or eff.get("LLM_MODEL", ""),
+        "grade_max_tokens": _safe_int(eff.get("LLM_GRADE_MAX_TOKENS"), 1000),
         "source": sources,
         "presets": {
             name: {"base_url": p["base_url"], "model": p["model"]}
@@ -157,12 +163,16 @@ def save(payload: dict) -> dict:
     if model_raw is not None:
         model = str(model_raw).strip()
         saved["LLM_MODEL"] = model or _DEFAULTS["LLM_MODEL"]
+    grade_model_raw = payload.get("grade_model")
+    if grade_model_raw is not None:
+        saved["LLM_GRADE_MODEL"] = str(grade_model_raw).strip()
     for field, key, lo, hi in (
         ("max_concurrent", "LLM_MAX_CONCURRENT", 1, 16),
         ("max_retries", "LLM_MAX_RETRIES", 0, 5),
         ("timeout", "LLM_TIMEOUT", 3.0, 180.0),
         ("interactive_timeout", "LLM_INTERACTIVE_TIMEOUT", 3.0, 120.0),
         ("max_tokens", "LLM_MAX_TOKENS", 128, 8192),
+        ("grade_max_tokens", "LLM_GRADE_MAX_TOKENS", 128, 8192),
     ):
         if field in payload and payload[field] is not None:
             raw = str(payload[field]).strip()

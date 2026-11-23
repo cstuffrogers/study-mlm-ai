@@ -108,6 +108,7 @@ class DataCompat {
       'attempts': LocalDb.attempts.length,
       'tests': LocalDb.tests.length,
       'mastery_nodes': masteryNodes,
+      'badges': LocalDb.badges.length,
       'notes': notes,
       'bookmarks': bookmarks,
       'highlights': highlights,
@@ -158,6 +159,7 @@ class DataCompat {
       },
       'reader': (await _readerValues())
         ..removeWhere((k, v) => v == null || (v is String && v.isEmpty)),
+      'tts': await _ttsValues(),
     });
   }
 
@@ -215,6 +217,20 @@ class DataCompat {
         n++;
       }
       counts['reader_keys'] = n;
+    }
+    final tts = parsed['tts'];
+    if (tts is Map) {
+      final prefs = await _prefsOrNull();
+      var n = 0;
+      for (final e in tts.entries) {
+        final key = '${e.key}';
+        if (key != LocalStoreKeys.ttsPreset && key != LocalStoreKeys.ttsVoice) continue;
+        if (prefs != null) {
+          await prefs.setString(key, '${e.value}');
+          n++;
+        }
+      }
+      counts['tts_keys'] = n;
     }
     await LocalDb.flush();
     return counts;
@@ -342,6 +358,19 @@ class DataCompat {
       for (final k in prefs.getKeys())
         if (k.startsWith(LocalStoreKeys.readerPrefix)) k: prefs.get(k),
     };
+  }
+
+  /// 取出 TTS 朗读设置（预设风格 + 语音包），这两个键走 SharedPreferences 直读，
+  /// 不经过 LocalDb 文档，因此与 reader_* 一样单独处理。
+  static Future<Map<String, String>> _ttsValues() async {
+    final prefs = await _prefsOrNull();
+    if (prefs == null) return {};
+    final map = <String, String>{};
+    for (final key in [LocalStoreKeys.ttsPreset, LocalStoreKeys.ttsVoice]) {
+      final v = prefs.getString(key);
+      if (v != null && v.isNotEmpty) map[key] = v;
+    }
+    return map;
   }
 
   static String _nowIso() {
