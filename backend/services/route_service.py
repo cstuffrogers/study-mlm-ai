@@ -50,8 +50,19 @@ async def get_routes_sections(user_id: str, route_id: str) -> dict:
             "has_bank": prog["bank"], "prev_completed": prev_done,
         })
         prev_done = prog["completed"]
+
+    # 勋章系统（spec 001）：路线完成检测（评估失败不阻断导航页）
+    badges_awarded: list[dict] = []
+    try:
+        from services import badge_service
+        badges_awarded = await badge_service.evaluate(user_id, source_event="route_check")
+    except Exception as e:  # 勋章是激励反馈，任何异常不得影响路线导航
+        import logging
+        logging.getLogger(__name__).warning("勋章评估失败（不影响路线页）: %s", e)
+
     return {"route_id": route_id, "sections": out,
-            "foundation": await shared_foundation(user_id, route_id, own_secs=secs)}
+            "foundation": await shared_foundation(user_id, route_id, own_secs=secs),
+            "badges_awarded": badges_awarded}
 
 
 async def shared_foundation(user_id: str, route_id: str,

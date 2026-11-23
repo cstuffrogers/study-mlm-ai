@@ -31,6 +31,9 @@ class LocalStoreKeys {
   /// 学情信号（对话 / 费曼）
   static const String signals = 'off_signals';
 
+  /// 勋章授予记录：badgeId -> {award_id, badge_id, awarded_at, source_event, read_flag}
+  static const String badges = 'off_badges';
+
   // —— 朗读设置（SharedPreferences 直读，早于 LocalDb 初始化）——
   /// 朗读风格预设 id（见 services/tts_settings.dart::TtsPresets）
   static const String ttsPreset = 'off_tts_preset';
@@ -47,6 +50,7 @@ class LocalStoreKeys {
     dialogues,
     settings,
     signals,
+    badges,
   ];
 
   // —— 原文阅读器：每部著作一份 ——

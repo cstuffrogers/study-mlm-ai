@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/sync_controller.dart';
+import '../services/badge_service_api.dart';
+import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/author_art.dart';
 import '../widgets/brand_title.dart';
@@ -19,6 +21,7 @@ import '../widgets/sync_notice.dart';
 import 'analytics_dashboard.dart';
 import 'llm_config_screen.dart';
 import 'tools_screen.dart';
+import 'badge_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,13 +31,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _unseenBadges = 0;
+
   @override
   void initState() {
     super.initState();
+    _loadUnseenBadges();
     // 启动时合并离线暂存并拉取断点（断点续学）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SyncController>().flush();
     });
+  }
+
+  Future<void> _loadUnseenBadges() async {
+    try {
+      final r = await BadgeApi.unseen(routeId: 'route_A');
+      final n = (r['count'] as num?)?.toInt() ?? 0;
+      if (mounted) setState(() => _unseenBadges = n);
+    } catch (_) {} // 提醒失败不阻断首页
   }
 
   Future<void> _push(Widget page) async {
@@ -80,6 +94,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       // 入口放在头部而不是右下浮动按钮：浮动按钮会压住底部主操作。
                       actions: [
                         _HeaderAction(
+                          tooltip: '我的勋章',
+                          icon: Icons.emoji_events_rounded,
+                          badgeCount: _unseenBadges,
+                          onTap: () {
+                            _loadUnseenBadges();
+                            _push(const BadgeScreen());
+                          },
+                        ),
+                        _HeaderAction(
                           tooltip: '功能中心',
                           icon: Icons.grid_view_rounded,
                           onTap: () => _push(const ToolsScreen()),
@@ -119,11 +142,13 @@ class _HeaderAction extends StatelessWidget {
   final String tooltip;
   final IconData icon;
   final VoidCallback onTap;
+  final int badgeCount;
 
   const _HeaderAction({
     required this.tooltip,
     required this.icon,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   @override
@@ -140,7 +165,38 @@ class _HeaderAction extends StatelessWidget {
             onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.all(7),
-              child: Icon(icon, size: 19, color: Colors.white),
+              child: Stack(
+                alignment: Alignment.topRight,
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(icon, size: 19, color: Colors.white),
+                  if (badgeCount > 0)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 2, vertical: 0),
+                        constraints: const BoxConstraints(minWidth: 16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.danger,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

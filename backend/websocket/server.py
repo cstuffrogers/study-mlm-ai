@@ -15,6 +15,7 @@ from websocket.protocol import (
     ClientMessageType, ServerMessageType,
     UserMessageIn, ActionIn,
     AiMessageOut, BlockedOut, ErrorOut, StateTransitionOut, StruggleDetectedOut,
+    BadgesAwardedOut,
 )
 from services.dialogue_service import DialogueService
 from services import dialogue_store
@@ -134,6 +135,16 @@ async def dialogue_ws(ws: WebSocket) -> None:
 
                 if result.get("state_transition"):
                     await ws.send_text(StateTransitionOut(**result["state_transition"]).model_dump_json())
+
+                # 勋章系统（spec 001）：对话完成检测新勋章，随本轮对话下发通知
+                try:
+                    uid = getattr(u, "user_id", "demo_user") or "demo_user"
+                    from services import badge_service
+                    awarded = await badge_service.evaluate(uid, source_event="dialogue_complete")
+                    if awarded:
+                        await ws.send_text(BadgesAwardedOut(badges=awarded).model_dump_json())
+                except Exception as e:  # 勋章异常不阻断对话主链路
+                    logger.warning("勋章评估失败（不影响对话）: %s", e)
 
                 if result.get("struggle"):
                     try:

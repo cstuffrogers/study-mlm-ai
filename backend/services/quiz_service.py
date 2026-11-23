@@ -445,7 +445,19 @@ async def submit_test(test_id: str, user_id: str, answers: list[dict]) -> dict:
         await _flush(s)
 
     return {"test_id": test_id, "total_score": round(sum(item_scores) / len(item_scores), 4) if item_scores else 0.0,
-            "mastery": mastery_out, "review": review, "gating": gating, "calibration": calibration}
+            "mastery": mastery_out, "review": review, "gating": gating, "calibration": calibration,
+            "badges_awarded": await _evaluate_badges(user_id, "quiz_submit")}
+
+
+async def _evaluate_badges(user_id: str, source_event: str) -> list[dict]:
+    """勋章达成检测挂接（spec 001）：评估失败绝不阻断答题主流程。"""
+    try:
+        from services import badge_service
+        return await badge_service.evaluate(user_id, source_event=source_event)
+    except Exception as e:  # 勋章是激励反馈，任何异常不得影响答题结果
+        import logging
+        logging.getLogger(__name__).warning("勋章评估失败（不影响答题结果）: %s", e)
+        return []
 
 
 def _compute_calibration(answers: list[dict], quiz_map: dict, review: list[dict]) -> dict:

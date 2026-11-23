@@ -40,8 +40,8 @@ void main() {
         ['fs', 'bm', 'nt', 'hl', 'last']);
     expect(LocalStoreKeys.readerWorkOf('reader_$_precision' '_last'), _precision);
     expect(LocalStoreKeys.readerWorkOf('off_mastery'), isNull);
-    // 七份文档都登记了（漏登记 = 备份/体检会漏数据）
-    expect(LocalStoreKeys.docs.length, 7);
+    // 八份文档都登记了（漏登记 = 备份/体检会漏数据）
+    expect(LocalStoreKeys.docs.length, 8);
   });
 
   test('升级后旧数据原样读回：对话/答题/学情/进度/设置都不变', () async {

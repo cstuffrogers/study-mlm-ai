@@ -6,7 +6,7 @@ import '../widgets/radar_chart.dart';
 import '../widgets/weak_point_card.dart';
 import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
-import 'chapter_test.dart';
+import 'chapter_guide_screen.dart';
 import 'analytics_dashboard.dart';
 
 const _dimLabels = {
@@ -197,10 +197,10 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen> {
                 child: WeakPointCard(
                   item: e.value,
                   onReinforce: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => ChapterTestScreen(
+                      builder: (_) => ChapterGuideScreen(
                           routeId: widget.routeId,
                           sectionId: e.value.sectionId.isNotEmpty ? e.value.sectionId : 'sec_A_02',
-                          sectionTitle: '${e.value.name} · 专项回补'))),
+                          sectionTitle: '${e.value.name} · 深入学习'))),
                 ),
               )),
         ],

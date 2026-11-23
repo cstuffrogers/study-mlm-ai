@@ -115,6 +115,17 @@ async def due_reviews(user_id: str, route_id: str, now: datetime | None = None) 
     return out
 
 
+async def _evaluate_badges(user_id: str, source_event: str) -> list[dict]:
+    """勋章达成检测挂接（spec 001）：评估失败绝不阻断复习主流程。"""
+    try:
+        from services import badge_service
+        return await badge_service.evaluate(user_id, source_event=source_event)
+    except Exception as e:  # 勋章是激励反馈，任何异常不得影响复习结果
+        import logging
+        logging.getLogger(__name__).warning("勋章评估失败（不影响复习结果）: %s", e)
+        return []
+
+
 async def apply_review(user_id: str, route_id: str, node_id: str, correct_ratio: float,
                        now: datetime | None = None) -> dict:
     """复习结果回写：调整 stability 并重排下一次复习时间；同步刷新掌握分里的 stability 分量。"""
@@ -154,6 +165,7 @@ async def apply_review(user_id: str, route_id: str, node_id: str, correct_ratio:
         "retention_now": retention(0.0, stability),
         "next_review_at": next_at.isoformat(),
         "review_count_delta": 1,
+        "badges_awarded": await _evaluate_badges(user_id, "review_submit"),
     }
 
 

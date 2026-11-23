@@ -55,10 +55,11 @@ class LocalInsight {
       final c = dnum(b['impact']).compareTo(dnum(a['impact']));
       return c != 0 ? c : '${a['node_id']}'.compareTo('${b['node_id']}');
     });
+    // D134：与后端 `profile_service.build_profile()` 同口径 —— **恒定五维**，
+    // 没测过的维度给 0.0（与 overview() 的 ability_radar 形状一致），否则雷达图缺顶点。
     final ability = <String, dynamic>{};
     radar.forEach((dim, v) {
-      if (v.isEmpty) return;
-      ability[dim] = round4(v.reduce((a, b) => a + b) / v.length);
+      ability[dim] = v.isEmpty ? 0.0 : round4(v.reduce((a, b) => a + b) / v.length);
     });
     return {
       'route_id': routeId,
@@ -408,6 +409,7 @@ class LocalInsight {
       milestones.add({
         'key': 'master_$step',
         'label': '目标：贯通 $step 个知识点',
+        'category': '贯通',
         'achieved': mastered >= step,
       });
     }
@@ -415,6 +417,7 @@ class LocalInsight {
       milestones.add({
         'key': 'streak_$step',
         'label': '目标：连续学习 $step 天',
+        'category': '连续学习',
         'achieved': streak >= step,
       });
     }
@@ -422,17 +425,10 @@ class LocalInsight {
       milestones.add({
         'key': 'attempts_$step',
         'label': '目标：累计作答 $step 题',
+        'category': '累计作答',
         'achieved': attempts.length >= step,
       });
     }
-    // D136：后端 `_milestones()` 只回「最近 4 个已达成 + 下 2 个未达成」，
-    // 单机原先回全部 9 条 —— 同一份数据两种长度（界面里程碑列表直接可见）。
-    final achieved = milestones.where((m) => m['achieved'] == true).toList();
-    final pending = milestones.where((m) => m['achieved'] != true).toList();
-    final trimmed = <Map<String, dynamic>>[
-      ...achieved.skip(achieved.length > 4 ? achieved.length - 4 : 0),
-      ...pending.take(2),
-    ];
     return {
       'route_id': routeId,
       'frustration': {'level': level, 'score': frustration, 'drivers': drivers},
@@ -444,10 +440,11 @@ class LocalInsight {
       'due_count': dueCount,
       'streak_days': streak,
       'total_attempts': attempts.length,
-      'milestones': trimmed,
+      'milestones': milestones,
       'next_best_action': _nextBest(level, mastery, dueCount, avgRecent),
       'mastered_nodes': masteredNodes,
       'weak_nodes': weakNodes,
+      'badges_awarded': <Map<String, dynamic>>[],
     };
   }
 

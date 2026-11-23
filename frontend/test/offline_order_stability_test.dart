@@ -14,7 +14,7 @@
 //  · `review_status().items`：两端都按存储返回序输出，同一份数据两种排法；
 //  · `due_reviews()`：只按 `_risk` 降序（单机 `List.sort` 还**不稳定**）；
 //  · `interleaved()`：单机按 Map 迭代序直接塞，缺「(score, node_id) 排序 + 按小节轮转」；
-//  · `motivation().milestones`：单机回全部 9 条，后端只回「最近 4 个达成 + 下 2 个未达成」。
+//  · `motivation().milestones`：单机与后端均回完整 9 条（贯通 4 + 连续学习 2 + 累计作答 3），带 category。
 //
 // 后端侧同门禁：`backend/tests/test_d136_order_stability.py`。
 import 'package:flutter_test/flutter_test.dart';
@@ -76,13 +76,17 @@ void main() {
     }
   });
 
-  test('里程碑只回「最近 4 个达成 + 下 2 个未达成」（后端 _milestones 同式）', () async {
+  test('里程碑回完整三类 9 条，带 category（后端 _milestones 同式）', () async {
     await _seed();
     final mot = await _get('/api/motivation/state');
     final ms = (mot['milestones'] as List).cast<Map>();
-    expect(ms.length, lessThanOrEqualTo(6));
-    final achieved = ms.where((m) => m['achieved'] == true).length;
-    expect(achieved, lessThanOrEqualTo(4));
+    // 贯通 4 + 连续学习 2 + 累计作答 3 = 9 条
+    expect(ms.length, 9);
+    // 每条带 category
+    expect(ms.every((m) => m['category'] != null), isTrue);
+    // 三类齐全
+    final cats = ms.map((m) => m['category']).toSet();
+    expect(cats, containsAll(['贯通', '连续学习', '累计作答']));
   });
 
   test('复习概览 items 按稳定度升序 + node_id（不按写入时刻）', () async {

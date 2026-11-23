@@ -338,7 +338,7 @@ void main() {
       final v = (parsed['docs'] as Map)[k];
       final isMapDoc = k == LocalStoreKeys.settings || k == LocalStoreKeys.mastery ||
           k == LocalStoreKeys.progress || k == LocalStoreKeys.dialogues ||
-          k == LocalStoreKeys.tests;
+          k == LocalStoreKeys.tests || k == LocalStoreKeys.badges;
       expect(isMapDoc ? v is Map : v is List, isTrue, reason: '$k 容器类型不符');
       expect(v.isEmpty, isTrue, reason: '$k 应为空容器');
     }

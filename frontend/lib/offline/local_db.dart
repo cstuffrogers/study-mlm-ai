@@ -22,6 +22,7 @@ class LocalDb {
   static const String _kDialogues = LocalStoreKeys.dialogues;
   static const String _kSettings = LocalStoreKeys.settings;
   static const String _kSignals = LocalStoreKeys.signals;
+  static const String _kBadges = LocalStoreKeys.badges;
 
   static SharedPreferences? _prefs;
   static bool _memoryOnly = false;
@@ -64,6 +65,8 @@ class LocalDb {
   static Map<String, dynamic> settings = {};
   /// 学情信号（对话/费曼）：[{node_id, type, intensity, created_at}]
   static List<dynamic> signals = [];
+  /// 勋章授予记录：badgeId -> {award_id, badge_id, awarded_at, source_event, read_flag}
+  static Map<String, dynamic> badges = {};
 
   // ------------------------------------------------------------ 数据生命周期上限
   // 作答流水与学情信号没有上限会让存储随使用无限膨胀（每条 flush 全量序列化）。
@@ -96,6 +99,7 @@ class LocalDb {
       dialogues = _readMap(_kDialogues);
       settings = _readMap(_kSettings);
       signals = _readList(_kSignals);
+      badges = _readMap(_kBadges);
       _ready = true;
     }();
   }
@@ -143,6 +147,7 @@ class LocalDb {
     await p.setString(_kDialogues, jsonEncode(dialogues));
     await p.setString(_kSettings, jsonEncode(settings));
     await p.setString(_kSignals, jsonEncode(signals));
+    await p.setString(_kBadges, jsonEncode(badges));
   }
 
   /// 只刷某个文档（写操作后调用，避免每次都整库序列化）
@@ -174,6 +179,9 @@ class LocalDb {
         break;
       case 'signals':
         await p.setString(_kSignals, jsonEncode(signals));
+        break;
+      case 'badges':
+        await p.setString(_kBadges, jsonEncode(badges));
         break;
     }
   }
@@ -292,6 +300,7 @@ class LocalDb {
     dialogues = {};
     settings = {};
     signals = [];
+    badges = {};
     await flush();
   }
 
@@ -310,5 +319,6 @@ class LocalDb {
     dialogues = {};
     settings = {};
     signals = [];
+    badges = {};
   }
 }

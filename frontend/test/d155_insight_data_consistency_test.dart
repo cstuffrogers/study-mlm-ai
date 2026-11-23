@@ -45,8 +45,10 @@ void main() {
 
   test('全新用户（无作答/无评估）：雷达为空、薄弱点覆盖全部、空态判据成立', () {
     final prof = LocalInsight.profile(route);
-    // 未评估节点不进雷达：没有数据的维度不画成 0 分假雷达
-    expect((prof['ability_radar'] as Map).keys, isEmpty);
+    // 恒定五维（与后端 build_profile 同形状，golden parity 要求）；未评估维度补 0.0
+    final profRadar = (prof['ability_radar'] as Map).cast<String, double>();
+    expect(profRadar.length, 5);
+    expect(profRadar.values.every((v) => v == 0.0), isTrue);
     expect(prof['assessed_nodes'], 0);
     // 未评估节点仍算薄弱点（与后端 build_profile 同口径）
     expect((prof['weak_points'] as List).length, OfflineContent.allNodes.length);
@@ -80,9 +82,13 @@ void main() {
 
     final prof = LocalInsight.profile(route);
     final radar = (prof['ability_radar'] as Map).cast<String, dynamic>();
-    // 雷达只含已评估维度
-    expect(radar.keys.toSet(),
-        {mats.first['ability_dim'], epis.first['ability_dim']});
+    // 恒定五维（与后端 build_profile 同形状）；未评估维度补 0.0
+    expect(radar.length, 5);
+    expect(radar.containsKey('materialism'), isTrue);
+    expect(radar.containsKey('epistemology'), isTrue);
+    expect(dnum(radar['dialectics']), 0.0);
+    expect(dnum(radar['historical_materialism']), 0.0);
+    expect(dnum(radar['political_economy']), 0.0);
     // 雷达值 = 该维度已评估节点 score 均值（未评估节点不再按 0 分拉低）
     final expectMat = (dnum(recA['score']) + dnum(recB['score'])) / 2;
     expect(dnum(radar['materialism']), closeTo(expectMat, 1e-3));
@@ -139,8 +145,10 @@ void main() {
 
     final radar = (LocalInsight.profile(route)['ability_radar'] as Map)
         .cast<String, dynamic>();
-    expect(radar.length, 1);
-    expect(radar.keys.first, 'materialism');
+    // 恒定五维（与后端 build_profile 同形状）；未评估维度补 0.0
+    expect(radar.length, 5);
+    expect(dnum(radar['materialism']), greaterThan(0.0));
+    expect(dnum(radar['dialectics']), 0.0);
   });
 
   test('周期筛选：week/month/all 按作答时间过滤，切换筛选数据有变化', () async {

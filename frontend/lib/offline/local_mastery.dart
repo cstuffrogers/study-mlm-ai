@@ -676,6 +676,7 @@ class LocalMastery {
       'route_id': routeId,
       'sections': out,
       'foundation': _foundationRows(routeId, out.map((e) => e['id'] as String).toSet()),
+      'badges_awarded': <Map<String, dynamic>>[],
     };
   }
 

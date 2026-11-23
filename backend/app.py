@@ -33,6 +33,7 @@ from api.sync_routes import router as sync_router
 from api.review_routes import router as review_router
 from api.analytics_routes import router as analytics_router
 from api.motivation_routes import router as motivation_router
+from api.badge_routes import router as badge_router
 from api.tts_routes import router as tts_router
 from api.llm_config_routes import router as llm_config_router
 from websocket.server import router as ws_router
@@ -65,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(review_router, prefix="/api/review", tags=["review"])
     app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
     app.include_router(motivation_router, prefix="/api/motivation", tags=["motivation"])
+    app.include_router(badge_router, prefix="/api/badges", tags=["badges"])
     app.include_router(tts_router, prefix="/api/tts", tags=["tts"])
     app.include_router(llm_config_router, prefix="/api/llm-config", tags=["llm-config"])
     app.include_router(ws_router, tags=["websocket"])

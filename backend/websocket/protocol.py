@@ -30,6 +30,7 @@ class ServerMessageType(str, Enum):
     BLOCKED = "blocked"                  # 防偏离拦截
     STRUGGLE_DETECTED = "struggle_detected"  # 卡顿检测
     DIALOGUE_ENDED = "dialogue_ended"
+    BADGES_AWARDED = "badges_awarded"  # 新勋章授予（spec 001）
     ERROR = "error"
     PONG = "pong"
 
@@ -137,3 +138,9 @@ class ErrorOut(BaseModel):
     type: ServerMessageType = ServerMessageType.ERROR
     code: str
     message: str
+
+
+class BadgesAwardedOut(BaseModel):
+    """新勋章授予通知（spec 001）：对话完成后检测到新勋章时下发。"""
+    type: ServerMessageType = ServerMessageType.BADGES_AWARDED
+    badges: list[dict] = Field(default_factory=list)

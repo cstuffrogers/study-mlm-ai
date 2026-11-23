@@ -154,6 +154,7 @@ class DataCompat {
         LocalStoreKeys.dialogues: LocalDb.dialogues,
         LocalStoreKeys.settings: settings,
         LocalStoreKeys.signals: LocalDb.signals,
+        LocalStoreKeys.badges: LocalDb.badges,
       },
       'reader': (await _readerValues())
         ..removeWhere((k, v) => v == null || (v is String && v.isEmpty)),
@@ -280,6 +281,8 @@ class DataCompat {
     mergeMap(LocalStoreKeys.tests, LocalDb.tests, docs[LocalStoreKeys.tests]);
     mergeMap(
         LocalStoreKeys.dialogues, LocalDb.dialogues, docs[LocalStoreKeys.dialogues]);
+
+    mergeMap(LocalStoreKeys.badges, LocalDb.badges, docs[LocalStoreKeys.badges]);
 
     final settingsIn = docs[LocalStoreKeys.settings];
     if (settingsIn is Map) {

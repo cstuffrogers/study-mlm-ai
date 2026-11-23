@@ -100,7 +100,10 @@ void main() {
 
   test('边界·零作答：档案/分析空态、分布全未接触、健康度 0、无作答统计', () {
     final profile = LocalInsight.profile(routeA);
-    expect(profile['ability_radar'], isEmpty, reason: '无评估节点不进雷达');
+    // 恒定五维（与后端 build_profile 同形状）；未评估维度补 0.0
+    final pRadar0 = (profile['ability_radar'] as Map).cast<String, double>();
+    expect(pRadar0.length, 5);
+    expect(pRadar0.values.every((v) => v == 0.0), isTrue);
     expect(profile['assessed_nodes'], 0);
     expect(profile['weak_points'].length, OfflineContent.allNodes.length,
         reason: '未评估节点也算薄弱点（后端同口径）');
@@ -142,7 +145,8 @@ void main() {
 
     final profile = LocalInsight.profile(routeA);
     final pRadar = profile['ability_radar'] as Map;
-    expect(pRadar.length, 1, reason: '档案页只列已评估维度');
+    // 恒定五维（与后端 build_profile 同形状）；未评估维度补 0.0
+    expect(pRadar.length, 5);
     final dim = OfflineContent.node(nodeA1)!['ability_dim'] as String;
     // 0.6*1 + 0.1*1 + 0.05*0.9 = 0.745，权重和 0.75 → 0.9933
     expect(pRadar[dim], closeTo(0.9933, 4));
@@ -299,7 +303,9 @@ void main() {
     final pB = LocalInsight.profile(routeB);
     expect(pA['assessed_nodes'], 1);
     expect(pB['assessed_nodes'], 0);
-    expect(pB['ability_radar'], isEmpty);
+    final pBRadar = (pB['ability_radar'] as Map).cast<String, double>();
+    expect(pBRadar.length, 5);
+    expect(pBRadar.values.every((v) => v == 0.0), isTrue);
     expect(pB['weak_points'].length, OfflineContent.allNodes.length,
         reason: 'B 路线零数据时薄弱点仍是全量（未评估节点算薄弱点）');
 
@@ -450,7 +456,7 @@ void main() {
     final pRadar = profile['ability_radar'] as Map;
     expect(pRadar[dim1], closeTo(radar[dim1], 6));
     expect(pRadar[dim2], closeTo(radar[dim2], 6));
-    expect(pRadar.length, 2, reason: '档案页只含已评估维度');
+    expect(pRadar.length, 5, reason: '档案页恒定五维（与后端 build_profile 同形状）');
   });
 
   testWidgets('雷达渲染契约：档案页仅 1 个已评估维度时补 0 成五边形（n≥3 可渲染）',

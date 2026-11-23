@@ -276,3 +276,25 @@ class FeedbackReport(LearningBase):
     next_step: Mapped[str] = mapped_column(Text, default="")
     source_tags: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class UserBadge(LearningBase):
+    """用户勋章授予记录 — spec 001 勋章系统
+
+    授予幂等：(user_id, badge_id) 唯一约束，同一勋章对同一用户至多一条。
+    awarded_at 记录首次达成时间；source_event 记录触发授予的事件类型，便于审计。
+    """
+    __tablename__ = "lr_user_badges"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(String(32), index=True)
+    badge_id: Mapped[str] = mapped_column(String(32), index=True)
+    awarded_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    source_event: Mapped[str] = mapped_column(String(24), default="")
+    # 是否已查看（首页提醒/动画兜底使用）；未查看的授予记录出现在 unseen 中
+    read_flag: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (
+        Index("ix_lr_user_badges_ux", "user_id", "badge_id", unique=True),
+        Index("ix_lr_user_badges_time", "user_id", "awarded_at"),
+    )

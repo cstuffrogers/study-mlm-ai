@@ -1,4 +1,4 @@
-// 薄弱点卡（T042）— 含"阻塞后续N章"标签 + 回补快捷
+// 薄弱点卡（T042）— 含"阻塞后续N章"标签 + 深入学习
 import 'package:flutter/material.dart';
 import '../models/learning_models.dart';
 import 'mastery_badge.dart';
@@ -75,7 +75,7 @@ class WeakPointCard extends StatelessWidget {
                 minimumSize: Size.zero,
               ),
               onPressed: onReinforce,
-              child: const Text('去回补', style: TextStyle(fontSize: 12)),
+              child: const Text('深入学习', style: TextStyle(fontSize: 12)),
             ),
         ],
       ),

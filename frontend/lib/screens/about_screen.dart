@@ -34,6 +34,8 @@ class _AboutScreenState extends State<AboutScreen> {
   /// 「已是最新版本」，不能点了没动静（那和死按钮没区别）。
   bool _checking = false;
 
+  static const String _quarkUrl = 'https://pan.quark.cn/s/59a64caedef1?pwd=1Gyh';
+
   Future<void> _checkUpdateManual() async {
     if (_checking) return;
     setState(() => _checking = true);
@@ -80,6 +82,15 @@ class _AboutScreenState extends State<AboutScreen> {
     Clipboard.setData(const ClipboardData(text: AppMeta.githubUrl));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已复制项目地址'), duration: Duration(seconds: 1)),
+    );
+  }
+
+  void _openQuark() => openExternal(_quarkUrl);
+
+  void _copyQuark(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: _quarkUrl));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已复制网盘链接'), duration: Duration(seconds: 1)),
     );
   }
 
@@ -248,6 +259,14 @@ class _AboutScreenState extends State<AboutScreen> {
                     constraints: const BoxConstraints(),
                     padding: EdgeInsets.zero,
                   )),
+              _row('网盘下载', _quarkUrl.replaceFirst('https://', ''),
+                  trailing: IconButton(
+                    tooltip: '复制网盘链接',
+                    icon: const Icon(Icons.copy_all_outlined, size: 18, color: AppColors.brand),
+                    onPressed: () => _copyQuark(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  )),
               _row('作者 / 版权', hasAuthor ? AppMeta.author : '未声明'),
               _row('软件许可', '${AppMeta.licenseName}（代码与自撰材料，禁止商用）'),
               const SizedBox(height: 8),
@@ -275,6 +294,11 @@ class _AboutScreenState extends State<AboutScreen> {
                   onPressed: _openReleases,
                   icon: const Icon(Icons.system_update_alt, size: 18),
                   label: const Text('去下载页'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _openQuark,
+                  icon: const Icon(Icons.cloud_download_outlined, size: 18),
+                  label: const Text('打开网盘'),
                 ),
                 OutlinedButton.icon(
                   onPressed: hasGithub ? () => _openGithub(context) : null,

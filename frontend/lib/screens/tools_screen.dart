@@ -14,6 +14,7 @@ import 'llm_config_screen.dart';
 import 'tts_settings_screen.dart';
 import 'about_screen.dart';
 import 'legal_screen.dart';
+import 'badge_screen.dart';
 
 class ToolsScreen extends StatelessWidget {
   final String routeId;
@@ -30,6 +31,9 @@ class ToolsScreen extends StatelessWidget {
           (_) => const DialogueHistoryScreen()),
       _ToolItem('错题本', '测试历史 · 逐题回顾', Icons.fact_check_outlined, AppColors.warning,
           (_) => TestHistoryScreen(routeId: routeId)),
+      _ToolItem('我的勋章', '成就徽章 · 达成条件 · 进度追踪',
+          Icons.emoji_events_rounded, AppColors.gold,
+          (_) => BadgeScreen(routeId: routeId)),
       _ToolItem('LLM 大模型 API 配置', 'API Key · 端点 · 模型 · 立即生效',
           Icons.smart_toy_outlined, AppColors.brandDeep,
           (_) => const LlmConfigScreen()),

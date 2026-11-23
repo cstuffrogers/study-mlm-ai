@@ -28,13 +28,13 @@ void main() {
     });
   });
 
-  testWidgets('WeakPointCard 显示阻塞章数与回补按钮', (t) async {
+  testWidgets('WeakPointCard 显示阻塞章数与深入学习按钮', (t) async {
     var tapped = false;
     final w = WeakPoint(nodeId: 'kn_practice', name: '实践', score: 0.3, level: 'beginner', blockingSections: 3, sectionId: 'sec_A_02');
     await t.pumpWidget(_host(WeakPointCard(item: w, onReinforce: () => tapped = true)));
     expect(find.text('实践'), findsOneWidget);
     expect(find.text('阻塞后续 3 章'), findsOneWidget);
-    await t.tap(find.text('去回补'));
+    await t.tap(find.text('深入学习'));
     expect(tapped, true);
   });
 
@@ -121,8 +121,8 @@ void main() {
       'mastered': 2,
       'streak_days': 5,
       'milestones': [
-        {'label': '目标：贯通 1 个知识点', 'achieved': true},
-        {'label': '目标：贯通 3 个知识点', 'achieved': false},
+        {'label': '目标：贯通 1 个知识点', 'achieved': true, 'category': '贯通'},
+        {'label': '目标：贯通 3 个知识点', 'achieved': false, 'category': '贯通'},
       ],
       'next_best_action': {'kind': 'light_review', 'label': '做一轮交错复习', 'reason': '先清掉遗忘积压'},
     };
@@ -130,7 +130,39 @@ void main() {
     expect(find.text('稳步推进'), findsOneWidget);
     expect(find.textContaining('弄懂一个概念'), findsOneWidget);
     expect(find.text('目标：贯通 1 个知识点'), findsOneWidget);
+    expect(find.text('贯通'), findsOneWidget);
     expect(find.textContaining('交错复习'), findsOneWidget);
+  });
+
+  testWidgets('MotivationBanner 里程碑三类三行 + 已达成/下个目标', (t) async {
+    final state = {
+      'frustration': {'level': 'low', 'score': 0.1, 'drivers': []},
+      'encouragement': '保持节奏。',
+      'mastered': 3,
+      'streak_days': 5,
+      'milestones': [
+        {'label': '目标：贯通 1 个知识点', 'achieved': true, 'category': '贯通'},
+        {'label': '目标：贯通 3 个知识点', 'achieved': true, 'category': '贯通'},
+        {'label': '目标：贯通 6 个知识点', 'achieved': false, 'category': '贯通'},
+        {'label': '目标：连续学习 3 天', 'achieved': true, 'category': '连续学习'},
+        {'label': '目标：连续学习 7 天', 'achieved': false, 'category': '连续学习'},
+        {'label': '目标：累计作答 10 题', 'achieved': false, 'category': '累计作答'},
+      ],
+      'next_best_action': {'kind': 'quiz', 'label': '做 3 道选择题', 'reason': '保持手感'},
+    };
+    await t.pumpWidget(_host(MotivationBanner(state: state)));
+    // 三类各一行
+    expect(find.text('贯通'), findsOneWidget);
+    expect(find.text('连续学习'), findsOneWidget);
+    expect(find.text('累计作答'), findsOneWidget);
+    // 已达成里程碑逐个显示
+    expect(find.text('目标：贯通 1 个知识点'), findsOneWidget);
+    expect(find.text('目标：贯通 3 个知识点'), findsOneWidget);
+    expect(find.text('目标：连续学习 3 天'), findsOneWidget);
+    // 下个目标显示在每类末尾
+    expect(find.text('目标：贯通 6 个知识点'), findsOneWidget);
+    expect(find.text('目标：连续学习 7 天'), findsOneWidget);
+    expect(find.text('目标：累计作答 10 题'), findsOneWidget);
   });
 
   testWidgets('MotivationBanner 高挫折显示先喘口气', (t) async {

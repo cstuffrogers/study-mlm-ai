@@ -1,7 +1,6 @@
-// 动机/挫折调节横幅（P3 D14）— 分级鼓励 + 里程碑 + 最小下一步
+// 动机/挫折调节横幅（P3 D14）— 分级鼓励 + 里程碑（三类三行）+ 最小下一步
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'knowledge_node_list_sheet.dart';
 
 class MotivationBanner extends StatelessWidget {
   final Map<String, dynamic> state;
@@ -80,68 +79,28 @@ class MotivationBanner extends StatelessWidget {
               ),
             ]),
           ],
+          // 里程碑：三类三行，每类不同图标；已达成逐个显示，末尾显示下个目标
           if (milestones.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: milestones.map((m) {
-                final mm = (m as Map).cast<String, dynamic>();
-                final done = mm['achieved'] == true;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: done ? color.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: done ? color.withValues(alpha: 0.5) : AppColors.line),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(done ? Icons.check_circle : Icons.radio_button_unchecked,
-                        size: 13, color: done ? color : AppColors.ink400),
-                    const SizedBox(width: 4),
-                    Text('${mm['label']}',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: done ? color : AppColors.ink500,
-                            fontWeight: done ? FontWeight.w600 : FontWeight.w400)),
-                  ]),
-                );
-              }).toList(),
+            _milestoneSection(
+              category: '贯通',
+              icon: Icons.verified,
+              color: AppColors.success,
+              ms: milestones.where((e) => (e as Map)['category'] == '贯通').toList(),
+            ),
+            _milestoneSection(
+              category: '连续学习',
+              icon: Icons.local_fire_department,
+              color: AppColors.warning,
+              ms: milestones.where((e) => (e as Map)['category'] == '连续学习').toList(),
+            ),
+            _milestoneSection(
+              category: '累计作答',
+              icon: Icons.assignment,
+              color: AppColors.brand,
+              ms: milestones.where((e) => (e as Map)['category'] == '累计作答').toList(),
             ),
           ],
-          // 知识点掌握统计（可点击展开知识点列表，按书籍分组，再点知识点进入深入学习）
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _statTap(
-                context: context,
-                icon: Icons.check_circle,
-                color: AppColors.success,
-                label: '已掌握',
-                count: state['mastered'] ?? 0,
-                nodes: (state['mastered_nodes'] as List?)
-                        ?.cast<Map<String, dynamic>>() ??
-                    const [],
-                kind: 'mastered',
-                routeId: state['route_id'] as String? ?? '',
-              ),
-              _statTap(
-                context: context,
-                icon: Icons.warning_amber_outlined,
-                color: AppColors.warning,
-                label: '薄弱',
-                count: state['weak'] ?? 0,
-                nodes: (state['weak_nodes'] as List?)
-                        ?.cast<Map<String, dynamic>>() ??
-                    const [],
-                kind: 'weak',
-                routeId: state['route_id'] as String? ?? '',
-              ),
-            ],
-          ),
           if (nextBest.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
@@ -180,35 +139,79 @@ class MotivationBanner extends StatelessWidget {
     );
   }
 
-  Widget _statTap({
-    required BuildContext context,
+  // 里程碑类别行：左侧图标+类别名，右侧已达成chips + 下个目标chip
+  Widget _milestoneSection({
+    required String category,
     required IconData icon,
     required Color color,
-    required String label,
-    required dynamic count,
-    required List<Map<String, dynamic>> nodes,
-    required String kind,
-    required String routeId,
+    required List ms,
   }) {
-    final n = count is int ? count : 0;
-    return GestureDetector(
-      onTap: () => showKnowledgeNodeList(
-          context, nodes: nodes, routeId: routeId, kind: kind),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 5),
-          Text('$label $n 个',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-        ]),
+    final achieved = ms.where((e) => (e as Map)['achieved'] == true).toList();
+    final pending = ms.where((e) => (e as Map)['achieved'] != true).toList();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.line),
       ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 76,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 14, color: color),
+                const SizedBox(width: 4),
+                Text(category,
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                // 每完成一个里程碑就多一个已达成chip
+                ...achieved.map((e) => _msChip(e, done: true, color: color)),
+                // 末尾显示下个目标
+                if (pending.isNotEmpty) _msChip(pending.first, done: false, color: color),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 里程碑chip：已达成打勾 / 下个目标箭头
+  Widget _msChip(Map m, {required bool done, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: done ? color.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: done ? color.withValues(alpha: 0.5) : AppColors.line),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(
+            done ? Icons.check_circle_outline : Icons.arrow_forward,
+            size: 12,
+            color: done ? color : AppColors.ink400),
+        const SizedBox(width: 4),
+        Flexible(
+            child: Text('${m['label']}',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: done ? color : AppColors.ink500,
+                    fontWeight: done ? FontWeight.w600 : FontWeight.w400))),
+      ]),
     );
   }
 }

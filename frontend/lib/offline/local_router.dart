@@ -8,6 +8,7 @@ import 'local_api_exception.dart';
 import 'local_dialogue.dart';
 import 'local_insight.dart';
 import 'local_mastery.dart';
+import 'local_badge.dart';
 import 'local_quiz.dart';
 
 export 'local_api_exception.dart';
@@ -70,6 +71,8 @@ class LocalRouter {
         return LocalInsight.profile(routeId);
       case 'llm-config':
         return _llmConfig(method, rest, body);
+      case 'badges':
+        return _badges(method, rest, query, body, routeId);
       case 'auth':
         return _auth(method, rest, body);
       default:
@@ -101,6 +104,30 @@ class LocalRouter {
       }
     }
     return LlmConfigStore.status();
+  }
+
+  // ------------------------------------------------------------ badges
+  /// 勋章系统（spec 001）：mine / unseen / read。
+  static Future<Map<String, dynamic>> _badges(
+    String method,
+    List<String> rest,
+    Map<String, String> query,
+    Map<String, dynamic> body,
+    String routeId,
+  ) async {
+    if (rest.length > 1 && rest[1] == 'mine') {
+      return LocalBadge.mine(routeId);
+    }
+    if (rest.length > 1 && rest[1] == 'unseen') {
+      return LocalBadge.unseen(routeId);
+    }
+    if (method == 'POST' && rest.length > 1 && rest[1] == 'read') {
+      final ids = ((body['award_ids'] as List?) ?? const [])
+          .whereType<String>()
+          .toList();
+      return {'updated': LocalBadge.markRead(ids)};
+    }
+    throw LocalApiException(404, '未知 badges 接口');
   }
 
   // ------------------------------------------------------------ routes

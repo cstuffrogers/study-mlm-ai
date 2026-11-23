@@ -169,17 +169,14 @@ def _milestones(mastered: int, streak: int, total_attempts: int) -> list[dict]:
     out = []
     for step in _MASTER_STEPS:
         out.append({"key": f"master_{step}", "label": f"目标：贯通 {step} 个知识点",
-                    "achieved": mastered >= step})
+                    "category": "贯通", "achieved": mastered >= step})
     for step in _STREAK_STEPS:
         out.append({"key": f"streak_{step}", "label": f"目标：连续学习 {step} 天",
-                    "achieved": streak >= step})
+                    "category": "连续学习", "achieved": streak >= step})
     for step in (10, 25, 50):
         out.append({"key": f"attempts_{step}", "label": f"目标：累计作答 {step} 题",
-                    "achieved": total_attempts >= step})
-    # 只回传已达成 + 下一个未达成的，避免列表过长
-    achieved = [m for m in out if m["achieved"]]
-    pending = [m for m in out if not m["achieved"]]
-    return achieved[-4:] + pending[:2]
+                    "category": "累计作答", "achieved": total_attempts >= step})
+    return out
 
 
 def _estimate_streak(attempts: list) -> int:

@@ -1,4 +1,4 @@
-// 路线导航/章节列表页（T016）— 渐变头图 + 阶段分组 + 动画掌握条 + 今日推荐/复习/动机横幅
+// 路线导航/章节列表页（T016）— 渐变头图 + 阶段分组 + 动画掌握条 + 今日推荐/复习
 import 'package:flutter/material.dart';
 import '../models/learning_models.dart';
 import '../services/routes_service.dart';
@@ -6,8 +6,6 @@ import '../services/recommendation_service_api.dart';
 import '../widgets/recommendation_card.dart';
 import '../widgets/review_card.dart';
 import '../services/review_service_api.dart';
-import '../services/motivation_service_api.dart';
-import '../widgets/motivation_banner.dart';
 import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
 import 'diagnostic_test.dart';
@@ -27,11 +25,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   final _svc = RoutesService();
   final _recApi = RecommendationApi();
   final _reviewApi = ReviewApi();
-  final _motApi = MotivationApi();
   late Future<RouteSectionsView> _future;
   Recommendation? _rec;
   List<ReviewItem> _due = const [];
-  Map<String, dynamic>? _motivation;
 
   @override
   void initState() {
@@ -41,14 +37,6 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       if (mounted) setState(() => _rec = r);
     }).catchError((_) {});
     _loadDue();
-    _loadMotivation();
-  }
-
-  Future<void> _loadMotivation() async {
-    try {
-      final m = await _motApi.state(routeId: widget.routeId);
-      if (mounted) setState(() => _motivation = m);
-    } catch (_) {}
   }
 
   Future<void> _loadDue() async {
@@ -62,13 +50,11 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     try {
       await _reviewApi.submit(nodeId: nodeId, correctRatio: ratio, routeId: widget.routeId);
       await _loadDue();
-      _loadMotivation();
     } catch (_) {}
   }
 
   void _reload() {
     _future = _svc.sectionsView(widget.routeId);
-    _loadMotivation();
   }
 
   IconData _icon(String status) {
@@ -135,12 +121,6 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                   final secs = view.sections;
                   int lastStage = -1;
                   final children = <Widget>[];
-                  if (_motivation != null) {
-                    children.add(Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                      child: AnimatedEntrance(child: MotivationBanner(state: _motivation!)),
-                    ));
-                  }
                   if (_due.isNotEmpty) {
                     children.add(Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),

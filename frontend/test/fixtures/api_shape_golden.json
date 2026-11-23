@@ -1,488 +1,484 @@
 {
-  "_meta": {
-    "generated_by": ".local/p189_api_shape_golden.py",
-    "note": "只含键名不含值；改后端响应字段后必须重新生成并人工确认",
-    "seed": "先 POST /api/quiz/section/sec_A_00/start 再全答 A 提交；再 POST /api/review/submit(kn_practice,1.0)",
-    "what": "联网后端 /api/* 响应键集合（深度 2），供单机版形状对齐门禁使用"
+ "_meta": {
+  "generated_by": ".local/p189_api_shape_golden.py",
+  "note": "只含键名不含值；改后端响应字段后必须重新生成并人工确认",
+  "seed": "先 POST /api/quiz/section/sec_A_00/start 再全答 A 提交；再 POST /api/review/submit(kn_practice,1.0)",
+  "what": "联网后端 /api/* 响应键集合（深度 2），供单机版形状对齐门禁使用"
+ },
+ "optional_keys": {
+  "GET /api/analytics/overview": [
+   "avg_retention",
+   "avg_score"
+  ],
+  "GET /api/motivation/state": [
+   "avg_recent_accuracy"
+  ],
+  "GET /api/routes/route_A/sections/sec_A_00/gating": [
+   "reason",
+   "blocking_nodes"
+  ],
+  "GET /api/routes/route_A/sections/sec_A_02/gating": [
+   "reason",
+   "blocking_nodes"
+  ]
+ },
+ "paths": {
+  "GET /api/analytics/calibration": {
+   ".": [
+    "by_confidence",
+    "n",
+    "overall",
+    "tip",
+    "user_id",
+    "verdict"
+   ],
+   "by_confidence": [],
+   "overall": [
+    "actual",
+    "expected",
+    "gap",
+    "n"
+   ]
   },
-  "optional_keys": {
-    "GET /api/analytics/overview": [
-      "avg_retention",
-      "avg_score"
-    ],
-    "GET /api/motivation/state": [
-      "avg_recent_accuracy",
-      "mastered_nodes[]",
-      "weak_nodes[]"
-    ],
-    "GET /api/routes/route_A/sections/sec_A_00/gating": [
-      "reason",
-      "blocking_nodes"
-    ],
-    "GET /api/routes/route_A/sections/sec_A_02/gating": [
-      "reason",
-      "blocking_nodes"
-    ],
-    "GET /api/mastery/profile": [
-      "dialectics",
-      "historical_materialism",
-      "political_economy"
-    ]
+  "GET /api/analytics/overview": {
+   ".": [
+    "ability_radar",
+    "assessed_nodes",
+    "avg_retention",
+    "avg_score",
+    "calibration",
+    "due_count",
+    "error_breakdown",
+    "health_score",
+    "mastered",
+    "mastery_distribution",
+    "route_id",
+    "streak_days",
+    "total_attempts",
+    "total_nodes",
+    "weakest_dim"
+   ],
+   "ability_radar": [
+    "dialectics",
+    "epistemology",
+    "historical_materialism",
+    "materialism",
+    "political_economy"
+   ],
+   "calibration": [
+    "gap",
+    "n",
+    "tip",
+    "verdict"
+   ],
+   "error_breakdown": [
+    "concept_layer_confusion",
+    "real_unknown"
+   ],
+   "mastery_distribution": [
+    "beginner",
+    "familiar",
+    "mastered",
+    "proficient",
+    "unseen"
+   ],
+   "weakest_dim": [
+    "dim",
+    "score"
+   ]
   },
-  "paths": {
-    "GET /api/analytics/calibration": {
-      ".": [
-        "by_confidence",
-        "n",
-        "overall",
-        "tip",
-        "user_id",
-        "verdict"
-      ],
-      "by_confidence": [],
-      "overall": [
-        "actual",
-        "expected",
-        "gap",
-        "n"
-      ]
-    },
-    "GET /api/analytics/overview": {
-      ".": [
-        "ability_radar",
-        "assessed_nodes",
-        "avg_retention",
-        "avg_score",
-        "calibration",
-        "due_count",
-        "error_breakdown",
-        "health_score",
-        "mastered",
-        "mastery_distribution",
-        "route_id",
-        "streak_days",
-        "total_attempts",
-        "total_nodes",
-        "weakest_dim"
-      ],
-      "ability_radar": [
-        "dialectics",
-        "epistemology",
-        "historical_materialism",
-        "materialism",
-        "political_economy"
-      ],
-      "calibration": [
-        "gap",
-        "n",
-        "tip",
-        "verdict"
-      ],
-      "error_breakdown": [
-        "concept_layer_confusion",
-        "real_unknown"
-      ],
-      "mastery_distribution": [
-        "beginner",
-        "familiar",
-        "mastered",
-        "proficient",
-        "unseen"
-      ],
-      "weakest_dim": [
-        "dim",
-        "score"
-      ]
-    },
-    "GET /api/chunks/works": {
-      ".": [
-        "items",
-        "total",
-        "works"
-      ],
-      "items[]": [
-        "author",
-        "chunk_count",
-        "first_chunk_id",
-        "is_book",
-        "work"
-      ]
-    },
-    "GET /api/mastery/node/kn_practice": {
-      ".": [
-        "ability_dim",
-        "basis",
-        "definition",
-        "dependents",
-        "dependents_count",
-        "exam_weight",
-        "level",
-        "name",
-        "node_id",
-        "prerequisites",
-        "score",
-        "section_id",
-        "signals",
-        "source_chunk_id"
-      ],
-      "basis": [],
-      "dependents[]": [
-        "level",
-        "name",
-        "node_id",
-        "score",
-        "section_id"
-      ]
-    },
-    "GET /api/mastery/profile": {
-      ".": [
-        "ability_radar",
-        "mastery_distribution",
-        "route_id",
-        "summary",
-        "updated_at",
-        "weak_points"
-      ],
-      "ability_radar": [
-        "dialectics",
-        "epistemology",
-        "historical_materialism",
-        "materialism",
-        "political_economy"
-      ],
-      "mastery_distribution": [
-        "beginner",
-        "familiar",
-        "mastered",
-        "proficient",
-        "unseen"
-      ],
-      "weak_points[]": [
-        "blocking_sections",
-        "error_category",
-        "level",
-        "name",
-        "node_id",
-        "reason",
-        "score",
-        "section_id"
-      ]
-    },
-    "GET /api/motivation/state": {
-      ".": [
-        "avg_recent_accuracy",
-        "due_count",
-        "encouragement",
-        "frustration",
-        "mastered",
-        "mastered_nodes",
-        "milestones",
-        "next_best_action",
-        "proficient",
-        "route_id",
-        "streak_days",
-        "weak",
-        "weak_nodes"
-      ],
-      "frustration": [
-        "drivers",
-        "level",
-        "score"
-      ],
-      "milestones[]": [
-        "achieved",
-        "key",
-        "label"
-      ],
-      "next_best_action": [
-        "kind",
-        "label",
-        "reason"
-      ],
-      "weak_nodes[]": [
-        "level",
-        "name",
-        "node_id",
-        "score",
-        "section_id",
-        "title",
-        "work",
-        "work_short"
-      ]
-    },
-    "GET /api/quiz/history": {
-      ".": [
-        "rows",
-        "total",
-        "user_id",
-        "wrong"
-      ],
-      "rows[]": [
-        "answer",
-        "answer_key",
-        "attempt_id",
-        "confidence",
-        "created_at",
-        "error_category",
-        "error_label",
-        "error_reason",
-        "explanation",
-        "is_correct",
-        "options",
-        "quiz_id",
-        "score",
-        "section_id",
-        "section_title",
-        "source_chunk_id",
-        "stem",
-        "test_id",
-        "type"
-      ]
-    },
-    "GET /api/recommendation/today": {
-      ".": [
-        "recommendation"
-      ],
-      "recommendation": [
-        "reason",
-        "rec_type",
-        "target_node_id",
-        "target_section_id"
-      ]
-    },
-    "GET /api/recommendation/weak-top": {
-      ".": [
-        "weak_points"
-      ],
-      "weak_points[]": [
-        "blocking_sections",
-        "error_category",
-        "level",
-        "name",
-        "node_id",
-        "reason",
-        "score",
-        "section_id",
-        "statement"
-      ]
-    },
-    "GET /api/review/due": {
-      ".": [
-        "due",
-        "due_count",
-        "route_id"
-      ]
-    },
-    "GET /api/review/interleaved": {
-      ".": [
-        "count",
-        "items",
-        "route_id"
-      ]
-    },
-    "GET /api/review/status": {
-      ".": [
-        "due",
-        "due_count",
-        "items",
-        "route_id"
-      ],
-      "items[]": [
-        "name",
-        "next_review_at",
-        "node_id",
-        "retention",
-        "review_count",
-        "score",
-        "stability"
-      ]
-    },
-    "GET /api/routes": {
-      ".": [
-        "routes"
-      ],
-      "routes[]": [
-        "est_duration",
-        "goal",
-        "id",
-        "name",
-        "shares_foundation"
-      ]
-    },
-    "GET /api/routes/route_A/sections": {
-      ".": [
-        "foundation",
-        "route_id",
-        "sections"
-      ],
-      "foundation[]": [
-        "covered_by",
-        "has_bank",
-        "id",
-        "in_route",
-        "is_foundation",
-        "local_work",
-        "mastery_score",
-        "order_index",
-        "route_id",
-        "stage_no",
-        "status",
-        "title",
-        "unlock_threshold",
-        "work",
-        "work_short"
-      ],
-      "sections[]": [
-        "has_bank",
-        "id",
-        "is_foundation",
-        "local_work",
-        "mastery_score",
-        "order_index",
-        "prev_completed",
-        "stage_label",
-        "stage_no",
-        "status",
-        "title",
-        "unlock_threshold",
-        "work",
-        "work_short"
-      ]
-    },
-    "GET /api/routes/route_A/sections/sec_A_00/gating": {
-      ".": [
-        "assessed_nodes",
-        "bank",
-        "blocking_nodes",
-        "need_reinforce",
-        "next_section_id",
-        "next_section_unlocked",
-        "reason",
-        "section_id",
-        "section_score",
-        "threshold",
-        "unlocked"
-      ]
-    },
-    "GET /api/routes/route_A/sections/sec_A_00/guide": {
-      ".": [
-        "extensions",
-        "extensions_blacklist",
-        "guide",
-        "local_work",
-        "nodes",
-        "route_id",
-        "section_id",
-        "section_title",
-        "section_work",
-        "source_links",
-        "work_short"
-      ],
-      "extensions[]": [
-        "author",
-        "caution",
-        "how_to_use",
-        "intro",
-        "kind",
-        "local_work",
-        "points",
-        "title"
-      ],
-      "guide": [
-        "background",
-        "discussion",
-        "sections",
-        "source_note",
-        "title",
-        "work",
-        "work_author"
-      ],
-      "nodes[]": [
-        "ability_dim",
-        "definition",
-        "exam_weight",
-        "id",
-        "name",
-        "paragraph",
-        "section_id",
-        "source_chunk_id"
-      ],
-      "source_links": [
-        "blocks",
-        "chapter",
-        "nodes"
-      ]
-    },
-    "GET /api/routes/route_A/sections/sec_A_02/gating": {
-      ".": [
-        "assessed_nodes",
-        "bank",
-        "blocking_nodes",
-        "need_reinforce",
-        "next_section_id",
-        "next_section_unlocked",
-        "section_id",
-        "section_score",
-        "threshold",
-        "unlocked"
-      ]
-    },
-    "GET /api/sync/pull": {
-      ".": [
-        "mastery",
-        "progress",
-        "route_id",
-        "server_time"
-      ],
-      "mastery": [
-        "kn_a00_agnostic",
-        "kn_a00_basic",
-        "kn_a00_parties"
-      ]
-    },
-    "POST /api/mastery/summary": {
-      ".": [
-        "mastered",
-        "next_step",
-        "period",
-        "route_id",
-        "source_tags",
-        "summary",
-        "to_reinforce"
-      ],
-      "source_tags": [
-        "哲学是世界观",
-        "唯物论与唯心论两大阵营",
-        "日常感想与完整哲学"
-      ]
-    },
-    "POST /api/quiz/section/sec_A_02/start": {
-      ".": [
-        "items",
-        "section_id",
-        "test_id"
-      ],
-      "items[]": [
-        "application",
-        "authority_status",
-        "difficulty",
-        "exempt_marked",
-        "id",
-        "options",
-        "source_chunk_id",
-        "stem",
-        "subjective",
-        "trial_only",
-        "type"
-      ]
-    },
-    "POST /api/recommendation/next": {
-      ".": [
-        "reason",
-        "rec_type",
-        "target_node_id",
-        "target_section_id"
-      ]
-    }
+  "GET /api/chunks/works": {
+   ".": [
+    "items",
+    "total",
+    "works"
+   ],
+   "items[]": [
+    "author",
+    "chunk_count",
+    "first_chunk_id",
+    "is_book",
+    "work"
+   ]
+  },
+  "GET /api/mastery/node/kn_practice": {
+   ".": [
+    "ability_dim",
+    "basis",
+    "definition",
+    "dependents",
+    "dependents_count",
+    "exam_weight",
+    "level",
+    "name",
+    "node_id",
+    "prerequisites",
+    "score",
+    "section_id",
+    "signals",
+    "source_chunk_id"
+   ],
+   "basis": [],
+   "dependents[]": [
+    "level",
+    "name",
+    "node_id",
+    "score",
+    "section_id"
+   ]
+  },
+  "GET /api/mastery/profile": {
+   ".": [
+    "ability_radar",
+    "mastery_distribution",
+    "route_id",
+    "summary",
+    "updated_at",
+    "weak_points"
+   ],
+   "ability_radar": [
+    "dialectics",
+    "epistemology",
+    "historical_materialism",
+    "materialism",
+    "political_economy"
+   ],
+   "mastery_distribution": [
+    "beginner",
+    "familiar",
+    "mastered",
+    "proficient",
+    "unseen"
+   ],
+   "weak_points[]": [
+    "blocking_sections",
+    "error_category",
+    "level",
+    "name",
+    "node_id",
+    "reason",
+    "score",
+    "section_id"
+   ]
+  },
+  "GET /api/motivation/state": {
+   ".": [
+    "avg_recent_accuracy",
+    "badges_awarded",
+    "due_count",
+    "encouragement",
+    "frustration",
+    "mastered",
+    "mastered_nodes",
+    "milestones",
+    "next_best_action",
+    "proficient",
+    "route_id",
+    "streak_days",
+    "weak",
+    "weak_nodes"
+   ],
+   "frustration": [
+    "drivers",
+    "level",
+    "score"
+   ],
+   "milestones[]": [
+    "achieved",
+    "category",
+    "key",
+    "label"
+   ],
+   "next_best_action": [
+    "kind",
+    "label",
+    "reason"
+   ],
+   "weak_nodes[]": [
+    "level",
+    "name",
+    "node_id",
+    "score",
+    "section_id",
+    "title",
+    "work",
+    "work_short"
+   ]
+  },
+  "GET /api/quiz/history": {
+   ".": [
+    "rows",
+    "total",
+    "user_id",
+    "wrong"
+   ],
+   "rows[]": [
+    "answer",
+    "answer_key",
+    "attempt_id",
+    "confidence",
+    "created_at",
+    "error_category",
+    "error_label",
+    "error_reason",
+    "explanation",
+    "is_correct",
+    "options",
+    "quiz_id",
+    "score",
+    "section_id",
+    "section_title",
+    "source_chunk_id",
+    "stem",
+    "test_id",
+    "type"
+   ]
+  },
+  "GET /api/recommendation/today": {
+   ".": [
+    "recommendation"
+   ],
+   "recommendation": [
+    "reason",
+    "rec_type",
+    "target_node_id",
+    "target_section_id"
+   ]
+  },
+  "GET /api/recommendation/weak-top": {
+   ".": [
+    "weak_points"
+   ],
+   "weak_points[]": [
+    "blocking_sections",
+    "error_category",
+    "level",
+    "name",
+    "node_id",
+    "reason",
+    "score",
+    "section_id",
+    "statement"
+   ]
+  },
+  "GET /api/review/due": {
+   ".": [
+    "due",
+    "due_count",
+    "route_id"
+   ]
+  },
+  "GET /api/review/interleaved": {
+   ".": [
+    "count",
+    "items",
+    "route_id"
+   ]
+  },
+  "GET /api/review/status": {
+   ".": [
+    "due",
+    "due_count",
+    "items",
+    "route_id"
+   ],
+   "items[]": [
+    "name",
+    "next_review_at",
+    "node_id",
+    "retention",
+    "review_count",
+    "score",
+    "stability"
+   ]
+  },
+  "GET /api/routes": {
+   ".": [
+    "routes"
+   ],
+   "routes[]": [
+    "est_duration",
+    "goal",
+    "id",
+    "name",
+    "shares_foundation"
+   ]
+  },
+  "GET /api/routes/route_A/sections": {
+   ".": [
+    "badges_awarded",
+    "foundation",
+    "route_id",
+    "sections"
+   ],
+   "foundation[]": [
+    "covered_by",
+    "has_bank",
+    "id",
+    "in_route",
+    "is_foundation",
+    "local_work",
+    "mastery_score",
+    "order_index",
+    "route_id",
+    "stage_no",
+    "status",
+    "title",
+    "unlock_threshold",
+    "work",
+    "work_short"
+   ],
+   "sections[]": [
+    "has_bank",
+    "id",
+    "is_foundation",
+    "local_work",
+    "mastery_score",
+    "order_index",
+    "prev_completed",
+    "stage_label",
+    "stage_no",
+    "status",
+    "title",
+    "unlock_threshold",
+    "work",
+    "work_short"
+   ]
+  },
+  "GET /api/routes/route_A/sections/sec_A_00/gating": {
+   ".": [
+    "assessed_nodes",
+    "bank",
+    "blocking_nodes",
+    "need_reinforce",
+    "next_section_id",
+    "next_section_unlocked",
+    "reason",
+    "section_id",
+    "section_score",
+    "threshold",
+    "unlocked"
+   ]
+  },
+  "GET /api/routes/route_A/sections/sec_A_00/guide": {
+   ".": [
+    "extensions",
+    "extensions_blacklist",
+    "guide",
+    "local_work",
+    "nodes",
+    "route_id",
+    "section_id",
+    "section_title",
+    "section_work",
+    "source_links",
+    "work_short"
+   ],
+   "extensions[]": [
+    "author",
+    "caution",
+    "how_to_use",
+    "intro",
+    "kind",
+    "local_work",
+    "points",
+    "title"
+   ],
+   "guide": [
+    "background",
+    "discussion",
+    "sections",
+    "source_note",
+    "title",
+    "work",
+    "work_author"
+   ],
+   "nodes[]": [
+    "ability_dim",
+    "definition",
+    "exam_weight",
+    "id",
+    "name",
+    "paragraph",
+    "section_id",
+    "source_chunk_id"
+   ],
+   "source_links": [
+    "blocks",
+    "chapter",
+    "nodes"
+   ]
+  },
+  "GET /api/routes/route_A/sections/sec_A_02/gating": {
+   ".": [
+    "assessed_nodes",
+    "bank",
+    "blocking_nodes",
+    "need_reinforce",
+    "next_section_id",
+    "next_section_unlocked",
+    "section_id",
+    "section_score",
+    "threshold",
+    "unlocked"
+   ]
+  },
+  "GET /api/sync/pull": {
+   ".": [
+    "mastery",
+    "progress",
+    "route_id",
+    "server_time"
+   ],
+   "mastery": [
+    "kn_a00_agnostic",
+    "kn_a00_basic",
+    "kn_a00_parties"
+   ]
+  },
+  "POST /api/mastery/summary": {
+   ".": [
+    "mastered",
+    "next_step",
+    "period",
+    "route_id",
+    "source_tags",
+    "summary",
+    "to_reinforce"
+   ],
+   "source_tags": [
+    "哲学是世界观",
+    "唯物论与唯心论两大阵营",
+    "日常感想与完整哲学"
+   ]
+  },
+  "POST /api/quiz/section/sec_A_02/start": {
+   ".": [
+    "items",
+    "section_id",
+    "test_id"
+   ],
+   "items[]": [
+    "application",
+    "authority_status",
+    "difficulty",
+    "exempt_marked",
+    "id",
+    "options",
+    "source_chunk_id",
+    "stem",
+    "subjective",
+    "trial_only",
+    "type"
+   ]
+  },
+  "POST /api/recommendation/next": {
+   ".": [
+    "reason",
+    "rec_type",
+    "target_node_id",
+    "target_section_id"
+   ]
   }
+ }
 }
