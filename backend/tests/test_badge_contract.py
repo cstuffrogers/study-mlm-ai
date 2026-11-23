@@ -318,6 +318,8 @@ async def test_mine_summary_structure():
     assert sm["earned"] + sm["unearned"] == 29
     for b in mine["badges"]:
         assert "progress" in b and "condition_text" in b
+        assert "sort_order" in b and isinstance(b["sort_order"], int), (
+            f"勋章 {b.get('badge_id')} 缺少 sort_order，badge_screen 排序会崩溃")
 
 
 @pytest.mark.asyncio

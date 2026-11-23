@@ -414,6 +414,7 @@ class LocalBadge {
         'description': b.description,
         'category': b.category,
         'icon_key': b.iconKey,
+        'sort_order': b.sortOrder,
         'condition_text': conditionText(b),
         'earned': earnedHere,
         'awarded_at': earnedHere ? _awardedAt(g.cast<String, dynamic>()) : null,
