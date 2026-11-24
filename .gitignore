@@ -89,6 +89,8 @@ tmp/
 .benchmarks/
 # 字体备份
 .font_backup/
+# 题库/内容的本地备份（导入前留底，不入库）
+**/.backup/
 # 本机路径速记
 路径.txt
 # 桌面快捷方式
