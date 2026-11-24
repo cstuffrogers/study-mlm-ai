@@ -19,6 +19,7 @@ import 'services/tts_autostop.dart';
 import 'theme/app_theme.dart';
 import 'widgets/update_dialog.dart';
 import 'widgets/update_host.dart';
+import 'widgets/whats_new_dialog.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -26,6 +27,10 @@ Future<void> main() async {
   // 单机版：启动时先装载轻量元数据与本地学习档案；
   // 14MB 的原文分片与题库在进入相关页面前再懒加载，避免拖慢冷启动。
   await LocalDb.ensure();
+  // 首次安装还是升级？——DataCompat.run() 会给所有人登记 data_schema，
+  // 所以必须在它之前读：此刻为空 = 本机以前没跑过任何版本（全新安装）。
+  // 用途：全新安装不弹「本次更新内容」（没更新可言），见 widgets/whats_new_dialog.dart。
+  final freshInstall = LocalDb.settings['data_schema'] == null;
   // 升级兼容闸门：只补字段、只登记数据版本，绝不删除/改名用户数据。
   await DataCompat.run();
   await OfflineContent.ensureMeta();
@@ -37,12 +42,37 @@ Future<void> main() async {
   // 应用内更新检查：放到首帧之后再查，绝不参与冷启动关键路径（网络慢也不拖慢进首页）。
   // 只有安卓会真的弹框——桌面/Web 没有自装这回事，见 services/app_update.dart。
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(_checkUpdateAfterLaunch());
+    unawaited(_afterLaunch(freshInstall));
     // 顺手清掉上次更新留下的安装包（70+MB）：装完不能立刻删，只能等下次启动。
     unawaited(cleanDownloadedApks());
     // 朗读音频一律不留盘：防厂商语音引擎把合成结果写进 App 缓存目录。
     unawaited(cleanTempAudio());
   });
+}
+
+/// 首帧之后的启动杂活：先弹「本次更新内容」，再查新版本。
+///
+/// 两件事必须串行：更新提示框是 barrierDismissible=false 的模态框，
+/// 两个框同时弹会叠在一起、用户不知道该先关哪个。
+/// 更新检查本身要联网（几十毫秒到几秒），所以先给用户看本次更新内容不拖时间。
+Future<void> _afterLaunch(bool freshInstall) async {
+  await _showWhatsNewAfterLaunch(freshInstall);
+  await _checkUpdateAfterLaunch();
+}
+
+/// 升级后第一次启动弹「本次更新内容」（一个版本只弹一次，见 changelog_seen.dart）。
+///
+/// 只在人还在前台时弹：冷启动首帧可能还夹着系统动画/切走，弹了也看不见。
+Future<void> _showWhatsNewAfterLaunch(bool freshInstall) async {
+  final nav = appNavigatorKey.currentState;
+  if (nav == null || !nav.mounted) return;
+  if (!_lifecycle.inForeground) return;
+  try {
+    await maybeShowWhatsNew(nav.context, freshInstall: freshInstall);
+  } catch (e) {
+    // 更新说明只是「顺告知」，不能因为它把启动流程搞崩
+    debugPrint('WhatsNew: 展示更新说明失败（忽略）：$e');
+  }
 }
 
 /// 启动后的更新检查（首帧之后跑，不占冷启动）。

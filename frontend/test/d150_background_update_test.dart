@@ -51,11 +51,18 @@ void main() {
     });
 
     test('冷启动才查：后台/切页回来自查的重入点不存在', () {
-      // 只有「定义 + 首帧回调里那一次调用」；lifecycle 回调里不许再触发检查
+      // 只有「定义 + _afterLaunch 里那一次调用」；lifecycle 回调里不许再触发检查
       expect(RegExp(r'_checkUpdateAfterLaunch\(\)').allMatches(main).length, 2,
-          reason: '除定义外只应在首帧回调里出现一次调用');
-      final startup = slice(main, 'addPostFrameCallback', '}');
-      expect(startup, contains('_checkUpdateAfterLaunch'));
+          reason: '除定义外只应在首帧后的启动杂活里出现一次调用');
+      // 首帧回调体里调的是 _afterLaunch（先弹更新说明、再查新版）
+      final startup = slice(main, 'addPostFrameCallback', '});');
+      expect(startup, contains('_afterLaunch(freshInstall)'));
+      final after = slice(main, 'Future<void> _afterLaunch(',
+          'Future<void> _showWhatsNewAfterLaunch(');
+      expect(after, contains('_checkUpdateAfterLaunch()'),
+          reason: '_afterLaunch 里要查新版（串行，不能与更新说明同时弹）');
+      expect(RegExp(r'_afterLaunch\(').allMatches(main).length, 2,
+          reason: '首帧回调只调一次，别在别处重复触发');
       final tracker = slice(main, 'class _LifecycleTracker', 'final _LifecycleTracker');
       expect(tracker, isNot(contains('checkUpdate')));
       expect(tracker, isNot(contains('_checkUpdateAfterLaunch')));

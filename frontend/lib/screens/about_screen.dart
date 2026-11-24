@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/app_meta.dart';
+import '../config/changelog.dart';
 import '../services/app_update.dart';
 import '../services/update_download.dart';
 import '../services/open_url.dart';
@@ -18,6 +19,7 @@ import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/guide_dialog.dart';
 import '../widgets/update_dialog.dart';
+import '../widgets/whats_new_dialog.dart';
 import 'legal_screen.dart';
 
 class AboutScreen extends StatefulWidget {
@@ -92,6 +94,93 @@ class _AboutScreenState extends State<AboutScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已复制网盘链接'), duration: Duration(seconds: 1)),
     );
+  }
+
+  /// 更新说明：默认展示**当前这版**改了什么（数据源 lib/config/changelog.dart）。
+  /// 升级后第一次启动还会自动弹一次（见 widgets/whats_new_dialog.dart）。
+  Widget _changelogCard() {
+    final cur = currentChangelog;
+    return _card('更新说明', [
+      if (cur == null)
+        const Text(
+          '本版本未登记更新说明（发布前会补）。',
+          style: TextStyle(fontSize: 12, color: AppColors.ink400),
+        )
+      else ...[
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.brand.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'v${cur.version}',
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brand),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(cur.date,
+              style: const TextStyle(fontSize: 11.5, color: AppColors.ink400)),
+          const Spacer(),
+          Text('共 ${cur.itemCount} 条',
+              style: const TextStyle(fontSize: 11.5, color: AppColors.ink400)),
+        ]),
+        const SizedBox(height: 10),
+        for (final g in cur.groups) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 4),
+            child: Text(g.title,
+                style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink700)),
+          ),
+          for (final item in g.items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6, right: 6),
+                      child: SizedBox(
+                        width: 4,
+                        height: 4,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                              color: AppColors.ink400, shape: BoxShape.circle),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(item,
+                          style: const TextStyle(
+                              fontSize: 12.5,
+                              height: 1.55,
+                              color: AppColors.ink700)),
+                    ),
+                  ]),
+            ),
+        ],
+        const SizedBox(height: 8),
+        Row(children: [
+          OutlinedButton.icon(
+            onPressed: () => showAllChangelog(context),
+            icon: const Icon(Icons.history, size: 18),
+            label: const Text('历史版本'),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => showWhatsNewDialog(context, entries: [cur]),
+            child: const Text('弹框看一遍'),
+          ),
+        ]),
+      ],
+    ]);
   }
 
   Widget _card(String title, List<Widget> children) => Container(
@@ -307,6 +396,8 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
               ]),
             ]),
+
+            _changelogCard(),
 
             _card('关于本系统', [
               const Text(

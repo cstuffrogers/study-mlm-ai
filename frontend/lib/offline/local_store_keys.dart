@@ -41,6 +41,12 @@ class LocalStoreKeys {
   /// 选中的系统语音包名（'' = 自动优选）
   static const String ttsVoice = 'off_tts_voice';
 
+  // —— 版本更新说明（SharedPreferences，早于 UI）——
+  /// 已经看过更新说明的客户端版本（如 `1.4.19`）。
+  /// 只用来决定「升级后第一次启动要不要弹本次更新内容」；
+  /// 不存在 = 还没弹过（或老版本升上来、本功能上线前的安装）。
+  static const String changelogSeen = 'off_changelog_seen';
+
   /// LocalDb 全部文档键，按 flush 顺序
   static const List<String> docs = [
     mastery,
