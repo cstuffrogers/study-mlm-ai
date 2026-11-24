@@ -25,3 +25,5 @@ void ttsSpeak(
 }) {}
 void ttsPrefetch(String text, {double rate = 1.0}) {}
 void ttsStop() {}
+void ttsPause() {}
+void ttsResume() {}

@@ -208,5 +208,17 @@ void ttsStop() {
   _ch.invokeMethod<void>('stop').catchError((Object _) {});
 }
 
+/// 暂停朗读（保留当前进度，可继续）。
+void ttsPause() {
+  if (!_inited) return;
+  _ch.invokeMethod<void>('pause').catchError((Object _) {});
+}
+
+/// 继续朗读（从暂停处接上）。
+void ttsResume() {
+  if (!_inited) return;
+  _ch.invokeMethod<void>('resume').catchError((Object _) {});
+}
+
 /// 提前合成下一段音频：安卓是系统 TTS 本地离线合成，没有网络等待，无需预热。
 void ttsPrefetch(String text, {double rate = 1.0}) {}

@@ -510,3 +510,34 @@ void ttsStop() {
   _segOnDone = null;
   ttsCurrent.value = null;
 }
+
+/// 暂停朗读（保留当前进度，可继续）。只暂停，不释放音频缓冲。
+///
+/// 神经语音路径只 `pause()` 当前 `<audio>`，保留 src 与 currentTime，
+/// 继续时能从暂停处接上；同时取消看门狗，避免暂停期间误判读完。
+/// 浏览器语音兜底路径用原生 speechSynthesis.pause()。
+void ttsPause() {
+  if (_audio != null && !_neuralDisabled) {
+    _watchdog?.cancel();
+    _watchdog = null;
+    try {
+      _audio!.pause();
+    } catch (_) {}
+    return;
+  }
+  try {
+    web.window.speechSynthesis.pause();
+  } catch (_) {}
+}
+
+/// 继续朗读（从暂停处接上）。
+void ttsResume() {
+  if (_audio != null && !_neuralDisabled) {
+    try {
+      _audio!.play().catchError((_) {});
+    } catch (_) {}
+    return;
+  }
+  try {
+    web.window.speechSynthesis.resume();
+  } catch (_) {}}

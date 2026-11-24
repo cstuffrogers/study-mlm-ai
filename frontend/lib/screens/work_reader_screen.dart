@@ -139,6 +139,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   String? _autoId;
   /// 正在由我们切换页面/分段：此时 ttsCurrent 短暂为空属正常，不算被停止。
   bool _autoLinking = false;
+  /// 连续朗读是否处于暂停态（暂停只停发声、保留进度，可继续）。
+  bool _autoPaused = false;
 
   /// 兜底看门狗：不是所有厂商的语音引擎都会老实回调 onDone
   /// （小米/部分讯飞版本、离线包里都见过「读完不吭声」）。
@@ -1065,11 +1067,25 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 暂停 / 继续：左侧按钮，与右侧「停止」配对。
+        // 暂停时显示播放图标（点击继续），朗读中显示暂停图标（点击暂停）。
+        IconButton(
+          onPressed: _toggleAutoPause,
+          visualDensity: VisualDensity.compact,
+          iconSize: 16,
+          padding: const EdgeInsets.only(right: 2),
+          tooltip: _autoPaused ? '继续朗读' : '暂停朗读',
+          icon: Icon(
+            _autoPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+            size: 16,
+            color: AppColors.gold,
+          ),
+        ),
         const Icon(Icons.graphic_eq, size: 16, color: AppColors.gold),
         const SizedBox(width: 4),
         Flexible(
           child: Text(
-            '连续朗读 · ${_autoMode!.short}',
+            _autoPaused ? '已暂停 · ${_autoMode!.short}' : '连续朗读 · ${_autoMode!.short}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11.5, color: AppColors.ink700),
@@ -1331,6 +1347,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     setState(() {
       _autoMode = mode;
       _autoPage = _page.clamp(0, doc.pages.length - 1);
+      _autoPaused = false;
     });
     // 用户要求：连续朗读时切后台/息屏也得继续，由它自己管到退出本页为止。
     ttsBackgroundKeepAlive.value = true;
@@ -1342,6 +1359,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     final mode = _autoMode;
     final doc = _doc;
     if (mode == null || doc == null) return;
+    // 手动翻页 / 自动推进时取消暂停态，从新页开始念。
+    if (_autoPaused) setState(() => _autoPaused = false);
     if (page < 0 || page >= doc.pages.length) {
       _finishAuto(announce: true);
       return;
@@ -1421,6 +1440,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     _autoMode = null;
     _autoId = null;
     _autoLinking = false;
+    _autoPaused = false;
     _autoWatchdog?.cancel();
     _autoWatchdog = null;
     // 开关必须复位：否则退出本页后切后台也不停朗读了。
@@ -1429,6 +1449,25 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     if (!mounted) return;
     setState(() {});
     if (wasOn && announce) _snack('已读到最后一页，连续朗读结束');
+  }
+
+  /// 暂停 / 继续连续朗读。
+  ///
+  /// 暂停只停当前发声、保留进度（不释放音频缓冲），看门狗一并取消，
+  /// 避免暂停期间误判读完、把朗读错接到下一页。继续时从暂停处接上。
+  void _toggleAutoPause() {
+    if (_autoMode == null) return;
+    if (_autoPaused) {
+      setState(() => _autoPaused = false);
+      ttsResume();
+      // 续播也要重新武装看门狗：暂停时已取消，引擎不回调的机型否则会永远静默。
+      _armAutoWatchdog(_pageSpeechAt(_autoPage));
+    } else {
+      _autoWatchdog?.cancel();
+      _autoWatchdog = null;
+      setState(() => _autoPaused = true);
+      ttsPause();
+    }
   }
 
   /// 朗读被停 / 被别的喇叭抢走 → 连续朗读跟着收摊，

@@ -61,6 +61,20 @@ class MainActivity : FlutterActivity() {
     /** 音调，供「温柔女声 / 广播员男声」等风格预设使用。 */
     private var pitch = 1.0f
 
+    /**
+     * 暂停状态的存档（Android 的 TextToSpeech 没有 pause/resume，只能停引擎重念）。
+     *
+     * 做法：暂停时停掉引擎，把「当前这一段还没念完的原文」存起来；
+     * 继续时用同一个 id 从这段开头接着念（引擎只能按段停，做不到按字续）。
+     */
+    private var pausedText: String? = null
+    private var pausedId: String? = null
+
+    /** 最近一次 speak 的分段与进度，暂停时据此算出剩余的原文。 */
+    private var speakingChunks: List<String> = emptyList()
+    private var speakingIndex = 0
+    private var currentRate = 1.0f
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "xxmz/tts")
@@ -87,8 +101,34 @@ class MainActivity : FlutterActivity() {
                     // 先把「等哪一段」清掉：engine.stop() 之后可能还有迟到的 onDone，
                     // 不清会让它去通知一个已经被停掉的任务，把连续朗读错接回去。
                     lastUtteranceId = null
+                    clearPaused()
                     tts?.stop()
                     result.success(null)
+                }
+                "pause" -> {
+                    // 停引擎但记住「当前这段还没念完的原文」，继续时从这里接上。
+                    // 必须先清 lastUtteranceId：stop() 之后若有迟到的 onDone，
+                    // 不清就会误报「这一页念完了」，连续朗读在暂停中自己翻页。
+                    val id = lastUtteranceId?.substringBeforeLast('#')
+                    if (id != null && speakingChunks.isNotEmpty()) {
+                        val from = speakingIndex.coerceIn(0, speakingChunks.size - 1)
+                        pausedText = speakingChunks.drop(from).joinToString("")
+                        pausedId = id
+                        lastUtteranceId = null
+                        tts?.stop()
+                    }
+                    result.success(null)
+                }
+                "resume" -> {
+                    val text = pausedText
+                    val id = pausedId
+                    clearPaused()
+                    if (text.isNullOrBlank() || id == null) {
+                        // 没存档（或本来就没在念）：什么都不做，由 Dart 侧自行处理
+                        result.success(null)
+                    } else {
+                        result.success(speakNow(text, id, currentRate))
+                    }
                 }
                 "voices" -> result.success(
                     mapOf(
@@ -273,7 +313,12 @@ class MainActivity : FlutterActivity() {
                 } catch (_: Exception) {
                 }
                 engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
+                    override fun onStart(utteranceId: String?) {
+                        // 记下正在念第几段：暂停时据此算出剩余原文。
+                        val idx = utteranceId?.substringAfterLast('#', "")?.toIntOrNull()
+                        if (idx != null) speakingIndex = idx
+                    }
+
                     override fun onDone(utteranceId: String?) {
                         // 只有「最后一段」播完才通知 Dart，避免逐段熄灭/重亮。
                         // 单段朗读的 id 就是 `...#0`，用完整 id 比对可以一并覆盖。
@@ -322,14 +367,20 @@ class MainActivity : FlutterActivity() {
         val engine = tts ?: return false
         return try {
             engine.stop()
-            engine.setSpeechRate(if (rate <= 0f) 1.0f else rate)
+            clearPaused()
+            currentRate = if (rate <= 0f) 1.0f else rate
+            engine.setSpeechRate(currentRate)
             // 音调范围 [0.5, 2.0]；越界会被引擎静默忽略，这里夹一下更保险
             engine.setPitch(pitch.coerceIn(0.5f, 2.0f))
             val chunks = splitForTts(text)
             if (chunks.isEmpty()) {
                 lastUtteranceId = null
+                speakingChunks = emptyList()
+                speakingIndex = 0
                 return false
             }
+            speakingChunks = chunks
+            speakingIndex = 0
             lastUtteranceId = "$id#${chunks.size - 1}"
             val params = Bundle()
             for ((i, part) in chunks.withIndex()) {
@@ -343,9 +394,21 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /** 按句读切段：引擎单次上限约 4000 字，这里取 1200 字并在标点处断开，语气更自然。 */
+    /** 清掉暂停存档（新开一段朗读 / 停止 / 已续播后调用）。 */
+    private fun clearPaused() {
+        pausedText = null
+        pausedId = null
+    }
+
+    /**
+     * 按句读切段。
+     *
+     * 上限 200 字（远低于引擎 4000 字上限）是**为了暂停精度**：安卓引擎只能
+     * 整段停，段越细，「继续朗读」就从越靠近暂停点的地方接上；段界一律落在
+     * 句读处（。！？；换行），所以听起来仍是自然停顿，不会在句子中间断开。
+     */
     private fun splitForTts(text: String): List<String> {
-        val max = 1200
+        val max = 200
         if (text.length <= max) return listOf(text)
         val out = ArrayList<String>()
         val sb = StringBuilder()
