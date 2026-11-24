@@ -10,7 +10,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../offline/data_compat.dart';
@@ -58,7 +57,7 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
   /// 导出为 JSON 文件，保存到应用文档目录。
   Future<void> _exportToFile() async {
     if (kIsWeb) {
-      _toast('文件导出仅在移动端可用，请使用「复制备份」');
+      _toast('文件导出仅在移动端 APP 可用');
       return;
     }
     setState(() => _busy = true);
@@ -77,28 +76,12 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
     }
   }
 
-  /// 导出为 JSON 文本，复制到剪贴板（移动端文件不可用时的回退）。
-  Future<void> _exportToClipboard() async {
-    setState(() => _busy = true);
-    try {
-      final json = await DataCompat.exportJson();
-      await Clipboard.setData(ClipboardData(text: json));
-      if (!mounted) return;
-      setState(() => _preview = json.length > 1200 ? '${json.substring(0, 1200)}…' : json);
-      _toast('已复制到剪贴板（${(json.length / 1024).toStringAsFixed(1)} KB），存到笔记或发给自己');
-    } catch (e) {
-      _toast('导出失败：$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   // ------------------------------------------------------------ 导入
 
   /// 从文件恢复：列出文档目录下的备份文件，选择后合并恢复。
   Future<void> _importFromFile() async {
     if (kIsWeb) {
-      _toast('文件导入仅在移动端可用，请使用「从剪贴板恢复」');
+      _toast('文件导入仅在移动端 APP 可用');
       return;
     }
     final dir = await getApplicationDocumentsDirectory();
@@ -137,17 +120,6 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
     );
     if (picked == null) return;
     final raw = await picked.readAsString();
-    await _doImport(raw);
-  }
-
-  /// 从剪贴板恢复（回退方式）。
-  Future<void> _importFromClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final raw = data?.text?.trim() ?? '';
-    if (raw.isEmpty) {
-      _toast('剪贴板里没有文本。先把备份 JSON 复制到剪贴板再来');
-      return;
-    }
     await _doImport(raw);
   }
 
@@ -234,29 +206,9 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _busy ? null : _exportToClipboard,
-                  icon: const Icon(Icons.copy_all),
-                  label: const Text('复制备份'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
                   onPressed: _busy ? null : _importFromFile,
-                  icon: const Icon(Icons.description_outlined),
-                  label: const Text('从文件恢复'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : _importFromClipboard,
                   icon: const Icon(Icons.restore),
-                  label: const Text('从剪贴板恢复'),
+                  label: const Text('从文件恢复'),
                 ),
               ),
             ],

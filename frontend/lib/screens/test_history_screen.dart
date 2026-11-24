@@ -139,13 +139,14 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
             child: Icon(correct ? Icons.check : Icons.close, color: color, size: 18),
           ),
           title: Text(r['stem']?.toString() ?? '',
-              maxLines: 1, overflow: TextOverflow.ellipsis,
+              maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.ink700)),
           subtitle: Text(
               '${r['section_title'] ?? r['section_id']} · ${_typeLabel(r['type']?.toString() ?? '')} · 得分 ${(r['score'] as num?)?.toStringAsFixed(2) ?? '0'}',
               maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: AppColors.ink400)),
           children: [
+            _kv('题目', r['stem']?.toString() ?? '', AppColors.ink900),
             _kv('你的作答', _answerText(r), correct ? AppColors.success : AppColors.danger),
             if (!correct && (r['answer_key'] ?? '').toString().isNotEmpty)
               _kv('正确答案', _answerText({'answer': r['answer_key'], 'options': r['options']}),
@@ -158,25 +159,24 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
               _kv('诊断', r['error_reason'].toString(), AppColors.ink500),
             if ((r['created_at'] ?? '').toString().isNotEmpty)
               _kv('时间', _timeLabel(r['created_at'].toString()), AppColors.ink400),
-            if ((r['source_chunk_id'] ?? '').toString().isNotEmpty)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: ChunkTag(
-                    chunkId: r['source_chunk_id'].toString(),
-                    label: '溯源 原文分片',
-                    fallbackText: r['explanation']?.toString(),
-                  ),
-                ),
-              ),
-            // 错题右下方删除按钮：点删除先确认「是否已掌握」，再真正删除记录。
-            if (!correct)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: TextButton.icon(
+            // 溯源与删除按钮平行排列：溯源在左、删除在右，同处一行。
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if ((r['source_chunk_id'] ?? '').toString().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: ChunkTag(
+                      chunkId: r['source_chunk_id'].toString(),
+                      label: '溯源 原文分片',
+                      fallbackText: r['explanation']?.toString(),
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                // 错题删除按钮：点删除先确认「是否已掌握」，再真正删除记录。
+                if (!correct)
+                  TextButton.icon(
                     onPressed: _deleting.contains(_attemptId(r))
                         ? null
                         : () => _confirmDelete(r),
@@ -188,9 +188,11 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                  ),
-                ),
-              ),
+                  )
+                else
+                  const SizedBox.shrink(),
+              ],
+            ),
           ],
         ),
       ),

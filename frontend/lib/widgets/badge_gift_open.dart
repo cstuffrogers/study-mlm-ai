@@ -25,26 +25,54 @@ class BadgeGiftOpen extends StatefulWidget {
   final String description;
   final VoidCallback onClose;
 
-  /// 分类图标键 -> 图标
+  /// 勋章图标键 -> 图标（29 枚勋章各配唯一图标，均动感可辨）
   static IconData iconFor(String key) {
-    switch (key) {
-      case 'knowledge':
-        return Icons.menu_book_rounded;
-      case 'journey':
-        return Icons.route_rounded;
-      case 'milestone':
-        return Icons.flag_rounded;
-      case 'quiz':
-        return Icons.quiz_rounded;
-      case 'route':
-        return Icons.map_rounded;
-      case 'streak':
-        return Icons.local_fire_department_rounded;
-      case 'dialogue':
-        return Icons.chat_rounded;
-      default:
-        return Icons.star_rounded;
-    }
+    const map = {
+      // 知识掌握
+      'seed': Icons.spa_rounded,
+      'sprout': Icons.grass_rounded,
+      'book': Icons.menu_book_rounded,
+      'expert': Icons.workspace_premium_rounded,
+      'sage': Icons.auto_awesome_rounded,
+      'master': Icons.emoji_events_rounded,
+      // 贯通
+      'depart': Icons.directions_run_rounded,
+      'navigate': Icons.navigation_rounded,
+      'route_way': Icons.route_rounded,
+      'travel': Icons.travel_explore_rounded,
+      // 里程碑
+      'flag_first': Icons.flag_outlined,
+      'explore': Icons.explore_rounded,
+      'bolt': Icons.bolt_rounded,
+      'guard': Icons.security_rounded,
+      // 答题
+      'quiz': Icons.quiz_rounded,
+      'touch': Icons.touch_app_rounded,
+      'check': Icons.check_circle_rounded,
+      'psyche': Icons.psychology_rounded,
+      'tune': Icons.tune_rounded,
+      // 路线
+      'map_one': Icons.map_rounded,
+      'map_three': Icons.map_outlined,
+      'globe': Icons.language_rounded,
+      'all_path': Icons.all_inbox_rounded,
+      // 连续学习
+      'fire7': Icons.local_fire_department_rounded,
+      'flame': Icons.speed_rounded,
+      'timer': Icons.hourglass_top_rounded,
+      'love': Icons.favorite_rounded,
+      // 对话
+      'chat': Icons.chat_rounded,
+      'forum': Icons.forum_rounded,
+      // 兼容旧分类键
+      'knowledge': Icons.menu_book_rounded,
+      'journey': Icons.route_rounded,
+      'milestone': Icons.flag_rounded,
+      'route': Icons.map_rounded,
+      'streak': Icons.local_fire_department_rounded,
+      'dialogue': Icons.chat_rounded,
+    };
+    return map[key] ?? Icons.star_rounded;
   }
 
   @override

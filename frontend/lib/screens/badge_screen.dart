@@ -344,14 +344,22 @@ class _BadgeScreenState extends State<BadgeScreen> {
         .toList()
       ..sort((a, b) => (a['sort_order'] as int)
               .compareTo(b['sort_order'] as int));
-    final iconKey =
-        list.isNotEmpty ? '${list.first['icon_key'] ?? ''}' : 'star';
+    // 分类标题用统一主题图标，与单枚勋章的唯一图标解耦。
+    final catIcon = const {
+      '知识掌握': Icons.menu_book_rounded,
+      '贯通': Icons.route_rounded,
+      '里程碑': Icons.flag_rounded,
+      '答题': Icons.quiz_rounded,
+      '路线': Icons.map_rounded,
+      '连续学习': Icons.local_fire_department_rounded,
+      '对话': Icons.chat_rounded,
+    }[cat] ?? Icons.star_rounded;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(_iconFor(iconKey), color: AppColors.brand, size: 22),
+            Icon(catIcon, color: AppColors.brand, size: 22),
             const SizedBox(width: 6),
             Text(cat,
                 style: const TextStyle(
@@ -412,31 +420,8 @@ class _BadgeCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 勋章图标
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: earned
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.gold, AppColors.goldSoft, AppColors.gold])
-                    : const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.ink400,
-                          AppColors.surface,
-                          AppColors.ink400,
-                        ]),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon,
-                  size: 30,
-                  color: earned ? AppColors.brandDeep : AppColors.ink400),
-            ),
+            // 勋章图标（已获得：金色发光脉冲 + 星点闪烁；未获得：灰色质感）
+            _BadgeIcon(icon: icon, earned: earned),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -511,6 +496,143 @@ class _BadgeCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------ 勋章图标（动感发光）
+/// 单枚勋章的动态图标：已获得时金色渐变圆盘外层呼吸发光，四角星点错相闪烁。
+class _BadgeIcon extends StatefulWidget {
+  const _BadgeIcon({required this.icon, required this.earned});
+
+  final IconData icon;
+  final bool earned;
+
+  @override
+  State<_BadgeIcon> createState() => _BadgeIconState();
+}
+
+class _BadgeIconState extends State<_BadgeIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 0.45, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 1.0)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final earned = widget.earned;
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 外层发光晕（仅已获得，呼吸脉冲）
+          if (earned)
+            AnimatedBuilder(
+              animation: _pulse,
+              builder: (context, child) => Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.gold.withValues(alpha: 0.45 * _pulse.value),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              child: null,
+            ),
+          // 主圆盘
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: earned
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.gold, AppColors.goldSoft, AppColors.gold])
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.ink400,
+                        AppColors.surface,
+                        AppColors.ink400,
+                      ]),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              widget.icon,
+              size: 30,
+              color: earned ? AppColors.brandDeep : AppColors.ink400,
+            ),
+          ),
+          // 星点闪烁（仅已获得，四角错相）
+          if (earned) ...[
+            _Sparkle(_pulse, 0.0, const Offset(-17, -15)),
+            _Sparkle(_pulse, 0.33, const Offset(16, -16)),
+            _Sparkle(_pulse, 0.66, const Offset(15, 16)),
+            _Sparkle(_pulse, 0.5, const Offset(-15, 15)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 单颗闪烁星点：opacity 随脉冲错相变化，营造闪闪动感。
+class _Sparkle extends StatelessWidget {
+  const _Sparkle(this.animation, this.phase, this.offset);
+
+  final Animation<double> animation;
+  final double phase;
+  final Offset offset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: offset.dx,
+      top: offset.dy,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final v = (animation.value + phase) % 1.0;
+          // 高亮区间闪烁：0.3~1.0 可见，0~0.3 隐去
+          final op = (v - 0.3).clamp(0.0, 1.0);
+          return Opacity(
+            opacity: op,
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.gold,
+              size: 10,
+            ),
+          );
+        },
+        child: null,
       ),
     );
   }

@@ -146,8 +146,8 @@ testWidgets('引导说明包含批判性阅读按钮的位置/开启方式/作�
     expect(find.textContaining('消息 2'), findsOneWidget);
     expect(find.textContaining('答题记录 1'), findsOneWidget);
     expect(find.textContaining('原文笔记 1'), findsOneWidget);
-    expect(find.textContaining('复制备份'), findsOneWidget);
-    expect(find.textContaining('从剪贴板恢复'), findsOneWidget);
+    expect(find.text('导出到文件'), findsOneWidget);
+    expect(find.text('从文件恢复'), findsOneWidget);
     expect(find.textContaining('API Key 不进备份'), findsOneWidget);
 
     await t.binding.setSurfaceSize(null);
