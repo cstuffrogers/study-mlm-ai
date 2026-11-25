@@ -2699,3 +2699,62 @@ tie-break 缺失）与 `seed`（依次 `start` + **空作答**提交 `sec_A_00/0
 - **`round()` 之后才排序**：后端排序键是 `_rank = round(key, 4)`，断言若用未舍入值算，
   会在「舍入后并列」的节点上误报；
 - 后端全量 `pytest` 耗时 ~3.6 分钟，跑在后台时先写文档、再收结果，别串着等。
+
+---
+
+## 附录三十二：用字统一（错别字修正）回灌抽取脚本 — 恢复「正文可复现」门禁
+
+### 一、问题
+
+2026-11-20 的 `fix(typo): 全面排查错别字` 提交直接改了 `sources/texts/*.txt`
+（44 处 / 17 个文件：`己经→已经`、`幅射→辐射`、`帐户→账户`、`供献→贡献`、
+`部份→部分`、`象样→像样`），但**没有同步进 `scripts/import_mirror.py`**。
+结果「从镜像 / 从备份逐字节复现现库正文」的五道门禁全红（8 个用例）：
+
+| 用例 | 断言 |
+| --- | --- |
+| `test_d102_reproducible_and_original_text_untouched` | `build(keep_titles=False)` 逐字节等于 `_backup_d102_pretitle/` |
+| `test_d102_other_specs_and_capital_postface_unchanged` | 5 部修复后正文逐行只多标题行 |
+| `test_d103_trim_reproduces_current_texts` | `apply_trim(备份全文)` 等于现库 |
+| `test_d104_trim_reproduces_current_texts` / `test_d104_untouched_works_copied_verbatim` | 同上（裁剪版 + 不裁剪版） |
+| `test_d105_trim_reproduces_current_text` / `test_d105_insert_reproduces_kaplital_chapters` | 同上（含插章幂等） |
+| `test_d127_rebuild_matches_library` / `test_d127_trim_reproducible_from_backup` | 同上 |
+
+差异只有 13 个文件的 44 行，**全部是同一类等长单字**（如「分为两部份」→「分为两部分」），
+行数、行序、裁剪边界一字未动。
+
+### 二、修法
+
+把同一套替换搬进流水线，作为**抽取的最后一步**（`fix_typos()`）：
+
+- `build()`：拼接 → 裁剪（`apply_trim`）→ `fix_typos` → 返回（`trim=False` 路径同样过一遍）；
+- `apply_trim()`：返回前也过一遍 —— 因为 d103/d104/d105/d127 的门禁是**直接拿备份全文调它**，
+  不经 `build()`；
+- `append_ba()` / `insert_sc()`：写盘前过一遍，dry-run 与正式入库产物保持一致；
+- `己经→已经` 带否定后顾 `(?<!自)`：`自己经手/自己经过` 是「自己 + 经」的合法跨词，不能改。
+
+### 三、测试侧的两处口径修正（不是放松断言）
+
+备份目录（`_backup_d10*_*`、`_backup_d12*_pretrim`）是「用字统一」**之前**的历史存档，
+因此凡与备份做逐字节比对的断言，先过 `mod.fix_typos()` 再比：
+
+- `test_d102…`：`before == mod.fix_typos(backup)`；
+- `test_d104_untouched_works_copied_verbatim`：现库 == `mod.fix_typos(备份)`；
+- `test_d105_trim_reproduces_current_text`：`removed` 的 `Counter` 用 `fix_typos(备份)` 差分；
+- `test_d105_insert_reproduces_kaplital_chapters`：`before_lines = fix_typos(backup).splitlines()`。
+
+**断言强度不变**：仍是逐字节 / 逐行相等，只是承认备份是「修正前」的存档。
+
+### 四、验证
+
+- 全库 `build()` 逐字节复现：**197 部 SPECS 全部一致**（此前 13 部不一致）；
+- 五道门禁 54 个用例全绿；后端全量 `pytest` 不再有红。
+
+### 五、踩坑
+
+- **改正文的内容修正必须同时改脚本**：`sources/texts` 是脚本产物，直接手改就等于把
+  「可复现」这条性质打破 —— 门禁红的是「产物与脚本漂移」，不是「正文有错字」；
+- **`read_text()` 会做换行归一**（CRLF→LF），所以纯换行差异比不出来；真正比出来的
+  一定是字符差异，别先怀疑编码；
+- **备份目录不能跟着改**：备份是证据，只能让比对侧适配（过 `fix_typos`），
+  不能「顺手把备份也修正」。

@@ -65,6 +65,30 @@ _PAGE_NUM = re.compile(r"^[\s\d\u3000\uff10-\uff19ivxlcdmIVXLCDM\W]{0,12}$")
 # 只含「收集、整理」的旧有行（如《论列宁主义基础》篇末）不动，保证既有正文零 diff。
 _SITE_CREDIT = re.compile(r"^(?:感谢|鸣谢)[^。；]{0,50}(?:录入|校对)")
 
+# 用字统一（错别字修正）：镜像网页里成批出现的异体/错字，按现代汉语规范统一。
+# 2026-11-20 的 `fix(typo)` 提交直接改了 sources/texts（44 处 / 17 个文件），
+# 但没同步进抽取脚本 —— 结果「从镜像可逐字节复现正文」的门禁（D102/D103/D104/
+# D105/D127）全红。把同一套替换搬进流水线：build() 与 apply_trim() 的产物都过一遍，
+# 既让脚本能复现现库，也保证以后 --write 不会把错字又写回去。
+# 只做「等长单字替换」，不改行数/行序，裁剪 marker 不受影响。
+_TYPO_PAIRS: tuple[tuple[str, str], ...] = (
+    ("幅射", "辐射"),
+    ("帐户", "账户"),
+    ("供献", "贡献"),
+    ("部份", "部分"),
+    ("象样", "像样"),
+)
+# 「己经→已经」不能无脑替换：『自己经』里的「己经」是「自己 + 经手/经过」的合法跨词，
+# 只在前面不是「自」时才改。
+_JIJING = re.compile(r"(?<!自)己经")
+
+
+def fix_typos(text: str) -> str:
+    """用字统一：把镜像原样的异体/错字规范成正字。幂等，不改长度与行结构。"""
+    for bad, good in _TYPO_PAIRS:
+        text = text.replace(bad, good)
+    return _JIJING.sub("已经", text)
+
 
 def decode_html(path: Path) -> str:
     raw = path.read_bytes()
@@ -2160,7 +2184,7 @@ def apply_trim(file: str, text: str) -> str:
     """
     cfg = TRIM.get(file)
     if not cfg:
-        return text
+        return fix_typos(text)
     lines = text.splitlines()
     stripped = [ln.strip() for ln in lines]
     kept: list[str] = []
@@ -2190,7 +2214,7 @@ def apply_trim(file: str, text: str) -> str:
     out = "\n".join(kept).rstrip() + "\n"
     if len(out) >= len(text):
         raise RuntimeError(f"裁剪未生效（疑似 marker 失效）: {file}")
-    return out
+    return fix_typos(out)
 
 
 # D102 标题修复涉及的 5 部早期著作。`--no-keep-titles` 只还原这 5 部：
@@ -2261,6 +2285,9 @@ def build(spec: dict, *, trim: bool = True, keep_titles: bool = True) -> tuple[s
     text = "\n".join(parts).rstrip() + "\n"
     if trim:
         text = apply_trim(spec["file"], text)
+    # 用字统一放在最后一步。apply_trim 里也过一遍（供「从备份重切」的门禁直接调用），
+    # 这里再调一次是幂等的，保证 trim=False 的路径同样得到现库口径。
+    text = fix_typos(text)
     cn = len(re.findall(r"[\u4e00-\u9fff]", text))
     return text, cn
 
@@ -2286,7 +2313,7 @@ def append_ba(out_dir: Path) -> tuple[str, int]:
         return "已存在，跳过", 0
     block = "\n\n".join(paras) + "\n"
     new = old.rstrip("\n") + "\n\n" + block
-    target.write_text(new, encoding="utf-8", newline="\n")
+    target.write_text(fix_typos(new), encoding="utf-8", newline="\n")
     cn = len(re.findall(r"[\u4e00-\u9fff]", block))
     return f"追加 {len(paras)} 段", cn
 
@@ -2329,8 +2356,9 @@ def insert_sc(out_dir: Path) -> tuple[str, int]:
             f"插入锚点不唯一: {INSERT_SC['file']} → {anchor!r} 命中 {len(idx)} 次")
     i = idx[0]
     new_lines = old_lines[:i] + body.splitlines() + [""] + old_lines[i:]
-    target.write_text("\n".join(new_lines).rstrip("\n") + "\n",
-                      encoding="utf-8", newline="\n")
+    merged = "\n".join(new_lines).rstrip("\n") + "\n"
+    # 既有正文不动，但入盘前同样过用字统一，与 build() 产物口径一致
+    target.write_text(fix_typos(merged), encoding="utf-8", newline="\n")
     cn = len(re.findall(r"[\u4e00-\u9fff]", body))
     return f"插入 {len(block)} 段", cn
 

@@ -96,7 +96,8 @@ def test_d105_trim_reproduces_current_text():
     assert mod.apply_trim(f, full) == cur, f"{f} 裁剪结果不可复现（原文被改写？）"
     # 删的确实只有版式噪声：页头行 + 随之合并的一个空行，不涉任何正文
     assert len(full.splitlines()) - len(cur.splitlines()) == 2
-    removed = Counter(full.splitlines()) - Counter(cur.splitlines())
+    # 备份为「用字统一」前存档：那一行里的异体字先规范，才谈得上「只删了页头」
+    removed = Counter(mod.fix_typos(full).splitlines()) - Counter(cur.splitlines())
     assert removed == Counter({"第二十六卷（I）": 1, "": 1}), removed
     assert "\n第二十六卷（I）\n" not in cur
 
@@ -122,7 +123,8 @@ def test_d105_insert_reproduces_kaplital_chapters():
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     # 原有行全部保留（插入块是一段连续新增：去掉它应还原为插入前全文）
-    before_lines = before.splitlines()
+    # 插入前备份是「用字统一」之前的历史存档，比对前先过同样的规范化
+    before_lines = mod.fix_typos(before).splitlines()
     cur_lines = cur.splitlines()
     assert len(cur_lines) > len(before_lines)
     i = cur_lines.index(mod.INSERT_SC["markers"][0])

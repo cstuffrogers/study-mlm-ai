@@ -121,8 +121,9 @@ def test_d104_untouched_works_copied_verbatim():
         if f in TRIMMED:
             continue
         assert f not in mod.TRIM, f"{f} 意外登记了裁剪配置"
+        # 备份是「用字统一」之前的历史存档，比对前过一遍同样的规范化
         assert (TEXTS / f).read_text(encoding="utf-8") == \
-            (BACKUP / f).read_text(encoding="utf-8"), f"{f} 正文被改动"
+            mod.fix_typos((BACKUP / f).read_text(encoding="utf-8")), f"{f} 正文被改动"
 
 
 def test_d104_kept_and_dropped_sections():

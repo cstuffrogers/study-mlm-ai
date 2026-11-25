@@ -6,7 +6,8 @@
     非导航、非重复输出的真实标题（正文内容本来就在，只是没有篇章锚点）。
   * 修复方式：给这 5 部 SPECS 加 keep_titles=True，脚本化补回；原文一字未改。
   * 可回退：sources/_backup_d102_pretitle/ 保存修复前 5 部全文；
-    `build(spec, keep_titles=False)` 逐字节等于备份；`--no-keep-titles` 可复现。
+    `build(spec, keep_titles=False)` 逐字节等于备份（备份为「用字统一」前存档，
+    故先过 mod.fix_typos()）；`--no-keep-titles` 可复现。
   * 分片数 / id 完全不变（text_loader 把短标题行作为 chapter_hint 剔除、不入正文段落），
     但分片的 source_location 章名归属得到修正。
 """
@@ -141,7 +142,9 @@ def test_d102_reproducible_and_original_text_untouched():
         backup = (BACKUP / f).read_text(encoding="utf-8")
         before, _ = mod.build(s, trim=True, keep_titles=False)
         after, _ = mod.build(s, trim=True, keep_titles=True)
-        assert before == backup, f"{f} 无法逐字节复现修复前产物"
+        # 备份是「错别字统一」之前的历史存档（含 幅射/部份 等异体），
+        # build() 现在最后一步会做用字统一，所以比对前要过一遍同样的规范化。
+        assert before == mod.fix_typos(backup), f"{f} 无法逐字节复现修复前产物"
         assert after == (TEXTS / f).read_text(encoding="utf-8"), f"{f} 现库与脚本产物不一致"
         # 修复后删去新增行，正文必须与修复前逐行一致
         nl, ol = after.splitlines(), before.splitlines()
