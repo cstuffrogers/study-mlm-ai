@@ -179,8 +179,8 @@ class ChatService extends ChangeNotifier {
     // 联网版后端也会截（`_safe_selected_text`），但没必要先把几十 KB 推过 WS。
     selectedText = LocalDialogue.sanitizeSelection(selectedText);
     // 模式**只对带选区的那一条提问生效**：释义/追问/辩难/关联都是「就这段原文怎么展开」，
-    // 没有选区时没有任何原文可展开，一律按普通对话回答。
-    // 选区分发完把当前模式回落到普通对话：对话框里此后打字就是聊天，不再沿用上一个模式。
+    // 没有选区时没有任何原文可展开，一律按「对话」回答。
+    // 选区分发完把当前模式回落到「对话」：对话框里此后打字就是聊天，不再沿用上一个模式。
     final mode = selectedText.trim().isEmpty ? ChatMode.chat : currentMode;
     currentMode = ChatMode.chat;
     if (!_connected) connect();
@@ -217,7 +217,7 @@ class ChatService extends ChangeNotifier {
   void retryLast() {
     final q = _lastQuestion;
     if (q == null || q.trim().isEmpty) return;
-    // 重试沿用**上一条**的模式：带选区的重试仍是同一个模式，否则回到普通对话。
+    // 重试沿用**上一条**的模式：带选区的重试仍是同一个模式，否则回到「对话」。
     currentMode = _lastSelectedText.trim().isEmpty ? ChatMode.chat : _lastMode;
     final anchor = _lastSelectedText;
     final paragraph = _lastParagraphId;

@@ -585,40 +585,6 @@ class _FloatingChatState extends State<FloatingChat> {
     return out;
   }
 
-  /// 输入区左侧的固定标签：对话框里**只有普通对话**。
-  ///
-  /// 释义 / 追问 / 辩难 / 关联 都必须先有一段「选中的原文」才有意义，所以模式只在
-  /// 正文选区的浮框里选一次；进了对话框再切换模式，只会出现「模式是辩难、但没有
-  /// 原文可展开」的空转（用户实报：点进去就一直是上一个模式）。这里保留一个只读
-  /// 标签，是为了让用户知道「现在问的是普通问题」，而不是又一个可点却会误解的按钮。
-  Widget _modeTag() {
-    const cur = ChatMode.chat;
-    final color = Color(cur.color);
-    const fam = ['Deng', 'Roboto', 'WarnSym'];
-    return Tooltip(
-      message: '对话框里固定是「普通对话」；释义 / 追问 / 辩难 / 关联'
-          '请在正文里选中一段原文后，用浮出的面板选（面板里也能点「普通对话」，会把选中的原文一起带上）。',
-      child: Container(
-        height: 34,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: color.withValues(alpha: 0.55)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(cur.label,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                  fontFamily: 'Deng',
-                  fontFamilyFallback: fam)),
-        ]),
-      ),
-    );
-  }
-
   Widget _inputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
@@ -627,8 +593,6 @@ class _FloatingChatState extends State<FloatingChat> {
         border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: Row(children: [
-        _modeTag(),
-        const SizedBox(width: 6),
         Expanded(
           child: TextField(
             controller: _input,

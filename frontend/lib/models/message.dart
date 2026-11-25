@@ -2,18 +2,18 @@
 // 5 模式 + 消息 + 溯源卡片 + blocked 状态
 
 enum ChatMode {
-  chat,     // 普通对话（对话框默认，也是唯一可直接打字的模式）
+  chat,     // 对话（对话框默认，也是唯一可直接打字的模式；界面名就叫「对话」）
   explain,  // 释义
   dig,      // 追问
   debate,   // 辩难
   connect,  // 关联
 }
 
-/// 选区（选中原文）浮框里的模式列表：普通对话 + 四种模式，共五枚 chip。
-/// 普通对话排最前：点它就是「带着这句原文直接问」，与对话框里打字的默认路径同一条，
+/// 选区（选中原文）浮框里的模式列表：对话 + 四种模式，共五枚 chip。
+/// 「对话」排最前：点它就是「带着这句原文直接问」，与对话框里打字的默认路径同一条，
 /// 只是把选中的这句话一起塞进提示词，不需要先打了字再选中原文。
 /// 选区面板一律遍历这份列表，不要用 `ChatMode.values`
-/// （顺序要由这里定：普通对话在前，四种模式在后）。
+/// （顺序要由这里定：对话在前，四种模式在后）。
 const List<ChatMode> kSelectionModes = [
   ChatMode.chat,
   ChatMode.explain,
@@ -23,10 +23,10 @@ const List<ChatMode> kSelectionModes = [
 ];
 
 extension ChatModeX on ChatMode {
-  String get label => const ['普通对话', '释义', '追问', '辩难', '关联'][index];
+  String get label => const ['对话', '释义', '追问', '辩难', '关联'][index];
   String get name => const ['chat', 'explain', 'dig', 'debate', 'connect'][index];
   int get color => const [
-        0xFF475569, // 普通对话 · 石墨灰
+        0xFF475569, // 对话 · 石墨灰
         0xFFC8161D, // 释义 · 党旗红
         0xFF10B981, // 追问 · 翠绿
         0xFFD4A017, // 辩难 · 扬金
@@ -47,7 +47,7 @@ extension ChatModeX on ChatMode {
   String get inputHint => this == ChatMode.chat ? '问点什么…' : '以「$label」追问…';
 
   /// 选区浮框里点这枚 chip 时会默认发出去的那句话。
-  /// 普通对话不套模式词（它不是一种训练，直接问「这段在说什么」），
+  /// 对话不套模式词（它不是一种训练，直接问「这段在说什么」），
   /// 选中的原文另外以 `selectedText` 带上，浮框那侧会拼进提示词。
   String askPrompt([String subject = '原文']) =>
       this == ChatMode.chat ? '这段在说什么？' : '请就这段$subject展开$label';

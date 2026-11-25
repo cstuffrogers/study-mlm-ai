@@ -70,7 +70,7 @@ void main() {
   group('③ 原文页对话按钮：只弹框，不自动释义', () {
     test('AppBar 的会话按钮绑的是 _openChatOnly 而不是 _ask', () {
       final src = readFile('lib/screens/work_reader_screen.dart');
-      final i = src.indexOf("tooltip: '会话（AI 精读 + 普通对话）'");
+      final i = src.indexOf("tooltip: '会话（AI 精读 + 对话）'");
       expect(i, greaterThan(-1));
       final tail = src.substring(i, i + 400);
       expect(tail, contains('_openChatOnly'));
@@ -131,7 +131,7 @@ void main() {
       final src = readFile('lib/widgets/sheet_selection_ask.dart');
       expect(src, contains('contextMenuBuilder'));
       expect(src, contains('const SizedBox.shrink()'));
-      // 面板里的模式 chip 覆盖全部五种（含普通对话：点它=带着选中原句直接问）
+      // 面板里的模式 chip 覆盖全部五种（含「对话」：点它=带着选中原句直接问）
       expect(src, contains('kSelectionModes.map'));
     });
 

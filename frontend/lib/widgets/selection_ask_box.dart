@@ -2,8 +2,8 @@
 //
 // 设计要点（与 work_reader_screen / chapter_guide_screen 共用，避免重复实现）：
 //   · SelectionAskPanel —— 选中正文后浮出的追问条：复制 / 标色(可选) / 朗读 + 五枚模式 chip
-//     （普通对话/释义/追问/辩难/关联，顺序见 kSelectionModes）。点任一 chip 即把选中文本
-//     作为 selectedText 送进会话浮窗——普通对话也带上它，只是不套模式架子。
+//     （对话/释义/追问/辩难/关联，顺序见 kSelectionModes）。点任一 chip 即把选中文本
+//     作为 selectedText 送进会话浮窗——「对话」也带上它，只是不套模式架子。
 //   · MovableChatFab —— 常驻的自由浮动对话按钮（不绑定某个卡片），按住可任意拖动，
 //     点击打开/收起 AI 会话浮窗。
 // 拖动统一用 `_DragHandle`：只包住标题/拖拽把手，正文与按钮保持原生点击手势。

@@ -95,17 +95,22 @@ void main() {
         ReviewItem(nodeId: 'kn_practice', name: '实践', sectionId: 'sec_A_02',
             score: 0.8, stability: 0.4, retention: 0.5, elapsedDays: 12),
       ],
-      onReview: (node, r) {
+      onReview: (node, r) async {
         reviewedNode = node;
         ratio = r;
+        return {'node_id': node, 'applied': true, 'next_review_at': '2026-11-26T00:00:00Z'};
       },
     )));
     expect(find.textContaining('该复习了'), findsOneWidget);
     expect(find.text('实践'), findsOneWidget);
     expect(find.textContaining('保持率'), findsOneWidget);
     await t.tap(find.text('还记得'));
+    await t.pumpAndSettle();
     expect(reviewedNode, 'kn_practice');
     expect(ratio, 1.0);
+    // 自评成功后条目立刻移出，并明确告知下次复习时间（原来静默消失，像被卡片吞了）
+    expect(find.text('实践'), findsNothing);
+    expect(find.textContaining('已记录'), findsOneWidget);
   });
 
   testWidgets('ReviewCard 空列表不渲染', (t) async {
@@ -122,6 +127,10 @@ void main() {
     )));
     expect(find.text('交错巩固'), findsOneWidget);
     expect(find.textContaining('跨知识点混合练习'), findsOneWidget);
+    // 交错巩固条目不再挂自评按钮（引擎不看到期，点了永远「没反应」）
+    expect(find.text('还记得'), findsNothing);
+    expect(find.text('忘了'), findsNothing);
+    expect(find.text('去做混合练习'), findsOneWidget);
   });
 
   testWidgets('MotivationBanner 分级鼓励 + 里程碑 + 下一步', (t) async {

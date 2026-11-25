@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import 'diagnostic_test.dart';
 import 'chapter_guide_screen.dart';
 import 'profile_dashboard.dart';
+import '../offline/offline_content.dart';
 
 class RouteMapScreen extends StatefulWidget {
   final String routeId;
@@ -46,11 +47,27 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     } catch (_) {}
   }
 
-  Future<void> _onReview(String nodeId, double ratio) async {
-    try {
-      await _reviewApi.submit(nodeId: nodeId, correctRatio: ratio, routeId: widget.routeId);
-      await _loadDue();
-    } catch (_) {}
+  Future<Map<String, dynamic>?> _onReview(String nodeId, double ratio) async {
+    // 不吞异常：失败时由 ReviewCard 向用户明说「记录失败」并保留条目，
+    // 否则点一下什么也没发生（用户实报）。
+    final r = await _reviewApi.submit(
+        nodeId: nodeId, correctRatio: ratio, routeId: widget.routeId);
+    await _loadDue();
+    return r;
+  }
+
+  /// 「去做混合练习」：跳到该知识点所在章节（巩固题的入口就在章节里）。
+  void _practice(ReviewItem it) {
+    if (it.sectionId.isEmpty) return;
+    final meta = OfflineContent.sectionMeta(it.sectionId);
+    Navigator.push<bool>(context, MaterialPageRoute(
+        builder: (_) => ChapterGuideScreen(
+            routeId: widget.routeId,
+            sectionId: it.sectionId,
+            sectionTitle: '${meta?['title'] ?? ''}'.isEmpty ? '章节' : '${meta!['title']}',
+            hasBank: true))).then((back) {
+      if (back == true && mounted) setState(_reload);
+    });
   }
 
   void _reload() {
@@ -124,7 +141,10 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                   if (_due.isNotEmpty) {
                     children.add(Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                      child: AnimatedEntrance(delayMs: 60, child: ReviewCard(items: _due, onReview: _onReview)),
+                      child: AnimatedEntrance(
+                          delayMs: 60,
+                          child: ReviewCard(
+                              items: _due, onReview: _onReview, onPractice: _practice)),
                     ));
                   }
                   if (_rec != null) {

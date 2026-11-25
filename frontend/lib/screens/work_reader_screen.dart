@@ -1,6 +1,6 @@
 // 本机原著「分页阅读器」——把已入库的原著正文按行精确分页（不是无限长的一页），
 // 提供市面阅读器常见功能：翻页 / 目录跳转 / 页码跳转 / 字号缩放 / 复制 / 划线标色
-// / 标签 / 笔记 / 书签 / 进度记忆（下次自动跳到上次页面）/ 会话（选区四模式 AI 精读 + 普通对话）。
+// / 标签 / 笔记 / 书签 / 进度记忆（下次自动跳到上次页面）/ 会话（选区五模式 AI 精读，含「对话」）。
 //
 // 数据：GET /api/chunks/by_work/{work}（content_provider → book_chunks，内存）。
 // 分页：用 TextPainter 逐行测量，精确切到「填满可视区」的行，杜绝滚动与内容丢失。
@@ -426,7 +426,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     final svc = context.read<ChatService>();
     final m = ChatMode.values.firstWhere((e) => e.name == mode, orElse: () => ChatMode.chat);
     svc.switchMode(m);
-    // 默认那句话随模式变：普通对话是「这段在说什么？」，不套「展开普通对话」这种
+    // 默认那句话随模式变：对话是「这段在说什么？」，不套「展开对话」这种
     // 说不通的拼接；选中原文一并带上，会进提示词。
     svc.send(content: m.askPrompt(), selectedText: text, paragraphId: '${widget.work}:p$_page');
     _openFloatingChat(svc);
@@ -994,7 +994,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
           // 用户实报：一点就自动释义 —— 上一版把「打开会话」与「就选中文本发问」
           // 混成同一个动作。现在打开是空会话，发什么由用户自己在浮窗里决定。
           IconButton(
-            tooltip: '会话（AI 精读 + 普通对话）',
+            tooltip: '会话（AI 精读 + 对话）',
             icon: const Icon(Icons.forum_outlined),
             onPressed: _openChatOnly,
           ),

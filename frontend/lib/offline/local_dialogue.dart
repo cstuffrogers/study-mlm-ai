@@ -1734,7 +1734,7 @@ class LocalDialogue {
         break;
 
       case 'chat':
-        // 普通对话：对话框里直接打字就是这一条路；选区浮框里点「普通对话」也是这样，
+        // 对话：对话框里直接打字就是这一条路；选区浮框里点「对话」也是这样，
         // 只是多带了一句选中原文（在选区面板里点的，selectedText 就有值）。
         // 不套模式架子、不在结尾追加追问，先直接答；依据（逐字引文）在下面给。
         if (selectedText.trim().isNotEmpty) {
@@ -1791,7 +1791,7 @@ class LocalDialogue {
       '不需要标记就直接不写，不要解释这条要求，也不要提到本提示。';
 
   static const Map<String, String> _modeLabel = {
-    'chat': '普通对话',
+    'chat': '对话',
     'explain': '释义',
     'dig': '追问',
     'debate': '辩难',
@@ -1820,7 +1820,7 @@ class LocalDialogue {
       b.writeln('【本模式】只提问、不给答案：结尾给出逐步递进的追问，不要替学习者下结论。');
     }
     if (mode == 'chat') {
-      b.writeln('【本模式】普通对话：直接回答问题，不要套「一句话答 / 概念界定」这类模板标题，'
+      b.writeln('【本模式】对话：直接回答问题，不要套「一句话答 / 概念界定」这类模板标题，'
           '也不要在结尾追加追问或练习题——学习者打字发问，不是在请求某种特定训练。');
       b.writeln('【本模式·带选区】若【学习者选中的原文】不为空，就以那句为中心作答：'
           '先一句话说清它在这里的意思，再回答【学习者的问题】；不要抛开选区另起话题。');
@@ -1874,7 +1874,7 @@ class LocalDialogue {
     bool criticalReading,
   ) {
     final b = StringBuffer()
-      ..writeln('【模式】${_modeLabel[mode] ?? '普通对话'}${criticalReading ? ' + 批判性阅读' : ''}');
+      ..writeln('【模式】${_modeLabel[mode] ?? '对话'}${criticalReading ? ' + 批判性阅读' : ''}');
     if (content.trim().isNotEmpty) {
       b.writeln('【学习者的问题】${content.trim()}');
     }

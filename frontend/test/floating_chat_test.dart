@@ -76,11 +76,11 @@ void main() {
 
     expect(find.text('已连接 · 释义'), findsOneWidget);
 
-    // 每条回答上的模式标记照旧显示；输入区固定是普通对话（不可切换）
+    // 每条回答上的模式标记照旧显示；输入区**不再**有任何模式标签（D160 删掉左侧胶囊）
 
     expect(find.text(ChatMode.explain.label), findsWidgets);
 
-    expect(find.text(ChatMode.chat.label), findsOneWidget);
+    expect(find.text(ChatMode.chat.label), findsNothing);
 
     expect(find.byType(PopupMenuButton<ChatMode>), findsNothing);
 
@@ -290,10 +290,10 @@ void main() {
 
 
 
-  // 回归（D155）：模式选择曾放在输入框左侧、可随时切换 —— 结果用户进了对话框
-  // 把模式切成「辩难」再打字，既没有原文可展开、又一直是辩难腔。
-  // 现在对话框里固定「普通对话」：标签只读、没有菜单；模式只在选中原文时选一次。
-  testWidgets('对话框里固定普通对话：标签只读，没有模式菜单', (tester) async {
+  // 回归（D155→D160）：模式选择曾放在输入框左侧、可随时切换 —— 结果用户进了对话框
+  // 把模式切成「辩难」再打字，既没有原文可展开、又一直是辩难腔；D155 改成只读标签，
+  // D160 连标签一起删掉（用户要求）：输入区只剩输入框 + 发送，模式只在选区面板选一次。
+  testWidgets('对话框输入区没有任何模式按钮或标签', (tester) async {
 
     await tester.binding.setSurfaceSize(const Size(800, 900));
 
@@ -326,17 +326,11 @@ void main() {
     expect(find.byType(PopupMenuButton<ChatMode>), findsNothing,
         reason: '进了对话框就不该再能切模式');
 
-    expect(find.text(ChatMode.chat.label), findsOneWidget);
+    expect(find.text(ChatMode.chat.label), findsNothing,
+        reason: '输入框左侧的「对话」胶囊已删掉，界面不该再出现它');
 
-    expect(find.text(ChatMode.chat.inputHint), findsOneWidget);
-
-    final tag = tester.getRect(find.text(ChatMode.chat.label));
-
-    final input = tester.getRect(find.byType(TextField));
-
-    expect((tag.center.dy - input.center.dy).abs(), lessThan(8));
-
-    expect(tag.right, lessThanOrEqualTo(input.left + 1));
+    expect(find.text(ChatMode.chat.inputHint), findsOneWidget,
+        reason: '靠输入框提示语暗示现在就是普通提问即可');
 
     await tester.binding.setSurfaceSize(null);
 
@@ -384,7 +378,7 @@ void main() {
 
   });
 
-  testWidgets('窄屏 360 下输入区不溢出：模式标签 / 输入框 / 发送同排', (tester) async {
+  testWidgets('窄屏 360 下输入区不溢出：输入框 / 发送同排', (tester) async {
 
     const vp = Size(360, 700);
 
@@ -420,11 +414,9 @@ void main() {
 
     final input = tester.getRect(find.byType(TextField));
 
-    final tag = tester.getRect(find.text(ChatMode.chat.label));
+    expect(input.width, greaterThan(100), reason: '输入框被挤窄了');
 
-    expect(input.width, greaterThan(100), reason: '模式标签挤掉了输入框');
-
-    expect(tag.right, lessThanOrEqualTo(input.left + 1));
+    expect(find.text(ChatMode.chat.label), findsNothing);
 
     expect(find.byType(PopupMenuButton<ChatMode>), findsNothing);
 

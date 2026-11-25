@@ -69,7 +69,7 @@ class LlmClient {
     {'enable_thinking': false},
   ];
 
-  /// 普通对话（对话浮层 / 章节问答）
+  /// 对话（对话浮层 / 章节问答）
   static Future<LlmResult> chat(
     LlmConfig cfg, {
     required String system,
