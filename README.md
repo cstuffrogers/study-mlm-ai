@@ -46,13 +46,14 @@
 | 22 | 「打开 GitHub / 下载最新安卓版」点了没反应 + 功能中心「语音包设置」+ 首页品牌标题改「唯物 / 马哲精读」+ 功能中心删「学习路线」（D143） | ✓（根因：`open_url.dart` 的非 Web 分支是**空实现**，原生端根本没有外链能力 → 换 `url_launcher`，manifest 补 Android 11+ 的 `VIEW`+`https` 声明；语音包设置页列本机已装中文语音、4 种风格预设（温柔女声/广播员男声/甜美女声/高亢有力的男声）+ 自然默认，试听与朗读同一条通道；首页标题从一行「马列毛思想AI伴读」改成两行「唯物」/「马哲精读」（白字 + 金色下划线/小方章，`GradientHeader` 新增 `titleWidget`+`titleHeight` 预留高度）；功能中心删掉重复的「学习路线」入口；`build.gradle.kts` 加阿里云 maven 镜像——本机直连 dl.google.com 被重置，APK 构建原本崩在 `mergeReleaseNativeLibs`；多音色再补一层：Web 端四档分别对接后端微软神经语音晓晓/晓伊/云扬/云健（请求带 voice 参数），安卓端按关键词去已装系统语音包里找对应音色、找不到就只做音调语速近似，页面如实写明「App 不内置语音包」；安卓端补上「男声/女声」标签（读引擎 features 的 gender，读不到就标未知，不按名字猜）+ 放宽语音包语言过滤（原来只认 zh|cmn|yue，有的引擎报 und/zh-Hans 会整张表空掉）；前端 341 项全绿） |
 | 23 | 对话模式改版 + 选区浮框加「普通对话」+ 正文可复现门禁修复（D155/D156） | ✓（`ChatMode` 改为 `chat/explain/dig/debate/connect`：**删掉应试模式**（本机引擎里它只是「辩难+编题」的拼装）、普通对话成为对话框默认；模式只在**选中原文后浮出的小面板**里选一次，进对话框后固定普通对话、不可切换 —— 任何面板都遍历 `kSelectionModes`（禁 `ChatMode.values`）；只有「追问」把问题抛回给用户，其余模式（含普通对话）把话说完整即停，消除「四种模式结尾都追加追问、读起来一样」的问题；选区面板增至**五枚 chip**（普通对话排第一）：点它就是「带着这句原文直接问」，选中的文字作为 `selected_text` 一起进提示词（后端 `renderer` 对所有模式都注入「选中原文片段」），本机引擎在 chat 分支先逐字回显「你选的这句」；`prompt_engineering.yaml` 的 `test:` → `chat:`（2.2.0，chat 指令补「有选区就以选区为中心作答」）、后端 `protocol.mode` 默认值、`dialogue_service.q_by_mode`、`end_to_end_demo.py` 同步；另把 2026-11-20「全面排查错别字」的 44 处替换**回灌进抽取脚本** `scripts/import_mirror.py` 的 `fix_typos()`（接入 `build`/`apply_trim`/`append_ba`/`insert_sc`），197 部 SPECS 重新逐字节复现现库，D102/D103/D104/D105/D127 五道「正文可复现」门禁 8 个红用例全绿（备份目录不动，比对侧先过 `fix_typos`）；前端 607 项、后端 829 passed + 2 xfailed 全绿） |
 | 24 | 复习卡「点了没反应」修复 + 「普通对话」改名「对话」+ 删输入框胶囊（D160） | ✓（根因：`ReviewItem.kind` 把两类条目混在一张卡里 —— `due`（真到期，看 `retention<0.9`/`next_review_at`）与 `interleave`（交错巩固，引擎**不看到期**，只要 `score>=0.6` 就补进池，池恒满 8 条）；交错条目永远不会因自评离开队列 → 「还记得」点了像没反应；到期条目自评后 `next_review_at` 立刻推后、本条本该消失，但既无提示、`route_map._onReview` 又用 `catch (_) {}` 吞错 → 像被卡片吞掉。`ReviewCard` 重写为 StatefulWidget 并按 `kind` 分两张清单：「到期复习」给「还记得(1.0)/忘了(0.2)」，成功后本地移出 + SnackBar 告知下次复习（明天 / N 天后 / M 月 D 日）；`applied:false` 保留条目并显示 `reason`，抛异常提示「记录失败」；「建议巩固」只给「去做混合练习」（跳该知识点章节），不再对未被提问的东西要自评；标题徽标「到期 N 项」只数 `kind=='due'`，交错另记「建议巩固 M 项」；`onReview` 签名改为返回 `Map`；`ChatMode.chat.label` 由「普通对话」改为「对话」（唯一来源 `models/message.dart`），连带 `inputHint`/`askPrompt`/选区 chip/提示词「【本模式】对话」同步；`floating_chat.dart` 删除输入区左侧的 `_modeTag()` 胶囊（含 Tooltip 与 `SizedBox`），输入区只剩「输入框 + 发送」；使用说明补第十节「到期复习 / 建议巩固」两张清单怎么用；新增 `test/review_card_actions_test.dart` 7 条门禁（计数只数 due / 交错无自评 / 还记得移出+下次时间 / 忘了回写 0.2 / `applied:false` 保留+原因 / 抛异常提示 / 全清后收起）；前端 **614** 项、后端 829 passed + 2 xfailed 全绿） |
+| 25 | 选中原文点「对话」不再替用户发问（D161） | ✓（旧行为：点「对话」直接 `send('这段在说什么？')`，用户还没输入提示词消息已经发出去；新增 `ChatService.stageSelection/clearStagedSelection` —— 只把选中原文挂起，`send()` 在显式 `selectedText` 为空时合并挂起内容并在发出后立即清空（一条提问只带一次选区）；`work_reader_screen._ask` 与 `chapter_guide_screen._askWith` 的 `ChatMode.chat` 分支改为「挂起 + 打开浮窗」不发问，其余四枚模式仍一点即发；`FloatingChat` 新增 `stagedSelection`/`onClearStaged`，输入框上方显示「已带入你选的原句，输入问题后一起发送」并可点 × 取消，输入提示改为「就你选的那句提问…」；使用说明第三节/第四节同步改写；新增 `test/chat_stage_selection_test.dart` 10 条（挂起不发问 / 输入后合并 / 显式选区不被覆盖 / 取消后不带 / 提示条显隐与 × / 两处 `_ask` 源码分支门禁）；前端 **624** 项全绿、`flutter analyze` 零问题；后端未改动 829 passed + 2 xfailed） |
 
 ### 构建信息（v2 重打，合规加固后）
 
 | 产物 | 路径 | 大小 |
 |---|---|---|
-| 安卓安装包 | `xxmz-1.4.22-android-universal.apk` | 74.2 MB（77,856,536 B） |
-| 安卓构建产物 | `frontend/build/app/outputs/flutter-apk/app-release.apk` | 同上（sha1 `c6e16a12b70f3b9eca1d5a992744d2a9b2cc5a62`） |
+| 安卓安装包 | `xxmz-1.4.23-android-universal.apk` | 74.2 MB（77,856,584 B） |
+| 安卓构建产物 | `frontend/build/app/outputs/flutter-apk/app-release.apk` | 同上（sha1 `517192ee4ca97a74b93b1b5e87f89d071697f901`） |
 | Web 静态站 | `frontend/build/web/` | 72 MB |
 
 - **签名已换成自建 release keystore**：`apksigner verify --print-certs` 显示
@@ -60,9 +61,9 @@
   不再是 `CN=Android Debug`。口令在 `frontend/android/key.properties`（已被 `.gitignore` 忽略），
   keystore 在 `frontend/android/keystore/xxmz-release.jks`——**丢了就再也发不了更新包，请离线备份**。
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
-- 体积 74.2 MB（v1.4.22）。增量仍在 `assets/flutter_assets`（离线数据约 23.4 MB）与通用 ABI 的多架构原生库。
+- 体积 74.2 MB（v1.4.23）。增量仍在 `assets/flutter_assets`（离线数据约 23.4 MB）与通用 ABI 的多架构原生库。
 
-- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **614** 项全绿、`flutter analyze` 零问题；后端 **829 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **624** 项全绿、`flutter analyze` 零问题；后端 **829 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
