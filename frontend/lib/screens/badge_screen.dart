@@ -59,23 +59,24 @@ class _BadgeScreenState extends State<BadgeScreen> {
       if (!mounted || _animPlayed) return;
       if (unseenAwards.isNotEmpty) {
         _animPlayed = true;
-        _showGiftAnimation(unseenAwards.first);
+        _showGiftAnimation(unseenAwards);
       }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _showGiftAnimation(Map<String, dynamic> award) async {
+  /// 一次拿到几枚就一起弹几枚（D168：以前只弹 `unseenAwards.first`）。
+  Future<void> _showGiftAnimation(List<Map<String, dynamic>> awards) async {
+    final list = awards.map(BadgeAward.fromMap).toList(growable: false);
     await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => BadgeGiftOpen(
-              name: '${award['name'] ?? ''}',
-              iconKey: '${award['icon_key'] ?? 'star'}',
-              description: '${award['description'] ?? ''}',
+              awards: list,
               onClose: () => Navigator.of(context).pop(),
             )));
-    // 动画关闭后标记已读，刷新列表。
-    await BadgeApi.markRead([award['award_id'] as String]);
+    // 动画关闭后把这些一起标记已读，刷新列表。
+    final ids = list.map((e) => e.awardId).where((e) => e.isNotEmpty).toList(growable: false);
+    if (ids.isNotEmpty) await BadgeApi.markRead(ids);
     if (mounted) _load();
   }
 

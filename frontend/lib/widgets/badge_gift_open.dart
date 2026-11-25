@@ -1,29 +1,60 @@
-// 勋章达成礼物开箱动画（spec 001）
+// 勋章达成开箱动画（spec 001 / D168 重做）
 //
-// 设计：全屏遮罩 → 礼物盒盖掀开 → 金光溢出 → 勋章弹出旋转 → 停留可点关闭。
-// 时长 3s（约束 ≤5s），结束后保留展示，点击关闭。
-// 异常兜底：动画控制器出错时直接关闭，不阻断主流程。
+// 用户实报：旧版是「礼物盒掀盖 + 一枚勋章」，而且一次拿到多枚时只弹第一枚
+// （`badge_screen` 只传 `unseenAwards.first`）。要求改成：
+//   ① 中间爆开的烟花；
+//   ② 中间「从无到有」弹出**已获得的勋章图片**（不是礼物盒）；
+//   ③ 一次拿到几枚就显示几枚。
+//
+// 现在的时序（总长 2.4s，之后停在展示态等用户点「收下勋章」）：
+//   0.00–0.55s  三簇烟花从中心炸开（扩散圆环 + 粒子 + 余辉淡出）
+//   0.22s 起    勋章逐个从 scale 0 弹性弹出（elasticOut 过冲，每枚错开 60ms）
+//   0.62–0.90s  标题/描述淡入
+//   1    完成   底部出现「收下勋章」
+//
+// 兜底：`awards` 为空时只播烟花、显示一句兜底文案，不崩；控制器异常不影响主流程。
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// 单枚勋章开箱动画。
-///
-/// [name] 勋章名、[iconKey] 分类图标键、[description] 描述。
-/// 显示 [show] 为 true 时弹出，动画结束自动停止在展示态，点击遮罩或按钮关闭。
-class BadgeGiftOpen extends StatefulWidget {
-  const BadgeGiftOpen({
-    super.key,
+/// 一枚已获得的勋章（从 `/api/badges/unseen` 的 award 记录映射而来）。
+class BadgeAward {
+  const BadgeAward({
     required this.name,
     required this.iconKey,
     this.description = '',
-    required this.onClose,
+    this.awardId = '',
   });
 
   final String name;
   final String iconKey;
   final String description;
+  final String awardId;
+
+  factory BadgeAward.fromMap(Map<String, dynamic> m) => BadgeAward(
+        name: '${m['name'] ?? ''}'.trim(),
+        iconKey: '${m['icon_key'] ?? 'star'}'.trim(),
+        description: '${m['description'] ?? ''}'.trim(),
+        awardId: '${m['award_id'] ?? ''}'.trim(),
+      );
+}
+
+/// 勋章达成动画：中间爆开烟花 → 勋章从无到有弹出 → 展示名称。
+///
+/// [awards] 一次拿到的全部勋章（几枚就画几枚）；[onClose] 点关闭时回调。
+class BadgeGiftOpen extends StatefulWidget {
+  const BadgeGiftOpen({
+    super.key,
+    required this.awards,
+    required this.onClose,
+    this.duration = const Duration(milliseconds: 2400),
+  });
+
+  final List<BadgeAward> awards;
   final VoidCallback onClose;
+  final Duration duration;
 
   /// 勋章图标键 -> 图标（29 枚勋章各配唯一图标，均动感可辨）
   static IconData iconFor(String key) {
@@ -79,42 +110,81 @@ class BadgeGiftOpen extends StatefulWidget {
   State<BadgeGiftOpen> createState() => _BadgeGiftOpenState();
 }
 
+/// 一簇烟花（时间/位置/半径/配色/粒子角度一次算好，避免每帧重算导致抖动）。
+class _Burst {
+  _Burst({
+    required this.center,
+    required this.delay,
+    required this.span,
+    required this.radius,
+    required this.color,
+    required this.count,
+  })  : angles = List<double>.generate(
+            count, (i) => i * 2 * math.pi / count + math.sin(i * 12.9898) * 0.35),
+        speeds = List<double>.generate(count, (i) => 0.72 + (math.sin(i * 7.233) + 1) / 2 * 0.5);
+
+  final Offset center;
+  final double delay; // 控制器进度 0..1 里的起点
+  final double span; // 持续时间（进度比例）
+  final double radius;
+  final Color color;
+  final int count;
+  final List<double> angles;
+  final List<double> speeds;
+}
+
 class _BadgeGiftOpenState extends State<BadgeGiftOpen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
-  late final Animation<double> _lidAngle; // 盖子掀开角度
-  late final Animation<double> _lidY; // 盖子上移
-  late final Animation<double> _glow; // 金光缩放
-  late final Animation<double> _glowAlpha; // 金光透明度
-  late final Animation<double> _badgePop; // 勋章弹出缩放
-  late final Animation<double> _badgeRotate; // 勋章旋转
-  late final Animation<double> _badgeAlpha;
-  late final Animation<double> _particles; // 粒子扩散
+  late final List<Animation<double>> _pops; // 每枚勋章的弹出进度
+  late final Animation<double> _textFade;
+  late final List<_Burst> _bursts;
 
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000));
-    const curve = Curves.easeOutCubic;
-    _lidAngle = Tween<double>(begin: 0, end: 1.1).animate(CurvedAnimation(
-        parent: _c, curve: Interval(0.15, 0.5, curve: curve)));
-    _lidY = Tween<double>(begin: 0, end: -70).animate(CurvedAnimation(
-        parent: _c, curve: Interval(0.15, 0.5, curve: curve)));
-    _glow = Tween<double>(begin: 0.2, end: 1.6).animate(CurvedAnimation(
-        parent: _c, curve: Interval(0.35, 0.75, curve: curve)));
-    _glowAlpha = Tween<double>(begin: 0, end: 0.7)
-        .animate(CurvedAnimation(parent: _c, curve: Interval(0.35, 0.65)));
-    _badgePop = Tween<double>(begin: 0, end: 1)
-        .animate(CurvedAnimation(parent: _c, curve: Interval(0.5, 0.85, curve: curve)));
-    _badgeRotate = Tween<double>(begin: -0.4, end: 0)
-        .animate(CurvedAnimation(parent: _c, curve: Interval(0.5, 0.95, curve: curve)));
-    _badgeAlpha = Tween<double>(begin: 0, end: 1)
-        .animate(CurvedAnimation(parent: _c, curve: Interval(0.5, 0.8)));
-    _particles = Tween<double>(begin: 0, end: 1)
-        .animate(CurvedAnimation(parent: _c, curve: Interval(0.45, 0.9)));
-    _c.forward().whenComplete(() {
-      // 动画结束保持展示态，等用户点击关闭。
+    _c = AnimationController(vsync: this, duration: widget.duration);
+    final n = widget.awards.isEmpty ? 1 : widget.awards.length;
+    _pops = List<Animation<double>>.generate(n, (i) {
+      final start = (0.22 + i * 0.055).clamp(0.0, 0.62).toDouble();
+      final end = (start + 0.34).clamp(start + 0.05, 1.0).toDouble();
+      return Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
+        parent: _c,
+        curve: Interval(start, end, curve: Curves.elasticOut),
+      ));
     });
+    _textFade = CurvedAnimation(parent: _c, curve: const Interval(0.62, 0.9, curve: Curves.easeOut));
+    _bursts = [
+      _Burst(
+        center: Offset.zero,
+        delay: 0.0,
+        span: 0.42,
+        radius: 150,
+        color: AppColors.gold,
+        count: 18,
+      ),
+      _Burst(
+        center: const Offset(-58, -46),
+        delay: 0.12,
+        span: 0.36,
+        radius: 96,
+        color: const Color(0xFFE4636A),
+        count: 14,
+      ),
+      _Burst(
+        center: const Offset(62, -30),
+        delay: 0.2,
+        span: 0.34,
+        radius: 88,
+        color: AppColors.goldSoft,
+        count: 12,
+      ),
+    ];
+    // 动画跑完要重建一次：底部「收下勋章」按钮与整屏可点关闭都看 `_c.status`。
+    _c.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) setState(() {});
+    });
+    _c.forward();
   }
 
   @override
@@ -123,274 +193,284 @@ class _BadgeGiftOpenState extends State<BadgeGiftOpen>
     super.dispose();
   }
 
-  IconData get _icon => BadgeGiftOpen.iconFor(widget.iconKey);
+  /// 勋章直径：一次拿得越多越小，保证一屏放得下。
+  double get _medalSize {
+    final n = widget.awards.length;
+    if (n <= 1) return 118;
+    if (n <= 4) return 92;
+    if (n <= 8) return 74;
+    if (n <= 12) return 62;
+    return 54;
+  }
+
+  bool get _done => _c.status == AnimationStatus.completed;
 
   @override
   Widget build(BuildContext context) {
+    final awards = widget.awards;
+    final title = awards.isEmpty
+        ? '恭喜达成'
+        : awards.length == 1
+            ? awards.single.name
+            : '一次获得 ${awards.length} 枚勋章';
     return GestureDetector(
-      onTap: _c.status == AnimationStatus.completed ? widget.onClose : null,
+      onTap: _done ? widget.onClose : null,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        color: Colors.black.withValues(alpha: 0.6),
+        color: Colors.black.withValues(alpha: 0.78),
         alignment: Alignment.center,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // —— 金光晕染 ——
-            IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _c,
-                builder: (_, child) => Transform.scale(
-                  scale: _glow.value,
-                  child: Opacity(
-                    opacity: _glowAlpha.value,
-                    child: Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.gold.withValues(alpha: 0.5),
-                            AppColors.goldSoft.withValues(alpha: 0.2),
-                            const Color(0x00000000),
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                child: const SizedBox(),
-              ),
-            ),
-            // —— 粒子光斑 ——
-            _Particles(animation: _particles),
-            const SizedBox(height: 12),
-            // —— 礼物盒（盖掀开后露出勋章） ——
+            // —— 烟花 + 勋章：同一个方形舞台，烟花在中心炸开，勋章在中心弹出 ——
             SizedBox(
-              height: 180,
-              width: 180,
+              width: 340,
+              height: 330,
               child: Stack(
-                alignment: Alignment.bottomCenter,
-                clipBehavior: Clip.none,
+                alignment: Alignment.center,
                 children: [
-                  // 盒身
-                  Container(
-                    width: 150,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: AppColors.brand,
-                      borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(16)),
-                      boxShadow: const [
-                        BoxShadow(
-                            color: Color(0x33000000),
-                            blurRadius: 16,
-                            offset: Offset(0, 8)),
-                      ],
-                    ),
-                  ),
-                  // 盒身金色飘带
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
+                  Positioned.fill(
                     child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.gold.withValues(alpha: 0.9),
+                      child: AnimatedBuilder(
+                        animation: _c,
+                        builder: (_, _) => CustomPaint(
+                          painter: _FireworksPainter(progress: _c.value, bursts: _bursts),
                         ),
                       ),
                     ),
                   ),
-                  // 蝴蝶结
-                  Positioned(
-                    top: -34,
-                    left: 0,
-                    right: 0,
-                    child: IgnorePointer(
-                      child: Transform.rotate(
-                        angle: _lidAngle.value,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.gold,
-                                borderRadius: const BorderRadius.horizontal(
-                                    left: Radius.circular(12),
-                                    right: Radius.circular(12)),
-                              ),
-                            ),
-                            Container(
-                              width: 56,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.gold.withValues(alpha: 0.8),
-                                borderRadius: const BorderRadius.horizontal(
-                                    left: Radius.circular(12),
-                                    right: Radius.circular(12)),
-                              ),
-                              transform: Matrix4.rotationY(0.4),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 盒盖（掀开动画）
-                  Positioned(
-                    top: -40 + _lidY.value,
-                    left: -15,
-                    right: -15,
-                    child: IgnorePointer(
-                      child: Transform.rotate(
-                        angle: _lidAngle.value,
-                        child: Container(
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.brandDeep,
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12)),
-                            border: Border.all(color: AppColors.gold),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 勋章（弹出动画，盖掀开后出现）
-                  Positioned(
-                    top: -90,
+                  // 爆开后的余晖：一圈金色底光，让勋章「亮」出来
+                  IgnorePointer(
                     child: AnimatedBuilder(
                       animation: _c,
-                      builder: (_, child) => Transform.scale(
-                        scale: _badgePop.value,
-                        child: Opacity(
-                          opacity: _badgeAlpha.value,
-                          child: Transform.rotate(
-                            angle: _badgeRotate.value,
-                            child: Container(
-                              width: 92,
-                              height: 92,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      AppColors.gold,
-                                      AppColors.goldSoft,
-                                      AppColors.gold,
-                                    ]),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: AppColors.gold.withValues(alpha: 0.6),
-                                      blurRadius: 24,
-                                      offset: Offset(0, 6)),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(
-                                _icon,
-                                size: 48,
-                                color: AppColors.brandDeep,
-                              ),
+                      builder: (_, _) {
+                        final t = ((_c.value - 0.2) / 0.4).clamp(0.0, 1.0);
+                        if (t <= 0) return const SizedBox.shrink();
+                        return Container(
+                          width: 240 * (0.6 + t * 0.4),
+                          height: 240 * (0.6 + t * 0.4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                AppColors.gold.withValues(alpha: 0.30 * t),
+                                AppColors.gold.withValues(alpha: 0.10 * t),
+                                const Color(0x00000000),
+                              ],
+                              stops: const [0.0, 0.55, 1.0],
                             ),
                           ),
-                        ),
-                      ),
-                    child: const SizedBox(),
+                        );
+                      },
+                    ),
                   ),
+                  // 勋章：一枚居中，多枚换行排开，全部从无到有弹出
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320, maxHeight: 300),
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: [
+                          for (var i = 0; i < awards.length; i++)
+                            _popped(
+                              _pops[math.min(i, _pops.length - 1)],
+                              _Medal(
+                                iconKey: awards[i].iconKey,
+                                size: _medalSize,
+                                label: awards.length == 1 ? '' : awards[i].name,
+                                labelSize: awards.length <= 6 ? 11 : 10,
+                              ),
+                            ),
+                          if (awards.isEmpty) _popped(_pops.first, const _Medal(iconKey: 'star', size: 92)),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            // —— 勋章名称与描述 ——
+            const SizedBox(height: 8),
+            // —— 名称 / 数量 / 描述 ——
             FadeTransition(
-             opacity: _badgeAlpha,
+              opacity: _textFade,
               child: Column(
                 children: [
-                  const Icon(Icons.emoji_events_rounded,
-                      color: AppColors.gold, size: 28),
-                  const SizedBox(height: 6),
                   Text(
-                    widget.name,
-                    style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.gold),
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: awards.length > 1 ? 20 : 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.gold,
+                    ),
                   ),
-                  if (widget.description.isNotEmpty) ...[
+                  if (awards.length == 1 && awards.single.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(
-                      widget.description,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: AppColors.ink700, fontSize: 14),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        awards.single.description,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(0xFFE7DCD6), fontSize: 13, height: 1.5),
+                      ),
+                    ),
+                  ],
+                  if (awards.length > 1) ...[
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        awards.map((a) => a.name).where((e) => e.isNotEmpty).join(' · '),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(0xFFE7DCD6), fontSize: 12, height: 1.5),
+                      ),
                     ),
                   ],
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            if (_c.status == AnimationStatus.completed)
+            const SizedBox(height: 18),
+            if (_done)
               FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: AppColors.brandDeep,
+                ),
                 onPressed: widget.onClose,
-                icon: const Icon(Icons.close_rounded),
-                label: const Text('收下勋章'),
+                icon: const Icon(Icons.check_rounded),
+                label: const Text('收下勋章', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
           ],
         ),
       ),
     );
   }
+
+  /// scale 0 → 1（弹性过冲），配一层透明度渐显，保证「从无到有」。
+  Widget _popped(Animation<double> a, Widget child) => AnimatedBuilder(
+        animation: a,
+        builder: (_, _) => Opacity(
+          opacity: a.value.clamp(0.0, 1.0).toDouble(),
+          child: Transform.scale(
+            scale: a.value.clamp(0.0, 1.6).toDouble(),
+            child: child,
+          ),
+        ),
+      );
 }
 
-/// 金光粒子扩散（几个光斑从中心向外散开）。
-class _Particles extends StatelessWidget {
-  const _Particles({required this.animation});
+/// 一枚勋章：金色圆盘 + 专属图标（+ 小字名称）。
+class _Medal extends StatelessWidget {
+  const _Medal({required this.iconKey, required this.size, this.label = '', this.labelSize = 11});
 
-  final Animation<double> animation;
+  final String iconKey;
+  final double size;
+  final String label;
+  final double labelSize;
 
   @override
   Widget build(BuildContext context) {
-    const seeds = <Offset>[
-      Offset(-90, -20),
-      Offset(90, -20),
-      Offset(-60, -50),
-      Offset(60, -50),
-      Offset(-110, 10),
-      Offset(110, 10),
-      Offset(0, -70),
-      Offset(-30, -80),
-      Offset(30, -80),
-    ];
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (_, child) {
-        return Stack(
-          children: seeds
-              .map((p) => Positioned(
-                  left: p.dx + 90 + animation.value * p.dx,
-                  top: p.dy + 90 + animation.value * p.dy,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.gold.withValues(
-                          alpha: (1 - animation.value) * 0.9),
-                    ),
-                  )))
-              .toList(),
-        );
-      },
+    final medal = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.goldSoft, AppColors.gold, const Color(0xFFB8860B)],
+        ),
+        border: Border.all(color: const Color(0xFFFFF3C4), width: 2),
+        boxShadow: [
+          BoxShadow(color: AppColors.gold.withValues(alpha: 0.55), blurRadius: 20, offset: const Offset(0, 6)),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Icon(BadgeGiftOpen.iconFor(iconKey), size: size * 0.5, color: AppColors.brandDeep),
+    );
+    if (label.isEmpty) return medal;
+    return SizedBox(
+      width: size + 18,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          medal,
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: labelSize, color: const Color(0xFFF3E6C4), height: 1.2),
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// 中心炸开的烟花：三簇粒子 + 扩散圆环，全部随时间淡出。
+class _FireworksPainter extends CustomPainter {
+  _FireworksPainter({required this.progress, required this.bursts});
+
+  final double progress;
+  final List<_Burst> bursts;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final origin = Offset(size.width / 2, size.height / 2);
+    for (final b in bursts) {
+      final p = ((progress - b.delay) / b.span).clamp(0.0, 1.0);
+      if (progress < b.delay || p >= 1) continue;
+      final c = origin + b.center;
+      final eased = Curves.easeOutCubic.transform(p);
+      final fade = (1 - p);
+      // 爆开瞬间的扩散圆环
+      if (p < 0.55) {
+        canvas.drawCircle(
+          c,
+          b.radius * eased * 0.85,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.2 * fade
+            ..color = b.color.withValues(alpha: fade * 0.55),
+        );
+      }
+      // 粒子
+      for (var i = 0; i < b.count; i++) {
+        final dist = b.radius * eased * b.speeds[i];
+        final pos = c + Offset(math.cos(b.angles[i]), math.sin(b.angles[i])) * dist;
+        final r = (1 - p) * 3.4 + 1.0;
+        canvas.drawCircle(pos, r, Paint()..color = b.color.withValues(alpha: fade * 0.95));
+        // 粒子拖尾（朝向爆心的短线，像烟花轨迹）
+        if (p < 0.7) {
+          canvas.drawLine(
+            pos,
+            c + Offset(math.cos(b.angles[i]), math.sin(b.angles[i])) * dist * 0.82,
+            Paint()
+              ..strokeWidth = r * 0.8
+              ..strokeCap = StrokeCap.round
+              ..color = b.color.withValues(alpha: fade * 0.5),
+          );
+        }
+      }
+      // 爆心白光
+      if (p < 0.3) {
+        canvas.drawCircle(
+          c,
+          18 * (1 - p / 0.3),
+          Paint()..color = Colors.white.withValues(alpha: (1 - p / 0.3) * 0.85),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FireworksPainter old) =>
+      old.progress != progress || old.bursts != bursts;
 }
