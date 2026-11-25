@@ -54,9 +54,21 @@ async def submit(test_id: str, body: SubmitIn) -> dict:
 
 @router.post("/appeal")
 async def appeal(body: AppealIn) -> dict:
+    """判分申诉（D167）。
+
+    本机版（App / Web 构建）的申诉走 `frontend/lib/offline/local_insight.dart`：只在本机
+    记一笔、不改分。这个 HTTP 端点保留给「带后端部署」的形态，同样**不重判、不落库**
+    （项目里没有人工复核台）——所以返回体必须带 `message`，让界面能把话说清，
+    不能只回一个 `pending_review` 让用户以为点了就有人在审。
+    """
     await ensure_learning_ready()
-    # P0：进入待审核（复用既有专家审核队列的占位）
-    return {"appeal_id": f"ap_{body.test_id}_{body.item_id}", "status": "pending_review"}
+    return {
+        "appeal_id": f"ap_{body.test_id}_{body.item_id}",
+        "status": "pending_review",
+        "test_id": body.test_id,
+        "item_id": body.item_id,
+        "message": "申诉已接收：本部署没有人工复核台，不会自动改分；请对照原文分片再核一遍。",
+    }
 
 
 # ---- 测试历史 / 错题本（逐题历史 + 错题回顾）----

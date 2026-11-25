@@ -5,10 +5,10 @@ import '../models/learning_models.dart';
 import '../services/quiz_service_api.dart';
 import '../services/sync_controller.dart';
 import '../services/choice_shuffle.dart';
-import '../offline/local_quiz.dart';
-import '../offline/offline_content.dart';
 import '../widgets/mastery_badge.dart';
 import '../widgets/chunk_tag.dart';
+import '../widgets/quiz_review_card.dart';
+import '../widgets/quiz_appeal_dialog.dart';
 import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +40,8 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
   String? _error;
   Map<String, dynamic>? _result;
   bool _submitting = false;
+  /// 本次结果页里已经提交过申诉的题（item_id）：按钮换成「已申诉 · 待复核」
+  final Set<String> _appealed = {};
 
   @override
   void initState() {
@@ -403,10 +405,23 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
                 padding: EdgeInsets.only(left: 4, bottom: 4),
                 child: Text('逐题解析', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
               ),
-              ...review.asMap().entries.map((e) => AnimatedEntrance(
-                    delayMs: 60 + e.key * 40,
-                    child: _buildReviewCard(e.value as Map<String, dynamic>),
-                  )),
+              // D166：逐题解析必须带上题目 / 我的答案 / 正确答案，不能只甩一段解析
+              ...review.asMap().entries.map((e) {
+                final item = (e.value as Map).cast<String, dynamic>();
+                final itemId = '${item['item_id'] ?? ''}';
+                return AnimatedEntrance(
+                  delayMs: 60 + e.key * 40,
+                  child: QuizReviewCard(
+                    index: e.key + 1,
+                    review: item,
+                    typeLabel: _typeLabel('${item['type'] ?? ''}'),
+                    appealed: _appealed.contains(itemId),
+                    onAppeal: itemId.isEmpty || item['is_correct'] == true
+                        ? null
+                        : () => _appeal(itemId, e.key + 1, item),
+                  ),
+                );
+              }),
               const SizedBox(height: 24),
               SizedBox(
                 height: 50,
@@ -425,6 +440,25 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
         ),
       ),
     );
+  }
+
+  /// 申诉判分（D167）：先弹框说清「不会自动改分」并收一句理由，再记一笔。
+  /// 原先直接调接口、既无输入也无回执 —— 用户点了完全没反应。
+  Future<void> _appeal(String itemId, int no, Map<String, dynamic> item) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final type = _typeLabel('${item['type'] ?? ''}');
+    final res = await showQuizAppealDialog(
+      context,
+      title: type.isEmpty ? '第 $no 题' : '第 $no 题 · $type',
+      stem: '${item['stem'] ?? ''}',
+      onSubmit: (reason) => _api.appeal(_testId, itemId, reason: reason),
+    );
+    if (res == null || !mounted) return;
+    setState(() => _appealed.add(itemId));
+    messenger.showSnackBar(SnackBar(
+      content: Text('${res['message'] ?? '申诉已记录（待复核），不会自动改分。'}'),
+      duration: const Duration(seconds: 4),
+    ));
   }
 
   Widget _buildCalibrationCard(Map<String, dynamic> cal) {
@@ -452,167 +486,6 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
           const SizedBox(height: 6),
           Text('${cal['tip'] ?? ''}', style: const TextStyle(fontSize: 12)),
         ]),
-      ),
-    );
-  }
-
-  /// 错因展示：优先用后端/本机引擎给出的中文标签，兼容旧数据的内部编码。
-  String _errLabel(Map<String, dynamic> r) {
-    final label = '${r['error_label'] ?? ''}'.trim();
-    if (label.isNotEmpty) return label;
-    final code = '${r['error_category'] ?? ''}'.trim();
-    return LocalQuiz.errorLabel(code);
-  }
-
-  /// 根据作答内容重新推断错因：旧版本存储的 review 没有 error_label，
-  /// 光靠映射会得到空串 → 错因整块不渲染。这里按「题型 + 所选选项」现推一次。
-  Map<String, dynamic>? _quizOf(Map<String, dynamic> r) {
-    final qid = '${r['item_id'] ?? ''}'.trim();
-    if (qid.isEmpty) return null;
-    return OfflineContent.quiz(qid);
-  }
-
-  /// 错因标签；推不出来时给一个诚实的兜底（不返回空串）。
-  String _errLabelOrFallback(Map<String, dynamic> r, bool correct) {
-    if (correct) return '';
-    final label = _errLabel(r);
-    if (label.isNotEmpty) return label;
-    final quiz = _quizOf(r);
-    if (quiz != null) {
-      final chosen = '${r['chosen'] ?? ''}'.trim();
-      final cat = LocalQuiz.classifyError(quiz, chosen);
-      final l = LocalQuiz.errorLabel(cat);
-      if (l.isNotEmpty) return l;
-    }
-    return '知识点尚未掌握';
-  }
-
-  /// 错因诊断句；旧数据没有 error_reason 时按标签现给一句。
-  String _errReason(Map<String, dynamic> r) {
-    final reason = '${r['error_reason'] ?? ''}'.trim();
-    if (reason.isNotEmpty) return reason;
-    final quiz = _quizOf(r);
-    if (quiz != null) {
-      final chosen = '${r['chosen'] ?? ''}'.trim();
-      final cat = LocalQuiz.classifyError(quiz, chosen);
-      return LocalQuiz.errorAdvice(quiz, cat, chosen);
-    }
-    final code = '${r['error_category'] ?? ''}'.trim();
-    if (code.isNotEmpty) {
-      return LocalQuiz.errorAdvice(const {}, code, '');
-    }
-    return '这一知识点还没有真正掌握：对照上方解析回看原句，再用自己的话复述一遍原理。';
-  }
-
-  Widget _gradingSourceTag(dynamic src) {
-    final s = '${src ?? ''}';
-    final label = switch (s) {
-      'llm' => 'AI 语义精评',
-      'llm_low_conf' => 'AI 语义精评（低置信）',
-      'llm_stance_adjusted' => 'AI 语义精评（立场校正）',
-      'heuristic' => '本地近似评分',
-      _ => null,
-    };
-    if (label == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 10,
-              color: s.startsWith('llm') ? const Color(0xFF2563EB) : const Color(0xFF6B7280))),
-    );
-  }
-
-  Widget _buildReviewCard(Map<String, dynamic> r) {
-    final correct = r['is_correct'] == true;
-    final fb = (r['subjective_feedback'] as Map?)?.cast<String, dynamic>();
-    final appFb = (r['application_feedback'] as Map?)?.cast<String, dynamic>();
-    return Card(
-      margin: const EdgeInsets.only(top: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Icon(correct ? Icons.check_circle : Icons.cancel,
-                  color: correct ? const Color(0xFF16A34A) : const Color(0xFFDC2626), size: 18),
-              const SizedBox(width: 6),
-              Text(correct ? '正确' : '需改进', style: const TextStyle(fontWeight: FontWeight.w600)),
-              if (r['exempt_marked'] == true)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Text('(错误诊断豁免)', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A))),
-                ),
-            ]),
-            if (appFb != null) ...[
-              const SizedBox(height: 6),
-              Text('论证结构 ${((appFb['structure'] ?? 0) * 100).toStringAsFixed(0)}% · '
-                  '概念运用 ${((appFb['concept_use'] ?? 0) * 100).toStringAsFixed(0)}% · '
-                  '立场 ${((appFb['stance'] ?? 0) * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-              ...((appFb['suggestions'] as List?) ?? const []).map((s) => Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text('· $s', style: const TextStyle(fontSize: 12, color: Color(0xFFB45309))),
-                  )),
-            ],
-            if (fb != null) ...[
-              const SizedBox(height: 6),
-              Text('术语正统性 ${((fb['terminology_orthodoxy'] ?? 0) * 100).toStringAsFixed(0)}% · '
-                  '逻辑 ${((fb['logic_coherence'] ?? 0) * 100).toStringAsFixed(0)}% · '
-                  '概念层次 ${((fb['concept_layer'] ?? 0) * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-              _gradingSourceTag(fb['grading_source']),
-              ...((fb['suggestions'] as List?) ?? const []).map((s) => Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text('· $s', style: const TextStyle(fontSize: 12, color: Color(0xFFB45309))),
-                  )),
-            ],
-            if (r['explanation'] != null && '${r['explanation']}'.trim().isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text('解析：${r['explanation']}', style: const TextStyle(fontSize: 13)),
-            ],
-            if (!correct) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 2),
-                    child: Icon(Icons.error_outline, size: 14, color: Color(0xFFB91C1C)),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text('错因：${_errLabelOrFallback(r, correct)}',
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFB91C1C), fontWeight: FontWeight.w600)),
-                  ),
-                ]),
-              ),
-              if (_errReason(r).isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, left: 18),
-                  child: Text(_errReason(r),
-                      style: const TextStyle(fontSize: 12, height: 1.5, color: Color(0xFF7F1D1D))),
-                ),
-            ],
-            if ('${r['source_chunk_id'] ?? ''}'.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Row(children: [
-                  ChunkTag(
-                      chunkId: '${r['source_chunk_id']}',
-                      label: '溯源 原文分片',
-                      compact: true,
-                      fallbackText: r['explanation']?.toString()),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => _api.appeal(_testId, '${r['item_id']}'),
-                    child: const Text('申诉', style: TextStyle(fontSize: 11)),
-                  ),
-                ]),
-              ),
-          ],
-        ),
       ),
     );
   }

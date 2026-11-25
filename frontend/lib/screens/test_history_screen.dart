@@ -157,6 +157,14 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
               _kv('错因', _errLabel(r['error_category'].toString()), AppColors.warning),
             if ((r['error_reason'] ?? '').toString().isNotEmpty)
               _kv('诊断', r['error_reason'].toString(), AppColors.ink500),
+            // 已提交的判分申诉（D167）：只在本机记一笔、不改分，条目标出以便事后对照
+            if (r['appealed'] == true)
+              _kv(
+                  '申诉',
+                  (r['appeal_reason'] ?? '').toString().trim().isEmpty
+                      ? '已提交申诉 · 待复核（不会自动改分）'
+                      : '已提交申诉 · 待复核：${r['appeal_reason']}',
+                  AppColors.warning),
             if ((r['created_at'] ?? '').toString().isNotEmpty)
               _kv('时间', _timeLabel(r['created_at'].toString()), AppColors.ink400),
             // 溯源与删除按钮平行排列：溯源在左、删除在右，同处一行。

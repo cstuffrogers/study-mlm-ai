@@ -738,17 +738,25 @@ class LocalInsight {
     return {'route_id': routeId, 'items': out, 'count': out.length};
   }
 
-  /// 允许用户重判一道主观/应用题（申诉）：本机只记一笔，不改分
+  /// 判分申诉：本机只记一笔（不改分、无人工复核台）。
+  ///
+  /// D167：原先点完既无提示也无理由输入，用户看起来就是「点了没反应」。现在：
+  ///  · 同一题重复申诉只留最新一条（与后端 `appeal_id = ap_{test}_{item}` 的一题一条对齐）；
+  ///  · `status/message` 两键强制回，让界面能把“不会自动改分”当面说清。
   static Map<String, dynamic> appeal(String testId, String itemId, String reason) {
     final test = LocalDb.tests[testId];
     final appeals =
         (test is Map ? (test['appeals'] as List?) : null) ?? const [];
-    final list = [...appeals, {
-      'item_id': itemId,
-      'reason': reason,
-      'created_at': nowIso(),
-      'status': 'recorded',
-    }];
+    final trimmed = reason.trim();
+    final list = appeals
+        .where((e) => !(e is Map && '${e['item_id'] ?? ''}' == itemId))
+        .toList()
+      ..add({
+        'item_id': itemId,
+        'reason': trimmed,
+        'created_at': nowIso(),
+        'status': 'pending_review',
+      });
     if (test is Map) {
       // 用 Map<String, dynamic>.from 重建：`test` 可能是 Map<String, String>
       // （例如外部写入的纯字符串记录），直接 `test['appeals'] = list` 会因
@@ -759,13 +767,14 @@ class LocalInsight {
       LocalDb.flushKey('tests');
     }
     return {
-      'status': 'recorded',
-      'message': '申诉已在本机记录；单机版不改变既有评分，建议对照原文自行复核。',
+      'status': 'pending_review',
+      'message': '申诉已记录（待复核）：不会自动改分，请对照原文分片再核一遍。',
       // 后端 `/api/quiz/appeal` 回 `appeal_id = ap_{test_id}_{item_id}`；单机补齐同形键
       // （不改变「本机只记录、不进审核队列」的语义）。
       'appeal_id': 'ap_${testId}_$itemId',
       'test_id': testId,
       'item_id': itemId,
+      'reason': trimmed,
       'count': list.length,
     };
   }

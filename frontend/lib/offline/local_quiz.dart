@@ -796,6 +796,15 @@ class LocalQuiz {
       }
       final sectionId = '${test?['section_id'] ?? node?['section_id'] ?? ''}';
       final sec = sectionId.isEmpty ? null : OfflineContent.sectionMeta(sectionId);
+      // D167：本题是否申诉过（章节测试结果页记在 test['appeals'] 里），错题本条目标出
+      final appeals = (test?['appeals'] as List?) ?? const [];
+      Map? appeal;
+      for (final e in appeals) {
+        if (e is Map && '${e['item_id'] ?? ''}' == quizId) {
+          appeal = e;
+          break;
+        }
+      }
       return {
         ...r,
         'attempt_id': '${r['test_id'] ?? ''}/$quizId',
@@ -814,6 +823,8 @@ class LocalQuiz {
             ? ''
             : errorAdvice(quiz, errCat, chosenText),
         'source_chunk_id': r['source_chunk_id'] ?? node?['source_chunk_id'] ?? '',
+        'appealed': appeal != null,
+        'appeal_reason': '${appeal?['reason'] ?? ''}',
       };
     }).toList();
     if (sectionId != null && sectionId.isNotEmpty) {
