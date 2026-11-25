@@ -10,6 +10,7 @@ import '../widgets/anim.dart';
 import '../theme/app_theme.dart';
 import 'diagnostic_test.dart';
 import 'chapter_guide_screen.dart';
+import 'chapter_test.dart';
 import 'profile_dashboard.dart';
 import '../offline/offline_content.dart';
 
@@ -56,17 +57,25 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     return r;
   }
 
-  /// 「去做混合练习」：跳到该知识点所在章节（巩固题的入口就在章节里）。
+  /// 「去做巩固题」：直接进该知识点所在章节的**试题**。
+  ///
+  /// 原先跳的是「深入学习」导读页 —— 用户点了「去做练习」却落到只读页面，
+  /// 还得再往下翻才找到入口（用户实报：怎么跳到深入学习界面了，应该去试题）。
+  /// 章节测试本身就按知识点交错排题（`interleaveItems`），正好对上「巩固」的语义。
+  /// 无题库的章节由 ChapterTestScreen 自己报「暂无题库」并留在原页，不静默开空卷。
   void _practice(ReviewItem it) {
     if (it.sectionId.isEmpty) return;
     final meta = OfflineContent.sectionMeta(it.sectionId);
+    final title = '${meta?['title'] ?? ''}'.trim();
     Navigator.push<bool>(context, MaterialPageRoute(
-        builder: (_) => ChapterGuideScreen(
+        builder: (_) => ChapterTestScreen(
             routeId: widget.routeId,
             sectionId: it.sectionId,
-            sectionTitle: '${meta?['title'] ?? ''}'.isEmpty ? '章节' : '${meta!['title']}',
-            hasBank: true))).then((back) {
-      if (back == true && mounted) setState(_reload);
+            sectionTitle: title.isEmpty ? '章节' : title))).then((back) {
+      if (back == true && mounted) {
+        setState(_reload);
+        _loadDue();
+      }
     });
   }
 

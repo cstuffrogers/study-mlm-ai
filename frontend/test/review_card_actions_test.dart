@@ -5,7 +5,7 @@
 // 到期条目自评后 `next_review_at` 立刻推后 → 本应消失，但原先没有任何提示 → 像被吞。
 // 本文件守住四条：
 //  ① 「到期 N 项」只数到期条目，交错巩固另记一项；
-//  ② 交错条目不给自评按钮，只给「去做混合练习」；
+//  ② 交错条目不给自评按钮，只给「去做巩固题」（进该章章节测试）；
 //  ③ 到期条目自评成功后立刻移出并告知下次复习时间；
 //  ④ 自评没生效（applied:false）或抛异常时，条目保留且明确说原因，不静默。
 import 'package:flutter/material.dart';
@@ -54,7 +54,7 @@ void main() {
     expect(find.textContaining('建议巩固'), findsWidgets);
   });
 
-  testWidgets('② 交错巩固条目：没有自评按钮，只有「去做混合练习」', (t) async {
+  testWidgets('② 交错巩固条目：没有自评按钮，只有「去做巩固题」', (t) async {
     ReviewItem? practiced;
     await t.pumpWidget(_host(ReviewCard(
       items: [_consol('kn_c', '直观')],
@@ -64,7 +64,7 @@ void main() {
     expect(find.text('还记得'), findsNothing);
     expect(find.text('忘了'), findsNothing);
     expect(find.textContaining('保持率'), findsNothing);
-    await t.tap(find.text('去做混合练习'));
+    await t.tap(find.text('去做巩固题'));
     expect(practiced?.nodeId, 'kn_c');
     // 点过即从列表移出（不再「点了没反应」）
     await t.pumpAndSettle();

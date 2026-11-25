@@ -6,7 +6,8 @@
 //    而离开队列**，所以给它「还记得」永远像是点了没反应；
 //  · 到期条目自评后 `next_review_at` 立刻推到下次到期，条目本来就该消失，
 //    原先没有任何提示 → 像被卡片吃掉了。
-// 现在：到期组问「还记得/忘了」并明确告知「下次复习 X」；巩固组只给「去做混合练习」，
+// 现在：到期组问「还记得/忘了」并明确告知「下次复习 X」；巩固组只给「去做巩固题」
+// （直接进该章章节测试 —— 原先跳「深入学习」导读页，点了练习却落到只读页，用户实报），
 // 不再对没被提问的知识点要自评；标题的「到期 N 项」也只数真正到期的条目。
 import 'package:flutter/material.dart';
 import '../models/learning_models.dart';
@@ -21,7 +22,7 @@ class ReviewCard extends StatefulWidget {
   /// 抛异常即视为失败，卡片会提示「记录失败」而不是静默吞掉。
   final Future<Map<String, dynamic>?> Function(String nodeId, double correctRatio)? onReview;
 
-  /// 「去做混合练习」：跳到该知识点所在章节。为空则不显示该按钮。
+  /// 「去做巩固题」：跳到该知识点所在章节的试题。为空则不显示该按钮。
   final void Function(ReviewItem item)? onPractice;
 
   const ReviewCard({
@@ -164,7 +165,7 @@ class _ReviewCardState extends State<ReviewCard> {
             ...due.map((it) => _dueRow(it)),
           ],
           if (consol.isNotEmpty) ...[
-            _groupTitle('建议巩固 · 不到期，做混合练习即可'),
+            _groupTitle('建议巩固 · 不到期，做几道巩固题即可'),
             ...consol.map((it) => _consolRow(it)),
           ],
         ],
@@ -213,7 +214,7 @@ class _ReviewCardState extends State<ReviewCard> {
               const SizedBox(height: 2),
               Text(
                 it.kind == 'interleave'
-                    ? '跨知识点混合练习，加强检索与迁移'
+                    ? '已掌握、不到期；进本章测试做几道题巩固'
                     : '已隔 ${it.elapsedDays.toStringAsFixed(0)} 天 · 保持率 ${(it.retention * 100).toStringAsFixed(0)}%',
                 style: const TextStyle(fontSize: 11, color: Color(0xFF9A3412)),
               ),
@@ -278,7 +279,7 @@ class _ReviewCardState extends State<ReviewCard> {
             minimumSize: Size.zero,
           ),
           onPressed: widget.onPractice == null ? null : () => _practice(it),
-          child: const Text('去做混合练习', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          child: const Text('去做巩固题', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
         ),
       );
 }

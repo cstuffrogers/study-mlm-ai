@@ -50,6 +50,21 @@ class ChangelogEntry {
 /// 更新说明正文。**最新版本在最前面。**
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
+    version: '1.4.24',
+    date: '2026-11-25',
+    groups: [
+      ChangelogGroup('修复', [
+        '「该复习了 · 抗遗忘」里「建议巩固」那几项，点「去做练习」以前跳到的是「深入学习」导读页——'
+            '一个只读的介绍页，还得自己往下翻才找到「开始章节测试」。现在直接进该知识点的章节测试出题；'
+            '做完返回会自动刷新复习队列。',
+      ]),
+      ChangelogGroup('变化', [
+        '该按钮改名为「去做巩固题」，条目说明改为「已掌握、不到期；进本章测试做几道题巩固」，'
+            '不再写成「跨知识点混合练习」（实际出的是该章题库，按知识点交错排题）。',
+      ]),
+    ],
+  ),
+  ChangelogEntry(
     version: '1.4.23',
     date: '2026-11-25',
     groups: [

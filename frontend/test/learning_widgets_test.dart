@@ -126,11 +126,11 @@ void main() {
       ],
     )));
     expect(find.text('交错巩固'), findsOneWidget);
-    expect(find.textContaining('跨知识点混合练习'), findsOneWidget);
+    expect(find.textContaining('进本章测试做几道题巩固'), findsOneWidget);
     // 交错巩固条目不再挂自评按钮（引擎不看到期，点了永远「没反应」）
     expect(find.text('还记得'), findsNothing);
     expect(find.text('忘了'), findsNothing);
-    expect(find.text('去做混合练习'), findsOneWidget);
+    expect(find.text('去做巩固题'), findsOneWidget);
   });
 
   testWidgets('MotivationBanner 分级鼓励 + 里程碑 + 下一步', (t) async {
