@@ -425,9 +425,16 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   void _ask(String text, String mode) {
     final svc = context.read<ChatService>();
     final m = ChatMode.values.firstWhere((e) => e.name == mode, orElse: () => ChatMode.chat);
+    if (m == ChatMode.chat) {
+      // 「对话」是自由提问：只把选中原文挂起并打开输入框，等用户打完自己的问题一起发。
+      // 以前这里替他发了一句「这段在说什么？」——用户实报「还没输入就发给 AI 了」，不合理。
+      svc.stageSelection(text: text, paragraphId: '${widget.work}:p$_page');
+      _openFloatingChat(svc);
+      return;
+    }
     svc.switchMode(m);
-    // 默认那句话随模式变：对话是「这段在说什么？」，不套「展开对话」这种
-    // 说不通的拼接；选中原文一并带上，会进提示词。
+    // 释义 / 追问 / 辩难 / 关联是「就这段怎么展开」的一次性指令：点一下即发，
+    // 默认那句话随模式变（不套「展开释义」这类说不通的拼接），选中原文一并进提示词。
     svc.send(content: m.askPrompt(), selectedText: text, paragraphId: '${widget.work}:p$_page');
     _openFloatingChat(svc);
   }
@@ -447,6 +454,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         criticalReading: svc.criticalReading,
         onToggleCritical: svc.toggleCriticalReading,
         onSend: (t) => svc.send(content: t),
+        stagedSelection: svc.stagedSelection,
+        onClearStaged: svc.clearStagedSelection,
         onClear: svc.clear,
         onClose: () => _closeFloatingChat(),
         onOpenOriginal: _openRelatedOriginal,

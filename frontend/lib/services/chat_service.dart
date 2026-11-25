@@ -60,11 +60,35 @@ class ChatService extends ChangeNotifier {
   String? _lastQuestion;
   String _lastSelectedText = '';
   String _lastParagraphId = '';
+  // 选中原文后点了「对话」：只把原句挂在这里，等用户打完自己的问题再一起发。
+  // 不替他发一句「这段在说什么？」——用户实报：还没输入就已经发给 AI 了。
+  String _stagedSelection = '';
+  String _stagedParagraphId = '';
   ChatMode _lastMode = ChatMode.chat;
   Timer? _timeout;
   // 本机生成是同步计算，只需给检索留出余量；
   // 配置了在线大模型时按「对话超时」放宽，避免模型还没答完就被判超时。
   static const Duration _localTimeout = Duration(seconds: 20);
+
+  /// 已经带上、但还没随提问发出的选中原文（界面用它显示「已带入你选的原句」）。
+  String get stagedSelection => _stagedSelection;
+  String get stagedParagraphId => _stagedParagraphId;
+
+  /// 挂起一段选中原文：等用户输入问题后由 [send] 自动带上。
+  void stageSelection({required String text, String paragraphId = ''}) {
+    _stagedSelection = LocalDialogue.sanitizeSelection(text);
+    _stagedParagraphId = paragraphId;
+    currentMode = ChatMode.chat;
+    notifyListeners();
+  }
+
+  /// 取消挂起的选中原文（用户点掉「已带入你选的原句」上的 ×）。
+  void clearStagedSelection() {
+    if (_stagedSelection.isEmpty && _stagedParagraphId.isEmpty) return;
+    _stagedSelection = '';
+    _stagedParagraphId = '';
+    notifyListeners();
+  }
 
   Duration get _requestTimeout {
     final cfg = LlmConfigStore.load();
@@ -175,6 +199,15 @@ class ChatService extends ChangeNotifier {
       String selectedText = '',
       String paragraphId = ''}) {
     if (content.trim().isEmpty) return;
+    // 「对话」是从选中原文点进来的：原句挂在服务上，这里和用户打的问题合成同一条提问。
+    // 显式传了 selectedText 时以它为准（别的模式点一下就发，会自己带原文）。
+    if (selectedText.trim().isEmpty && _stagedSelection.trim().isNotEmpty) {
+      selectedText = _stagedSelection;
+      if (paragraphId.trim().isEmpty) paragraphId = _stagedParagraphId;
+    }
+    // 不管用没用上，挂起态到此为止：一条提问只带一次选区。
+    _stagedSelection = '';
+    _stagedParagraphId = '';
     // 选中片段在**发出前**就按两端同口径净化：正文页全选整章会有几万字，
     // 联网版后端也会截（`_safe_selected_text`），但没必要先把几十 KB 推过 WS。
     selectedText = LocalDialogue.sanitizeSelection(selectedText);

@@ -167,6 +167,14 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
     final anchor = text.trim();
     if (anchor.isEmpty) return;
     final svc = context.read<ChatService>();
+    if (mode == ChatMode.chat) {
+      // 「对话」是自由提问：只把选中原文挂起并打开浮窗，等用户打完自己的问题一起发，
+      // 不替他发一句「这段在说什么？」（用户实报：还没输入就已经发给 AI 了）。
+      svc.stageSelection(text: anchor);
+      _dismissSelection();
+      _openFloatingChat(svc);
+      return;
+    }
     svc.switchMode(mode);
     svc.send(content: mode.askPrompt('导读'), selectedText: anchor);
     _dismissSelection();
@@ -200,6 +208,8 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
         pending: svc.pending,
         error: svc.lastError,
         onRetry: svc.retryLast,
+        stagedSelection: svc.stagedSelection,
+        onClearStaged: svc.clearStagedSelection,
         initialOffset: Offset(size.width - w - 16, 96),
         bounds: size,
         size: Size(w, h),

@@ -73,6 +73,15 @@ class FloatingChat extends StatefulWidget {
   /// 「配置在线大模型」入口：未配 Key 时告诉用户怎么开启模型作答。
   final VoidCallback? onOpenLlmConfig;
 
+  /// 已带入、还没随提问发出的选中原文（空则不显示那条提示）。
+  ///
+  /// 从正文里选中一段话点「对话」时：原句挂在这里，**不替用户发问**，
+  /// 等他自己打完问题再一起发（用户实报：还没输入就已经发给 AI 了）。
+  final String stagedSelection;
+
+  /// 取消上面那条「已带入你选的原句」。
+  final VoidCallback? onClearStaged;
+
   final bool pending;
   final String? error;
   final VoidCallback? onRetry;
@@ -94,6 +103,8 @@ class FloatingChat extends StatefulWidget {
     this.pending = false,
     this.error,
     this.onRetry,
+    this.stagedSelection = '',
+    this.onClearStaged,
     required this.initialOffset,
     required this.bounds,
     required this.size,
@@ -236,6 +247,7 @@ class _FloatingChatState extends State<FloatingChat> {
                     ),
             ),
             if (widget.pending || widget.error != null) _stateBar(),
+            _stagedBanner(),
             _inputBar(),
           ],
         ),
@@ -585,6 +597,41 @@ class _FloatingChatState extends State<FloatingChat> {
     return out;
   }
 
+  /// 「已带入你选的原句」提示条：告诉用户这句会跟着他的问题一起发出去，并可一键取消。
+  Widget _stagedBanner() {
+    final t = widget.stagedSelection.trim();
+    if (t.isEmpty) return const SizedBox.shrink();
+    final one = t.replaceAll(RegExp(r'\s+'), ' ');
+    final preview = one.length > 40 ? '${one.substring(0, 40)}…' : one;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+      padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(children: [
+        const Icon(Icons.format_quote, size: 14, color: AppColors.ink500),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text('已带入你选的原句，输入问题后一起发送：$preview',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: AppColors.ink500, height: 1.4)),
+        ),
+        if (widget.onClearStaged != null)
+          InkWell(
+            onTap: widget.onClearStaged,
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(Icons.close, size: 14, color: AppColors.ink500),
+            ),
+          ),
+      ]),
+    );
+  }
+
   Widget _inputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
@@ -598,7 +645,9 @@ class _FloatingChatState extends State<FloatingChat> {
             controller: _input,
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
-              hintText: ChatMode.chat.inputHint,
+              hintText: widget.stagedSelection.trim().isEmpty
+                  ? ChatMode.chat.inputHint
+                  : '就你选的那句提问…',
               isDense: true,
               filled: true,
               fillColor: AppColors.surface,
