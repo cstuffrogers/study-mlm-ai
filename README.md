@@ -44,13 +44,14 @@
 | 20 | 首页改「选学习路线」+ 朗读自动停止 + 大模型页收敛（D142） | ✓（首页三张路线卡直达章节地图，头部=功能中心/LLM 配置/学习分析/使用说明；朗读随页面切换与退后台自动停；大模型配置页删掉重复的「本机数据」卡片；前端 288 项测试全绿、`flutter analyze` 零问题） |
 | 21 | 单机版「重新摸底测」不再点进去是空的（D142b） | ✓（单机 `LocalQuiz.startDiagnostic/submitDiagnostic` 补齐：按章节顺序每章抽 3 题、上限 12 题，全部带溯源锚点；判分与后端同口径逐章正确率 ≥0.8 判可跳过、起点=第一张未达标/无数据的章；两侧都**只出选项 ≥2 的题**（应用题/主观题没有选项，塞进摸底测就答不了）；结果页显示「阶段N · 标题」不再甩 `sec_A_03`；前端 297 项、后端 781 passed 全绿） |
 | 22 | 「打开 GitHub / 下载最新安卓版」点了没反应 + 功能中心「语音包设置」+ 首页品牌标题改「唯物 / 马哲精读」+ 功能中心删「学习路线」（D143） | ✓（根因：`open_url.dart` 的非 Web 分支是**空实现**，原生端根本没有外链能力 → 换 `url_launcher`，manifest 补 Android 11+ 的 `VIEW`+`https` 声明；语音包设置页列本机已装中文语音、4 种风格预设（温柔女声/广播员男声/甜美女声/高亢有力的男声）+ 自然默认，试听与朗读同一条通道；首页标题从一行「马列毛思想AI伴读」改成两行「唯物」/「马哲精读」（白字 + 金色下划线/小方章，`GradientHeader` 新增 `titleWidget`+`titleHeight` 预留高度）；功能中心删掉重复的「学习路线」入口；`build.gradle.kts` 加阿里云 maven 镜像——本机直连 dl.google.com 被重置，APK 构建原本崩在 `mergeReleaseNativeLibs`；多音色再补一层：Web 端四档分别对接后端微软神经语音晓晓/晓伊/云扬/云健（请求带 voice 参数），安卓端按关键词去已装系统语音包里找对应音色、找不到就只做音调语速近似，页面如实写明「App 不内置语音包」；安卓端补上「男声/女声」标签（读引擎 features 的 gender，读不到就标未知，不按名字猜）+ 放宽语音包语言过滤（原来只认 zh|cmn|yue，有的引擎报 und/zh-Hans 会整张表空掉）；前端 341 项全绿） |
+| 23 | 对话模式改版 + 选区浮框加「普通对话」+ 正文可复现门禁修复（D155/D156） | ✓（`ChatMode` 改为 `chat/explain/dig/debate/connect`：**删掉应试模式**（本机引擎里它只是「辩难+编题」的拼装）、普通对话成为对话框默认；模式只在**选中原文后浮出的小面板**里选一次，进对话框后固定普通对话、不可切换 —— 任何面板都遍历 `kSelectionModes`（禁 `ChatMode.values`）；只有「追问」把问题抛回给用户，其余模式（含普通对话）把话说完整即停，消除「四种模式结尾都追加追问、读起来一样」的问题；选区面板增至**五枚 chip**（普通对话排第一）：点它就是「带着这句原文直接问」，选中的文字作为 `selected_text` 一起进提示词（后端 `renderer` 对所有模式都注入「选中原文片段」），本机引擎在 chat 分支先逐字回显「你选的这句」；`prompt_engineering.yaml` 的 `test:` → `chat:`（2.2.0，chat 指令补「有选区就以选区为中心作答」）、后端 `protocol.mode` 默认值、`dialogue_service.q_by_mode`、`end_to_end_demo.py` 同步；另把 2026-11-20「全面排查错别字」的 44 处替换**回灌进抽取脚本** `scripts/import_mirror.py` 的 `fix_typos()`（接入 `build`/`apply_trim`/`append_ba`/`insert_sc`），197 部 SPECS 重新逐字节复现现库，D102/D103/D104/D105/D127 五道「正文可复现」门禁 8 个红用例全绿（备份目录不动，比对侧先过 `fix_typos`）；前端 607 项、后端 829 passed + 2 xfailed 全绿） |
 
 ### 构建信息（v2 重打，合规加固后）
 
 | 产物 | 路径 | 大小 |
 |---|---|---|
-| 安卓安装包 | `唯物马哲精读-单机安卓版.apk` | 72.1 MB（75,556,606 B） |
-| 安卓构建产物 | `frontend/build/app/outputs/flutter-apk/app-release.apk` | 同上（sha1 `396de776d35f1d29b7ec62787e5fcc690ee9b672`） |
+| 安卓安装包 | `xxmz-1.4.21-android-universal.apk` | 74.2 MB（77,791,000 B） |
+| 安卓构建产物 | `frontend/build/app/outputs/flutter-apk/app-release.apk` | 同上（sha1 `810c77693240226de1e9017f9511e229ac00516a`） |
 | Web 静态站 | `frontend/build/web/` | 72 MB |
 
 - **签名已换成自建 release keystore**：`apksigner verify --print-certs` 显示
@@ -58,9 +59,9 @@
   不再是 `CN=Android Debug`。口令在 `frontend/android/key.properties`（已被 `.gitignore` 忽略），
   keystore 在 `frontend/android/keystore/xxmz-release.jks`——**丢了就再也发不了更新包，请离线备份**。
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
-- 体积从 72.06 MB 涨到 75.56 MB，增量在 `assets/flutter_assets`（离线数据 23 MB → 23.4 MB）。
+- 体积 74.2 MB（v1.4.21）。增量仍在 `assets/flutter_assets`（离线数据约 23.4 MB）与通用 ABI 的多架构原生库。
 
-- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **422** 项全绿、`flutter analyze` 零问题；后端 **784 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **607** 项全绿、`flutter analyze` 零问题；后端 **829 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
