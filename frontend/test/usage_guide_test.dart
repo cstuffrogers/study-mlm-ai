@@ -77,11 +77,11 @@ testWidgets('引导说明包含批判性阅读按钮的位置/开启方式/作�
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('使用说明列出了五种模式，且逐条说明「会给什么」', (t) async {
+  testWidgets('使用说明列出了五种对话方式，且逐条说明「会给什么」', (t) async {
     await t.binding.setSurfaceSize(const Size(900, 2400));
     await _pumpGuide(t);
 
-    expect(find.textContaining('五种对话模式各给什么'), findsOneWidget);
+    expect(find.textContaining('五种对话方式各给什么'), findsOneWidget);
 
     // 每种模式的名字都要出现
     for (final m in ChatMode.values) {

@@ -191,7 +191,7 @@ class _DialogueHistoryScreenState extends State<DialogueHistoryScreen> {
         final msgs = (d['messages'] as List?) ?? const [];
         final mode = ChatMode.values.firstWhere(
           (m) => m.name == '${d['current_mode'] ?? ''}',
-          orElse: () => ChatMode.explain,
+          orElse: () => ChatMode.chat,
         );
         return ListTile(
           selected: id == selectedId || id == _openId,
@@ -300,7 +300,7 @@ class _DialogueHistoryScreenState extends State<DialogueHistoryScreen> {
     final related = _relatedIds(m, content);
     final mode = ChatMode.values.firstWhere(
       (x) => x.name == '${m['mode'] ?? ''}',
-      orElse: () => ChatMode.explain,
+      orElse: () => ChatMode.chat,
     );
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,

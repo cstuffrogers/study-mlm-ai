@@ -23,7 +23,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('释义浮框', () {
-    testWidgets('列出发音喇叭与五个模式（不只靠颜色区分）', (t) async {
+    testWidgets('列出发音喇叭与五种选区模式（不只靠颜色区分）', (t) async {
       final asked = <ChatMode>[];
       await t.pumpWidget(MaterialApp(
         theme: AppTheme.build(),
@@ -40,8 +40,8 @@ void main() {
 
       // 喇叭按钮必须存在（引擎不可用时内部收起，但 widget 不能少）
       expect(find.byType(SpeakButton), findsOneWidget, reason: '释义浮框丢了朗读入口');
-      // 五个模式 chip 的文字标签全在
-      for (final m in ChatMode.values) {
+      // 五枚 chip 的文字标签全在（普通对话也在：带着选中原句直接问）
+      for (final m in kSelectionModes) {
         expect(find.text(m.label), findsOneWidget, reason: '释义浮框缺「${m.label}」');
       }
       // 点一个模式能回调出正确的模式名
@@ -183,13 +183,13 @@ void main() {
       expect(src.contains('_pageSpeech()'), isTrue);
     });
 
-    test('导读页选中浮框：五模式 + 朗读都在', () {
+    test('导读页选中浮框：五种选区模式 + 朗读都在', () {
       final src = read('lib/screens/chapter_guide_screen.dart');
       expect(src.contains('SelectionAskPanel('), isTrue, reason: '释义浮框没挂到页面上');
       expect(src.contains('selectedText.isNotEmpty'), isTrue);
       final panel = read('lib/widgets/selection_ask_box.dart');
       expect(panel.contains('SpeakButton('), isTrue);
-      expect(panel.contains('ChatMode.values'), isTrue);
+      expect(panel.contains('kSelectionModes'), isTrue);
     });
 
     test('没有任何页面再引用已删除的 chat_sheet', () {

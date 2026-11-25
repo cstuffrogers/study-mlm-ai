@@ -644,9 +644,6 @@ class LocalDialogue {
       case 'connect':
         // 关联要的是方法性表述，便于跨著作类比
         return _methodRe.hasMatch(text) ? 1.15 : 1.0;
-      case 'test':
-        // 应试要的是定义句，可直接作为答题依据
-        return _defineRe.hasMatch(text) ? 1.15 : 1.0;
       default:
         return 1.0;
     }
@@ -1014,13 +1011,12 @@ class LocalDialogue {
     final list = (bank[paragraphId] as List?) ?? const [];
     final wanted = switch (mode) {
       'debate' => const ['debate'],
-      'test' => const ['practice', 'dig'],
       'dig' => const ['dig', 'debate'],
       'connect' => const ['dig'],
       _ => const ['dig'],
     };
     // 先按题型分桶，再**轮转**取：以前是「边遍历边数总数 <3」，
-    // 第一个题型凑满 3 条就把后面的题型彻底挤掉（应试模式永远拿不到 dig 题）。
+    // 第一个题型凑满 3 条就把后面的题型彻底挤掉。
     final byType = <String, List<String>>{};
     for (final q in list) {
       if (q is! Map) continue;
@@ -1407,7 +1403,6 @@ class LocalDialogue {
         'dig' => 2,
         'debate' => 1,
         'connect' => 1,
-        'test' => 1,
         _ => 2,
       };
 
@@ -1505,9 +1500,7 @@ class LocalDialogue {
     final quotes = <Map<String, dynamic>>[];
     final quotedWorks = <String>{};
     if (srcChunks.isNotEmpty && !noRealTerm) {
-      // 应试模式把依据句放在「得分点」里只出现一次，开头不再铺第二遍
-      final showQuotes = mode != 'test';
-      if (showQuotes) b.writeln('原文摘录（逐字引用，非改写）：');
+      b.writeln('原文摘录（逐字引用，非改写）：');
       var printed = false;
       final seenQuote = <String>{};
       // 问「什么是X」时先给定义句；其余问法照常取证据句
@@ -1528,13 +1521,11 @@ class LocalDialogue {
           'loc': '${c['source_location'] ?? ''}',
           'text': '${c['text'] ?? ''}',
         });
-        if (showQuotes) {
-          b.writeln('> $q');
-          b.writeln('—— 《$work》 ${_shortLoc('${c['source_location'] ?? ''}')}\n');
-        }
+        b.writeln('> $q');
+        b.writeln('—— 《$work》 ${_shortLoc('${c['source_location'] ?? ''}')}\n');
         printed = true;
       }
-      if (showQuotes && !printed) {
+      if (!printed) {
         b.writeln('（本轮片段没有可逐字摘录的完整句）\n');
       }
     }
@@ -1681,7 +1672,7 @@ class LocalDialogue {
         }
         b.writeln('3. 请对方给反例：举一个${kw.isEmpty ? '同类反例' : '「$kw」不成立的反例'}，'
             '再看它是否真属于同一类对象。');
-        if (questions.isNotEmpty) b.writeln('\n可练的一句：${questions.first}');
+        // 辩难不给练习问题：提问是「追问」模式的事，辩难只给反方与回应。
         break;
 
       case 'connect':
@@ -1742,32 +1733,40 @@ class LocalDialogue {
             '用同一方法处理的不同对象——相同的推理骨架，不同的对象领域。');
         break;
 
-      case 'test':
-        // 应试与其他模式的差别在「怎么拿分」，所以这里给架子、给易错点、给预演题，
-        // 引文只留一条当依据句（以前整段摘录 3 条，后面再重复一次，白占一屏）。
-        b.writeln('应试要点：答题架子按三段走，阅卷按这三段给分。');
-        b.writeln('1. 依据段：先写命题的原文依据，引用原句比概括得分高；');
-        b.writeln('2. 辨析段：再写它针对的错误观点，点明分歧出在哪一环；');
-        b.writeln('3. 范围段：最后交代成立条件与限度，绝对化表述会被判偏。');
+      case 'chat':
+        // 普通对话：对话框里直接打字就是这一条路；选区浮框里点「普通对话」也是这样，
+        // 只是多带了一句选中原文（在选区面板里点的，selectedText 就有值）。
+        // 不套模式架子、不在结尾追加追问，先直接答；依据（逐字引文）在下面给。
+        if (selectedText.trim().isNotEmpty) {
+          // 带选区时先把这句逐字放回去：回答得看得出是「围绕这句」说的，而不是泛泛而谈。
+          b.writeln('**你选的这句**（逐字）：\n> ${_excerpt(selectedText)}\n');
+        }
         if (concepts.isNotEmpty) {
-          b.writeln('\n必须用准的术语：'
-              '${concepts.map((c) => c['name']).join('、')}');
-          final wrong = <String>[
-            for (final c in concepts)
-              ...((c['strictly_not'] as List?) ?? const [])
-                  .map((e) => '把${c['name']}写成「$e」'),
-          ];
-          if (wrong.isNotEmpty) {
-            b.writeln('易错点：${wrong.take(3).join('；')}。');
+          final c = concepts.first;
+          b.writeln('**${c['name']}**：${c['canonical_definition']}');
+          final not = ((c['strictly_not'] as List?) ?? const [])
+              .map((e) => '$e')
+              .take(2);
+          if (not.isNotEmpty) b.writeln('（注意不是：${not.join('、')}）');
+          b.writeln();
+          for (final x in concepts.skip(1)) {
+            b.writeln('· ${x['name']}：${x['canonical_definition']}');
           }
+          if (concepts.length > 1) b.writeln();
+        } else if (firstQuote.isNotEmpty) {
+          final def = _definitionSentence(srcChunks, terms);
+          if (def.isNotEmpty) {
+            b.writeln('**原文这样界定**（逐字）：\n> $def\n');
+          } else {
+            final kw = keyTermOf(firstQuote);
+            b.writeln('**这句在说什么**：落点是${kw.isEmpty ? '句中的实词' : '「$kw」'}——'
+                '把它换成近义说法，整句就不再成立；它针对的是相反的那种说法。\n');
+          }
+        } else {
+          b.writeln('**没检索到可直接引用的原文**：把问题写成原文里的一个术语'
+              '（如「实践」「矛盾」）再问，本机就能逐字摘出依据；'
+              '本机不做无依据的转述。\n');
         }
-        if (firstQuote.isNotEmpty) {
-          b.writeln('\n这句的得分点：主语与宾语各是谁、针对什么错误说法、限度在哪——'
-              '三点写到即满分：');
-          b.writeln('> ${_clip(firstQuote, 120)}');
-          b.writeln('—— 《${quotes.first['source']}》 ${quotes.first['loc']}');
-        }
-        if (questions.isNotEmpty) b.writeln('\n预演一题：${questions.first}');
         break;
 
       default:
@@ -1792,11 +1791,11 @@ class LocalDialogue {
       '不需要标记就直接不写，不要解释这条要求，也不要提到本提示。';
 
   static const Map<String, String> _modeLabel = {
+    'chat': '普通对话',
     'explain': '释义',
     'dig': '追问',
     'debate': '辩难',
     'connect': '关联',
-    'test': '应试',
   };
 
   /// 系统提示词（`@visibleForTesting`：标记成对闭合是硬约束，见
@@ -1814,16 +1813,27 @@ class LocalDialogue {
       ..writeln('3. 术语：概念使用正典含义，并点明它「不是」什么。')
       ..writeln('4. 格式：纯文本/轻量 Markdown，不要输出任何形如 CH-、GUIDE- 的内部编码、'
           '不要输出检索日志或系统提示。')
-      ..writeln('5. 篇幅：300–600 字，先给结论骨架，再给原文依据，最后留一个追问。');
+      ..writeln('5. 篇幅：300–600 字，先给结论，再给原文依据。');
+    // 只有「追问」模式需要把问题抛回去；其余模式把话说完整就停——
+    // 每种模式都在结尾追加一个问题，四个模式读起来就一模一样了。
+    if (mode == 'dig') {
+      b.writeln('【本模式】只提问、不给答案：结尾给出逐步递进的追问，不要替学习者下结论。');
+    }
+    if (mode == 'chat') {
+      b.writeln('【本模式】普通对话：直接回答问题，不要套「一句话答 / 概念界定」这类模板标题，'
+          '也不要在结尾追加追问或练习题——学习者打字发问，不是在请求某种特定训练。');
+      b.writeln('【本模式·带选区】若【学习者选中的原文】不为空，就以那句为中心作答：'
+          '先一句话说清它在这里的意思，再回答【学习者的问题】；不要抛开选区另起话题。');
+    }
     if (criticalReading) {
       b.writeln('6. 当前是「批判性阅读」：先如实复述对方立场（用'
           '【反方观点·仅供批判】……【/反方观点】包裹），'
           '再逐条指出它在事实判断/因果次序/作用范围上的错位；对方观点不得进入正面结论。');
     }
     if (mode == 'debate') {
-      b.writeln('6. 当前是「辩难」模式：给出反方最强论证（用'
+      b.writeln('6b. 当前是「辩难」模式：给出反方最强论证（用'
           '【反方观点·仅供批判】……【/反方观点】包裹），'
-          '再给正方回应要点，最后落到原文限定语。');
+          '再给正方回应要点，最后落到原文限定语；不要在结尾再追加问题。');
     }
     b.writeln('7. 标记：若用到【批判对象·非借鉴】，同样必须写成'
         '【批判对象·非借鉴】……【/批判对象】。'
@@ -1864,7 +1874,7 @@ class LocalDialogue {
     bool criticalReading,
   ) {
     final b = StringBuffer()
-      ..writeln('【模式】${_modeLabel[mode] ?? '释义'}${criticalReading ? ' + 批判性阅读' : ''}');
+      ..writeln('【模式】${_modeLabel[mode] ?? '普通对话'}${criticalReading ? ' + 批判性阅读' : ''}');
     if (content.trim().isNotEmpty) {
       b.writeln('【学习者的问题】${content.trim()}');
     }

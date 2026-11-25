@@ -51,7 +51,7 @@ class ChatService extends ChangeNotifier {
 
   final List<ChatTurn> turns = [];
   final String dialogueId;
-  ChatMode currentMode = ChatMode.explain;
+  ChatMode currentMode = ChatMode.chat;
   bool criticalReading = false;
 
   bool _disposed = false;
@@ -60,7 +60,7 @@ class ChatService extends ChangeNotifier {
   String? _lastQuestion;
   String _lastSelectedText = '';
   String _lastParagraphId = '';
-  ChatMode _lastMode = ChatMode.explain;
+  ChatMode _lastMode = ChatMode.chat;
   Timer? _timeout;
   // 本机生成是同步计算，只需给检索留出余量；
   // 配置了在线大模型时按「对话超时」放宽，避免模型还没答完就被判超时。
@@ -150,7 +150,7 @@ class ChatService extends ChangeNotifier {
           content: '${j['fallback'] ?? '该提问触发防偏离规则。'}',
           blockedReason: '${j['reason'] ?? ''}',
           allowCriticalReading: j['allow_critical_reading'] == true,
-          mode: currentMode.name,
+          mode: _lastMode.name,
         ));
         break;
       case 'error':
@@ -178,11 +178,16 @@ class ChatService extends ChangeNotifier {
     // 选中片段在**发出前**就按两端同口径净化：正文页全选整章会有几万字，
     // 联网版后端也会截（`_safe_selected_text`），但没必要先把几十 KB 推过 WS。
     selectedText = LocalDialogue.sanitizeSelection(selectedText);
+    // 模式**只对带选区的那一条提问生效**：释义/追问/辩难/关联都是「就这段原文怎么展开」，
+    // 没有选区时没有任何原文可展开，一律按普通对话回答。
+    // 选区分发完把当前模式回落到普通对话：对话框里此后打字就是聊天，不再沿用上一个模式。
+    final mode = selectedText.trim().isEmpty ? ChatMode.chat : currentMode;
+    currentMode = ChatMode.chat;
     if (!_connected) connect();
     turns.add(ChatTurn(
       role: 'user',
       content: content,
-      mode: currentMode.name,
+      mode: mode.name,
       selectedText: selectedText,
     ));
     _pending = true;
@@ -190,7 +195,7 @@ class ChatService extends ChangeNotifier {
     _lastQuestion = content;
     _lastSelectedText = selectedText;
     _lastParagraphId = paragraphId;
-    _lastMode = currentMode;
+    _lastMode = mode;
     _timeout?.cancel();
     _timeout = Timer(_requestTimeout, () {
       if (_pending) _fail('回答生成超时，请点「重试」');
@@ -201,7 +206,7 @@ class ChatService extends ChangeNotifier {
       content: content,
       selectedText: selectedText,
       paragraphId: paragraphId,
-      mode: currentMode.name,
+      mode: mode.name,
       criticalReading: criticalReading,
     ).then(_handle).catchError((Object e) {
       _fail('本机生成失败: $e');
@@ -212,7 +217,8 @@ class ChatService extends ChangeNotifier {
   void retryLast() {
     final q = _lastQuestion;
     if (q == null || q.trim().isEmpty) return;
-    currentMode = _lastMode;
+    // 重试沿用**上一条**的模式：带选区的重试仍是同一个模式，否则回到普通对话。
+    currentMode = _lastSelectedText.trim().isEmpty ? ChatMode.chat : _lastMode;
     final anchor = _lastSelectedText;
     final paragraph = _lastParagraphId;
     send(content: q, selectedText: anchor, paragraphId: paragraph);

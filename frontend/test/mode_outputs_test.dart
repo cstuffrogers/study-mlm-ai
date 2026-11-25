@@ -5,7 +5,7 @@
 // 这里直接调 respond 跑五种模式，锁定：
 //   ① 五种输出互不相同；
 //   ② 辩难模式的反方观点**闭合**包裹（未闭合会被 OfflineGuard 判绕过）；
-//   ③ 应试模式给的是答题架子 + 预演题，不冒充整套试卷；
+//   ③ 只有「追问」模式把问题抛回去，其余模式（含普通对话）不在结尾追加追问；
 //   ④ 同一模式下换提问关键词，检索到的内容会变（回答不是死模板）。
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marxism_reader/models/message.dart';
@@ -65,10 +65,43 @@ void main() {
     }
   });
 
-  test('应试模式给答题架子并预演题目，不冒充完整试卷', () async {
-    final out = await answer('test', '矛盾的普遍性与特殊性');
-    expect(out, contains('应试'));
-    expect(ChatMode.test.desc, contains('预演'));
+  test('只有「追问」模式把问题抛回去，其余模式不追加追问', () async {
+    const q = '经济基础与上层建筑的关系';
+    final dig = await answer('dig', q);
+    expect(dig, contains('继续追问'), reason: '追问模式的核心产物就是问题');
+    for (final m in [ChatMode.chat, ChatMode.debate, ChatMode.connect]) {
+      final out = await answer(m.name, q);
+      for (final marker in ['继续追问', '可练的一句', '预演一题']) {
+        expect(out, isNot(contains(marker)),
+            reason: '${m.label} 模式不该在结尾追加「$marker」');
+      }
+    }
+  });
+
+  test('普通对话不套模式标题架子，直接答', () async {
+    final out = await answer('chat', '什么是实践');
+    expect(out.trim(), isNotEmpty);
+    expect(out, isNot(contains('一句话答')));
+    expect(out, isNot(contains('读法建议')));
+  });
+
+  test('选区浮框里的「普通对话」把选中原句一起带进来', () async {
+    // 选区面板点「普通对话」时：content 是「这段在说什么？」，selectedText 是被选中的那句。
+    // 本机引擎必须看得出这是「围绕这句」在答，而不是不看你选了什么。
+    const sel = '实践是检验真理的唯一标准';
+    final r = await LocalDialogue.respond(
+      dialogueId: 'chat-with-selection',
+      content: '这段在说什么？',
+      selectedText: sel,
+      mode: 'chat',
+    );
+    expect(r['type'], 'ai_message');
+    final out = '${r['content'] ?? ''}';
+    expect(out, contains('你选的这句'), reason: '带选区时先把这句逐字放回去');
+    expect(out, contains(sel), reason: '选中的文字必须进回答的依据');
+    // 普通对话仍然是普通对话：不套模式架子、不追加追问
+    expect(out, isNot(contains('一句话答')));
+    expect(out, isNot(contains('继续追问')));
   });
 
   test('换提问关键词，回答跟着变（不是死模板）', () async {

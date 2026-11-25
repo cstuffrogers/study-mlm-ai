@@ -161,7 +161,7 @@ class _AskBar extends StatelessWidget {
             _mini(Icons.close_rounded, '关闭', AppColors.ink400, onDismiss),
           ]),
           const SizedBox(height: 4),
-          Wrap(spacing: 4, runSpacing: 4, children: ChatMode.values.map((m) {
+          Wrap(spacing: 4, runSpacing: 4, children: kSelectionModes.map((m) {
             return ActionChip(
               visualDensity: VisualDensity.compact,
               label: Text(m.label, style: const TextStyle(fontSize: 11.5, color: Colors.white)),

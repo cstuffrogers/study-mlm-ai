@@ -71,7 +71,7 @@ class UserContext:
     current_chapter: str
     selected_text: str
     user_question: str
-    current_mode: str  # explain/dig/debate/connect/test
+    current_mode: str  # chat(普通对话)/explain/dig/debate/connect
     session_history: List[Dict[str, str]] = field(default_factory=list)
 
 

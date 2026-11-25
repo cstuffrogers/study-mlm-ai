@@ -46,7 +46,7 @@ class UserMessageIn(BaseModel):
     content: str                            # 用户问题
     selected_text: str = ""                 # 选中的原文锚点（FR-003 锚点保持）
     paragraph_id: str = ""                  # 原文段落ID
-    mode: str = "explain"                   # explain/dig/debate/connect/test
+    mode: str = "chat"                      # chat(普通对话)/explain/dig/debate/connect
     critical_reading: bool = False          # 是否切换批判性阅读模式（双轨制 FR-007）
 
     class Config:

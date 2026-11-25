@@ -168,7 +168,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
     if (anchor.isEmpty) return;
     final svc = context.read<ChatService>();
     svc.switchMode(mode);
-    svc.send(content: '请就这段导读展开${mode.label}', selectedText: anchor);
+    svc.send(content: mode.askPrompt('导读'), selectedText: anchor);
     _dismissSelection();
     _openFloatingChat(svc);
   }
@@ -190,9 +190,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
       builder: (_) => FloatingChat(
         turns: svc.turns,
         status: svc.status,
-        currentMode: svc.currentMode,
         criticalReading: svc.criticalReading,
-        onModeChanged: svc.switchMode,
         onToggleCritical: svc.toggleCriticalReading,
         onSend: (t) => svc.send(content: t),
         onClear: svc.clear,
@@ -428,7 +426,7 @@ class _ChapterGuideScreenState extends State<ChapterGuideScreen> {
     final chapterLink = (links['chapter'] as Map?)?.cast<String, dynamic>() ?? const {};
 
     return SelectionArea(
-      // 屏蔽系统自带的「复制/分享/全选」工具条：本页自带浮框（复制/朗读/标色 + 五种模式）。
+      // 屏蔽系统自带的「复制/分享/全选」工具条：本页自带浮框（复制/朗读/标色 + 五枚选区模式 chip）。
       // 两套浮窗一起弹出会互相遮挡，系统工具条还常盖在选中文字上。
       contextMenuBuilder: (context, state) => const SizedBox.shrink(),
       // 选中任意导读正文 → 浮出「释义/追问」浮框（与原文阅读器一致的交互）

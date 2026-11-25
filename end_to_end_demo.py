@@ -72,12 +72,14 @@ class MockLLM:
             return self._generate_debate(concept, chunks)
         elif mode == "connect":
             return self._generate_connect(concept, chunks)
-        elif mode == "test":
-            return self._generate_test(concept, chunks)
+        elif mode == "chat":
+            return self._generate_chat(concept, chunks)
         else:
             return "[模拟LLM] 无法识别模式，请检查Prompt。"
 
     def _extract_mode(self, prompt: str) -> str:
+        if "普通对话" in prompt:
+            return "chat"
         if "释义模式" in prompt:
             return "explain"
         elif "苏格拉底追问" in prompt:
@@ -86,8 +88,6 @@ class MockLLM:
             return "debate"
         elif "图谱导航员" in prompt:
             return "connect"
-        elif "命题人" in prompt:
-            return "test"
         return "unknown"
 
     def _extract_concept(self, prompt: str) -> str:
@@ -164,17 +164,19 @@ class MockLLM:
 你已掌握"市民社会"，建议立即学习"经济基础"以形成完整认知 → [跳转]"""
         return f"[模拟关联] {concept}的知识图谱..."
 
-    def _generate_test(self, concept, chunks):
-        return """【单选】马克思在《提纲》中指出"旧唯物主义的立脚点是市民社会"，这里的"市民社会"是指：
-A. 非政府组织组成的公民社会
-B. 与政治国家相对的物质生活关系总和
-C. 封建社会的民间自治组织
-D. 现代民主政治的参与平台
-
-【辨析】"市民社会是现代民主政治的基石，保障了公民的参与权利。"
-请用历史唯物主义原理进行辨析。
-
-【论述】结合《德意志意识形态》和《关于费尔巴哈的提纲》，论述"市民社会"概念在唯物史观中的地位和意义。"""
+    def _generate_chat(self, concept, chunks):
+        """普通对话：直接答，不套模式标题、不在结尾追加追问。"""
+        if concept == "市民社会":
+            return (
+                "「市民社会」在马克思这里不是「公民社会」，而是与政治国家相对的物质生活"
+                "关系总和，也就是后来讲的「经济基础」。"
+                "《提纲》第十条说「旧唯物主义的立脚点是市民社会」，意思是旧唯物主义把"
+                "出发点放在了这个物质关系领域，却没看到它本身要在实践中被革命地改变。"
+            )
+        if chunks:
+            return f"{concept}：这里的原文依据是——{chunks[0][:120]}"
+        return (f"{concept} 是历史唯物主义的基本范畴之一。要核对具体原文，"
+                f"请选中书里的那句话再问，我会给你逐字引文和出处。")
 
 
 # ============================================================
@@ -451,8 +453,8 @@ def run_full_demo():
         current_work="关于费尔巴哈的提纲",
         current_chapter="第十条",
         selected_text="旧唯物主义的立脚点是市民社会",
-        user_question="如果考研考这句话，会怎么出题？",
-        current_mode="test"
+        user_question="这句话里的“市民社会”到底指什么？",
+        current_mode="chat"
     )
 
     resp5 = tutor.chat(ctx5)

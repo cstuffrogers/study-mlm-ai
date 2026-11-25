@@ -7,7 +7,6 @@
 //    旧实现只预留 104。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marxism_reader/models/message.dart';
 import 'package:marxism_reader/services/reader_paginator.dart';
 import 'package:marxism_reader/theme/app_theme.dart';
 import 'package:marxism_reader/widgets/anim.dart';
@@ -31,9 +30,7 @@ Widget _chatHost({required Size screen, required double keyboard, Offset at = co
           FloatingChat(
             turns: const [],
             status: '已连接 · 释义',
-            currentMode: ChatMode.explain,
             criticalReading: false,
-            onModeChanged: (_) {},
             onToggleCritical: () {},
             onSend: (_) {},
             onClear: () {},

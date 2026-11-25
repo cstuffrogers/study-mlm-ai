@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:marxism_reader/models/message.dart';
 import 'package:marxism_reader/offline/local_db.dart';
 import 'package:marxism_reader/offline/offline_content.dart';
 import 'package:marxism_reader/screens/work_reader_screen.dart';
@@ -60,9 +59,7 @@ class _HostState extends State<_Host> {
       builder: (_) => FloatingChat(
         turns: turns,
         status: '本机模式',
-        currentMode: ChatMode.explain,
         criticalReading: false,
-        onModeChanged: (_) {},
         onToggleCritical: () {},
         onSend: (_) {},
         onClear: () {},

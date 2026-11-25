@@ -1,7 +1,6 @@
 // D111 门禁：本机/在线引擎标签必须能让用户分辨「没配 Key」与「配了但调用失败」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marxism_reader/models/message.dart';
 import 'package:marxism_reader/services/chat_service.dart';
 import 'package:marxism_reader/widgets/floating_chat.dart';
 import 'package:marxism_reader/offline/local_db.dart';
@@ -20,9 +19,7 @@ Widget _host(ChatTurn turn) => MaterialApp(
         body: Stack(children: [FloatingChat(
           turns: [turn],
           status: '本机模式',
-          currentMode: ChatMode.explain,
           criticalReading: false,
-          onModeChanged: (_) {},
           onToggleCritical: () {},
           onSend: (_) {},
           onClear: () {},

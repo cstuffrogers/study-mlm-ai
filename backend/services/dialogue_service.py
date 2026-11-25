@@ -425,11 +425,11 @@ class DialogueService:
         one_line = (first + "。") if first else "本轮围绕你的问题展开。"
         # 检验问题按模式选择
         q_by_mode = {
+            "chat": "你能用自己的话说清这段的原意吗？",
             "explain": "你能用自己的话说清这个概念的『不是』是什么吗？",
             "dig": "这句话的依据在原文哪一层？",
             "debate": "对方最有力的反驳是什么，你如何回应？",
             "connect": "它与本提纲另一条如何相互支撑？",
-            "test": "不看原文，你能复述其核心论断吗？",
         }
         return {
             "one_line": one_line[:160],

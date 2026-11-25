@@ -61,9 +61,7 @@ class _MovableBoxState extends State<MovableBox> {
 class FloatingChat extends StatefulWidget {
   final List<ChatTurn> turns;
   final String status;
-  final ChatMode currentMode;
   final bool criticalReading;
-  final ValueChanged<ChatMode> onModeChanged;
   final VoidCallback onToggleCritical;
   final void Function(String text) onSend;
   final VoidCallback onClear;
@@ -86,9 +84,7 @@ class FloatingChat extends StatefulWidget {
     super.key,
     required this.turns,
     required this.status,
-    required this.currentMode,
     required this.criticalReading,
-    required this.onModeChanged,
     required this.onToggleCritical,
     required this.onSend,
     required this.onClear,
@@ -332,7 +328,7 @@ class _FloatingChatState extends State<FloatingChat> {
 
   Widget _turn(ChatTurn t, int index) {
     final modeColor = ChatMode.values
-        .firstWhere((m) => m.name == t.mode, orElse: () => ChatMode.explain)
+        .firstWhere((m) => m.name == t.mode, orElse: () => ChatMode.chat)
         .color;
 
     if (t.role == 'user') {
@@ -431,7 +427,7 @@ class _FloatingChatState extends State<FloatingChat> {
           )
         else ...[
           // 每条回答都标明「这条是哪个模式生成的」：不能只靠左边细线的颜色去猜，
-          // 尤其辩难/应试曾经同色，用户根本分不出。
+          // 尤其曾经有两个模式同色，用户根本分不出。
           Padding(
             padding: const EdgeInsets.only(bottom: 5),
             child: Row(children: [
@@ -444,7 +440,7 @@ class _FloatingChatState extends State<FloatingChat> {
                 child: Text(
                     ChatMode.values
                         .firstWhere((m) => m.name == t.mode,
-                            orElse: () => ChatMode.explain)
+                            orElse: () => ChatMode.chat)
                         .label,
                     style: TextStyle(
                         fontSize: 9.5,
@@ -589,59 +585,22 @@ class _FloatingChatState extends State<FloatingChat> {
     return out;
   }
 
-  /// 输入区左侧的模式选择：模式决定「这次提问怎么回答」，必须与输入框同处一行，
-  /// 否则用户在底部打字时看不见当前模式，切换模式还得爬到顶部去找。
-  Widget _modeChip() {
-    final cur = widget.currentMode;
+  /// 输入区左侧的固定标签：对话框里**只有普通对话**。
+  ///
+  /// 释义 / 追问 / 辩难 / 关联 都必须先有一段「选中的原文」才有意义，所以模式只在
+  /// 正文选区的浮框里选一次；进了对话框再切换模式，只会出现「模式是辩难、但没有
+  /// 原文可展开」的空转（用户实报：点进去就一直是上一个模式）。这里保留一个只读
+  /// 标签，是为了让用户知道「现在问的是普通问题」，而不是又一个可点却会误解的按钮。
+  Widget _modeTag() {
+    const cur = ChatMode.chat;
     final color = Color(cur.color);
     const fam = ['Deng', 'Roboto', 'WarnSym'];
-    return PopupMenuButton<ChatMode>(
-      initialValue: cur,
-      onSelected: (m) => widget.onModeChanged(m),
-      tooltip: '对话模式：${cur.label}｜${cur.desc}',
-      position: PopupMenuPosition.over,
-      itemBuilder: (_) => [
-        for (final m in ChatMode.values)
-          PopupMenuItem<ChatMode>(
-            value: m,
-            height: 46,
-            child: Row(children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration:
-                    BoxDecoration(color: Color(m.color), shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(m.label,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: m == cur
-                                ? Color(m.color)
-                                : AppColors.ink700,
-                            fontFamily: 'Deng',
-                            fontFamilyFallback: fam)),
-                    Text(m.desc,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 10.5, color: AppColors.ink400)),
-                  ],
-                ),
-              ),
-              if (m == cur) Icon(Icons.check_rounded, size: 16, color: color),
-            ]),
-          ),
-      ],
+    return Tooltip(
+      message: '对话框里固定是「普通对话」；释义 / 追问 / 辩难 / 关联'
+          '请在正文里选中一段原文后，用浮出的面板选（面板里也能点「普通对话」，会把选中的原文一起带上）。',
       child: Container(
         height: 34,
-        padding: const EdgeInsets.only(left: 8, right: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(17),
@@ -655,7 +614,6 @@ class _FloatingChatState extends State<FloatingChat> {
                   color: color,
                   fontFamily: 'Deng',
                   fontFamilyFallback: fam)),
-          Icon(Icons.arrow_drop_down, size: 18, color: color),
         ]),
       ),
     );
@@ -669,14 +627,14 @@ class _FloatingChatState extends State<FloatingChat> {
         border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: Row(children: [
-        _modeChip(),
+        _modeTag(),
         const SizedBox(width: 6),
         Expanded(
           child: TextField(
             controller: _input,
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
-              hintText: widget.currentMode.inputHint,
+              hintText: ChatMode.chat.inputHint,
               isDense: true,
               filled: true,
               fillColor: AppColors.surface,

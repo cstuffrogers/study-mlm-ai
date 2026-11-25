@@ -1,6 +1,6 @@
 // 本机原著「分页阅读器」——把已入库的原著正文按行精确分页（不是无限长的一页），
 // 提供市面阅读器常见功能：翻页 / 目录跳转 / 页码跳转 / 字号缩放 / 复制 / 划线标色
-// / 标签 / 笔记 / 书签 / 进度记忆（下次自动跳到上次页面）/ 会话（五模式 AI 精读）。
+// / 标签 / 笔记 / 书签 / 进度记忆（下次自动跳到上次页面）/ 会话（选区四模式 AI 精读 + 普通对话）。
 //
 // 数据：GET /api/chunks/by_work/{work}（content_provider → book_chunks，内存）。
 // 分页：用 TextPainter 逐行测量，精确切到「填满可视区」的行，杜绝滚动与内容丢失。
@@ -266,7 +266,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       if (!mounted) return;
       final m = ChatMode.values.firstWhere(
         (e) => e.name == (modeName ?? 'explain'),
-        orElse: () => ChatMode.explain,
+        orElse: () => ChatMode.chat,
       );
       _ask(text, m.name);
     });
@@ -424,9 +424,11 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
 
   void _ask(String text, String mode) {
     final svc = context.read<ChatService>();
-    final m = ChatMode.values.firstWhere((e) => e.name == mode, orElse: () => ChatMode.explain);
+    final m = ChatMode.values.firstWhere((e) => e.name == mode, orElse: () => ChatMode.chat);
     svc.switchMode(m);
-    svc.send(content: '请就这段原文展开${m.label}', selectedText: text, paragraphId: '${widget.work}:p$_page');
+    // 默认那句话随模式变：普通对话是「这段在说什么？」，不套「展开普通对话」这种
+    // 说不通的拼接；选中原文一并带上，会进提示词。
+    svc.send(content: m.askPrompt(), selectedText: text, paragraphId: '${widget.work}:p$_page');
     _openFloatingChat(svc);
   }
 
@@ -442,9 +444,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       builder: (_) => FloatingChat(
         turns: svc.turns,
         status: svc.status,
-        currentMode: svc.currentMode,
         criticalReading: svc.criticalReading,
-        onModeChanged: svc.switchMode,
         onToggleCritical: svc.toggleCriticalReading,
         onSend: (t) => svc.send(content: t),
         onClear: svc.clear,
@@ -994,7 +994,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
           // 用户实报：一点就自动释义 —— 上一版把「打开会话」与「就选中文本发问」
           // 混成同一个动作。现在打开是空会话，发什么由用户自己在浮窗里决定。
           IconButton(
-            tooltip: '会话（五模式精读）',
+            tooltip: '会话（AI 精读 + 普通对话）',
             icon: const Icon(Icons.forum_outlined),
             onPressed: _openChatOnly,
           ),
@@ -1223,7 +1223,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
           Wrap(
             spacing: 4,
             runSpacing: 4,
-            children: ChatMode.values.map((m) {
+            children: kSelectionModes.map((m) {
               return ActionChip(
                 visualDensity: VisualDensity.compact,
                 label: Text(m.label, style: const TextStyle(fontSize: 11.5, color: Colors.white)),
@@ -1573,7 +1573,7 @@ class _AnnotatedPage extends StatelessWidget {
     // 只重绘当前页，不连带其他缓存页整片重绘（页数多时成本随页数增长）。
     return RepaintBoundary(
       child: SelectionArea(
-        // 屏蔽系统自带的「copy/share」工具条：本页选中即弹自己的追问浮框（复制/朗读/标色 + 五模式），
+        // 屏蔽系统自带的「copy/share」工具条：本页选中即弹自己的追问浮框（复制/朗读/标色 + 五枚选区模式 chip），
         // 两套浮窗同时出现会互相遮挡，用户也分不清该点哪一个。
         contextMenuBuilder: (context, state) => const SizedBox.shrink(),
         onSelectionChanged: onSelectionChanged,
@@ -1685,7 +1685,7 @@ class _AnnotatedPage extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: ChatMode.values.map((m) {
+              children: kSelectionModes.map((m) {
                 return ActionChip(
                   label: Text(m.label, style: const TextStyle(fontSize: 12, color: Colors.white)),
                   backgroundColor: Color(m.color),
