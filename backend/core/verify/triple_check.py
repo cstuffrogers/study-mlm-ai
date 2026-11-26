@@ -138,7 +138,8 @@ class TripleCheck:
                                 "detail": f"ML 分类为偏离（conf={ml_conf:.2f}）", "guard_detail": guard_result}
                     # ML 高置信 orthodox → 覆盖规则误判（如批判性引用）
                     return {"status": "pass", "source": source,
-                            "detail": f"ML 分类为正统（conf={ml_conf:.2f}）", "guard_detail": guard_result}
+                            "detail": f"ML 分类为正统（conf={ml_conf:.2f}）", "guard_detail": guard_result,
+                            "annotations": guard_result.get("annotations", [])}
                 # 低置信 → 回退规则（source 标记 ml_low_conf）
                 source = "ml_low_conf_rule"
             except Exception as e:
@@ -150,4 +151,7 @@ class TripleCheck:
             "source": source,
             "detail": guard_result["flags"],
             "exempt": guard_result["exempt"],
+            # D171：可疑但不构成自述偏离的命中（术语中性使用、被引述的反面例子）。
+            # status 仍是 pass —— 调用方把它展示给用户看，不拦回答。
+            "annotations": guard_result.get("annotations", []),
         }

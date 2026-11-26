@@ -15,6 +15,7 @@ import 'chat_markdown.dart';
 import 'instant_summary_card.dart';
 import 'related_original_button.dart';
 import 'speak_button.dart';
+import 'stance_note_chip.dart';
 
 /// 通用可移动方块：整体可拖动、边界内钳制、纯点击不受影响（用于选中文字后的追问工具条）。
 class MovableBox extends StatefulWidget {
@@ -488,6 +489,12 @@ class _FloatingChatState extends State<FloatingChat> {
             ),
           ]),
           ChatMarkdown(text: t.content, baseColor: AppColors.ink900),
+          // D171：整体立场判读后「可疑但不算偏离」的标 — 不拦回答，只提醒核对。
+          if (t.stanceNotes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: StanceNoteChip(notes: t.stanceNotes),
+            ),
         ],
         if (t.instantSummary != null)
           Padding(

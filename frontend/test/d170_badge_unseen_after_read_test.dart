@@ -16,7 +16,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marxism_reader/offline/local_badge.dart';
 import 'package:marxism_reader/offline/local_db.dart';
 import 'package:marxism_reader/services/api_client.dart';
 import 'package:marxism_reader/services/badge_service_api.dart';

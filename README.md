@@ -52,6 +52,7 @@
 | 28 | 勋章达成动画重做：正中爆开烟花 + 勋章从无到有弹出，一次拿几枚显示几枚（D168） | ✓（用户实报「得到勋章弹出的界面有问题」） | 旧版是「礼物盒掀盖 + 一枚勋章」，且 `badge_screen._load` 只把 `unseenAwards.first` 传进动画、其余静默标记已读 —— 一次拿多枚永远只看得到第一枚。新版 `BadgeGiftOpen` 换成 「一个 340×330 的舞台」：`_FireworksPainter` 自绘三簇烟花（中心 + 左上 + 右三处、各自 delay/span/半径/配色，扩散圆环 + 拖尾粒子 + 爆心白光，progress 用 `easeOutCubic`、粒子角度与速度在 `initState` 一次算好避免抖动）；勋章改 `_Medal`（金盘 + 专属图标 + 小字名），按数量分档 118/92/74/62/54 px、Wrap 自动换行（超多枚时 `SingleChildScrollView` 兜底），每枚用 `Interval(0.22+i*0.055, +0.34)` 的 `Curves.elasticOut` 做 `scale 0→1` 过冲弹出 + `Opacity` 渐显（真·从无到有）；标题单枚显示勋章名+描述、多枚显示「一次获得 N 枚勋章」+ 名称串。同时修 `_c.status` 变化不重建导致「收下勋章」按钮不出现（`addStatusListener` 触发 `setState`）；`badge_screen` 改为整批传入、关掉动画后整批 `markRead`。新增 `test/d168_badge_fireworks_test.dart` 8 条（多枚全显示 / 开场 opacity=0 / 单枚 / 空列表兜底 / 烟花 CustomPaint / 12 枚小屏不溢出 / 源码门禁两条）；前端 **645** 全绿、analyze 零问题） |
 | 29 | 章节测试按「易 / 中 / 难 / 拓展」分层出题 + 清除重复题（D169） | ✓（用户实报「题目重复太多、根本没有易中难三个层次」） | 旧题库由固定模板生成（`关于「X」，下列说法正确的是？` 等四套句式），选项是「与其他概念混淆」「应当完整把握」这类不看知识点也能选对的套话，答案恒为 A —— 于是每道题看起来都一样。重写 `backend/content/expand_quiz_bank.py`：① 干扰项改用**其它知识点的真实定义**（同章 → 同路线 → 全书逐级扩池），`crc32` 种子确定性打乱选项位置（答案字母不再恒为 A）；② 四档按认知层次重排 —— 易 0.30「这条表述说的是哪个概念」/中 0.50「给一段表述认出概念名」/难 0.70「四个定义里有一对概念名标错，找出它」（`error_diagnosis` + `exempt_marked`，含刻意错配故豁免立场守门）/ 拓展 0.70「案例应用题（`application`，走 rubric 三维评分）」+「费曼自述题（`error_diagnosis`+`subjective`，走三维度批改）」；③ `quiz_service` 侧新增 `band_of`/`band_quota`（12 题 → 易 4/中 4/难 2/拓展 2）、`_select_items`（同题干归一化去重 + 档内未做过的优先 + 种子乱序，重考换一批）与 `_order_by_tier`（易→中→难→拓展，档内 `_interleave_items` 按知识点轮转）；拓展档「应用—费曼」交替排位，保证每卷各一题；④ `_recent_item_ids` 让同章重考优先避开最近两次做过的题；⑤ 单机侧 `frontend/lib/offline/local_quiz.dart` 同口径复刻（含 `difficulty_band` 下发、`recentItemIds`/`seedForSection`），`QuizItem.band` 供界面用；⑥ 清掉题库 9 组重复题（同知识点挂两章、模板化题干成对），题库 427 → **524 道**；⑦ 修「应用题怎么写都不及格」—— 概念词典没覆盖的新节点 `concept_use` 恒为 0，改为退回按知识点名/题干引号词计分（前后端同改）。界面：`chapter_test` 每题右上角加 易/中/难/拓展 徽标、卷首加「本套 N 题 · 由易到难」+ 各档题数摘要。新增 `backend/tests/test_d169_quiz_tiers.py`（15 条）+ `frontend/test/d169_quiz_tiers_test.dart`（10 条）；前端 **655** 全绿、`flutter analyze` 零问题、后端 **844 passed + 2 xfailed**） |
 | 30 | 收下勋章后首页红点不消失、点开重复弹获得页面（D170） | ✓（用户实报「已经点击获得勋章了，还是显示数字，点击又弹出获得页面，要 2 到 3 次数字才消失」） | 根因两条叠加：① `ApiClient.post('/api/badges/read')` 的失效前缀清单里**没有 `/api/badges`**，`GET /api/badges/unseen` 的 30s 短缓存照旧命中 —— 收下勋章的 30s 内仍判「未查看」，红点不消、动画再弹一遍，TTL 到期（约 30s，正好点两三次）才突然正常；② 首页勋章入口在**进入**勋章页之前刷红点数量、返回后不刷。修法：`post` 增 `invalidatePrefix('/api/badges')`；`BadgeApi.mine/unseen` 增 `fresh` 参数绕过短缓存，勋章页与首页都用 `fresh: true`；首页 `onTap` 改 `await _push(BadgeScreen()) → await _loadUnseenBadges()`；勋章页把原本并发的 `mine`+`unseen` 改成**先 mine（内部懒评估会落盘新授予）再 unseen**，否则刚达成的勋章要下次进页面才弹。新增 `test/d170_badge_unseen_after_read_test.dart` 7 条（已读后 unseen 立刻归零 / read_flag 落盘且 mine.read=true / 连读三次仍为空 / 再进页面不弹 / 三条源码门禁）；前端 **663** 全绿、`flutter analyze` 零问题） |
+| 31 | 防偏离从「关键词命中」升到「主张归属 + 整体判读」（D171） | ✓（用户实报「不能只靠关键词就拦截了，应该是整体的回答符不符合马列毛思想。要是指出反面例子，不就被拦截了？」） | 体检数据（改前）：涉及批判对象术语的教学式回答 8 条 → **7 条被整段拦掉**；真正的偏离断言 7 条 → **0 条拦得住**；单机版拿输出侧规则审**用户提问** 13 条 → 4 条被拒答；ML 分类器 317 条合成样本置信度 0.53~0.71 ≈ 抛硬币，不能当仲裁。改三层：① **疑点召回**（句子级，`core/guard/orthodoxy.py`）—— 新增 8 条断言级规则（剩余价值不存在 / 资本主义永恒 / 阶级斗争过时 / 技术·文化决定论 / 放弃党的领导 / 解构正统 / 话语建构现实 / 运动就是一切）；② **主张归属** —— 每处命中逐句判 `citation`（引号内 / 有引述框架「有人说、所谓、在他看来」/ 同句有转折纠偏「是错误的、应当批判」/ 输入侧用户在提问）/ `neutral`（批判对象术语的定义·比较·教学式使用）/ `deviation`（作者自己下结论），只对 `deviation` 拦；`critical_object_unwrapped` 从拦截项降级为**标注**（一个术语不再能整段 block，这是「过严」的主因）；③ **整体精判** —— 新建 `core/guard/judge.py`（`StanceJudge`：结构化 JSON、先分 assertion/quotation/rebuttal/example 只判 assertion、256 条缓存、连败 3 次熔断 300s、`STANCE_JUDGE=0` 可关、**任何失败一律 `unavailable` → 标注不拦**），只在规则层有 `annotations` 时调用，正常回答不付成本。动作由二值改四值：`pass` / `annotate`（照常展示 + 标黄）/ `strip`（未实现）/ `block`；④ 单机侧 `local_guard.dart` 同口径复刻（`contextMode: input\|output`、`_assessOccurrence`、`GuardResult.notes`），`local_dialogue` 修掉「拿输出侧规则审用户提问」（P0-1 根因），`stance_notes` 透到界面新增 `StanceNoteChip`（默认一行「立场待核 N 处」，点开看理由，**不拦正文**）；⑤ 补题/评分侧踏坑：出题种子 `hash()` 在 Python 里对 str 是**进程级随机化**的，同一章每次启动选出不同题集 → 掌握度在 0.8 阈值上下抖、测试偶发红，改 `crc32`（`_seed_for_section`）后稳定。新增 `backend/tests/test_d171_holistic_stance.py`（81 条：30+ 正例必放行 / 30 条负例 ≥90% 拦、单条 100% / 11 条用户提问必放行 / judge 5 条）+ `frontend/test/d171_holistic_stance_test.dart`（9 条）；后端 **925 passed + 2 xfailed**、前端 **671** 全绿、`flutter analyze lib` 零问题） |
 
 ### 构建信息（v2 重打，合规加固后）
 
@@ -68,7 +69,7 @@
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
 - 体积 74.4 MB（v1.4.28）。增量仍在 `assets/flutter_assets`（离线数据约 23.4 MB）与通用 ABI 的多架构原生库。
 
-- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **663** 项全绿、`flutter analyze` 零问题；后端 **829 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **671** 项全绿、`flutter analyze` 零问题；后端 **925 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。
@@ -238,10 +239,10 @@ docker compose up --build
 让 `npm` 系工具（含 claude-scene 的 loop / review 门禁）有统一入口：
 
 ```bash
-npm test              # = cd frontend && flutter test        （当前 341 passed）
+npm test              # = cd frontend && flutter test        （当前 671 passed）
 npm run lint          # = scripts/lint_shim.js → flutter analyze lib/ test/（当前 No issues）
 npm run analyze       # 同上，直连 flutter analyze
-npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 735 passed + 2 xfailed）
+npm run test:backend  # = cd backend && python -m pytest tests/ -q（当前 925 passed + 2 xfailed）
 ```
 
 后端测试：
@@ -252,7 +253,7 @@ pip install -r requirements-dev.txt   # 含 pytest / scikit-learn / joblib / ope
 python -m pytest tests/ -q
 ```
 
-Phase 6 核心套件（含在整个 735 passed 里）：
+Phase 6 核心套件（含在整个 925 passed 里）：
 
 | 测试文件 | 验证 |
 |----------|------|

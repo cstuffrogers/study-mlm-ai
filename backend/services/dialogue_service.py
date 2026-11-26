@@ -27,6 +27,7 @@ from core.prompt.renderer import (  # noqa: E402
 )
 from core.llm.router import LLMRouter  # noqa: E402
 from core.verify.triple_check import TripleCheck  # noqa: E402
+from core.guard.judge import StanceJudge  # noqa: E402
 from core.rag.retriever import HybridRetriever  # noqa: E402
 
 from websocket.protocol import UserMessageIn, ActionIn
@@ -242,6 +243,8 @@ class DialogueService:
         self.renderer = PromptRenderer()
         self.llm_router = LLMRouter()
         self.triple_check = TripleCheck(guard=self.guard, stance_classifier=_load_stance_classifier())
+        # D171：规则只负责召回疑点，整体立场交给判定器（不可用时降为「标注不拦」）
+        self.stance_judge = StanceJudge()
         # RAG 混合召回（Phase 6 集成）：默认 in-memory store
         # Docker 起来后注入 PgvectorStore + Neo4jGraphStore；
         # 未显式传入时复用进程内共享实例，避免每条 WebSocket 连接重建全库索引。
@@ -318,6 +321,33 @@ class DialogueService:
                 }
             }
 
+        # === D171：规则没下定论的疑点 → 整体语义判定（失败只标注，不拦）===
+        stance_notes = tc["stance"].get("annotations") or []
+        judge_result: dict[str, Any] = {}
+        if stance_notes:
+            judge_result = await self.stance_judge.judge(
+                generated, stance_notes, mode=u.mode
+            )
+            if judge_result.get("verdict") == "deviation":
+                bad = [c for c in judge_result.get("claims", [])
+                       if c.get("role") == "assertion"]
+                logger.warning("语义判定拦下: %s", (judge_result.get("reason") or "")[:60])
+                return {
+                    "blocked": {
+                        "reason": (judge_result.get("reason") or "整体立场与马列基本原理相抵")[:80],
+                        "layer": "stance_holistic",
+                        "fallback": (
+                            "这段回答整体上与马列毛基本原理相抵，已拦截未展示。"
+                            "若你要的正是「批判性地看某个错误说法」，请把该说法放进引号或说明"
+                            "「有人说……」，系统会按引述处理。"
+                        ),
+                        "allow_critical_reading": True,
+                        "not_a_normal_error": True,
+                        "treat_as": "critique_target",
+                        "claims": bad[:3],
+                    }
+                }
+
         # === 通过 → 剥离内部编码，转结构化相关原文 ===
         # `[CH-...]` / `[GUIDE-...]` 只服务上面的事实一致性校验；从这里开始
         # 会话历史、即时小结、WS 输出、对话落库一律用清洗后的正文。
@@ -353,7 +383,19 @@ class DialogueService:
                 "exempt": tc["stance"].get("exempt", False),
                 "fact_flag": tc["fact_consistency"]["status"],
                 "terminology_flag": tc["terminology"]["status"],
+                # D171：pass / annotate（有疑点但未判偏离，标黄展示）
+                "stance_judge": judge_result.get("verdict", "skipped"),
             },
+            # 标注式提醒：不阻住回答，只在 UI 上把这些句子标为「立场待核」
+            "stance_notes": [
+                {
+                    "term": n.get("term") or n.get("rule") or "",
+                    "school": n.get("school", ""),
+                    "reason": n.get("reason", ""),
+                    "judge": judge_result.get("verdict", ""),
+                }
+                for n in stance_notes
+            ],
             "provenance": provenance,
             "source_chunks": source_chunks,
             "llm_source": resp.source,

@@ -134,6 +134,63 @@ STANCE_PATTERNS: dict[str, dict] = {
         "label": "deviation",
         "reason": "独立自主、自力更生是立场红线；照搬外来模式的教训本身即毛泽东所批评",
     },
+    # ---- D171：漏拦断言补登记 ----------------------------------------------
+    # 背景（真实体检）：旧规则靠关键词，下面这些**真正的偏离断言**一条都没命中——
+    #   「文化决定社会发展方向」「技术决定社会形态的更替」
+    #   「地理环境决定社会制度的性质」「剩余价值并不存在」
+    #   「阶级斗争只是话术」「资本主义是历史的终点」
+    # 反过来，一条正常教学回答里提了「物化」就被整段拦。这里补的是**断言级**
+    # （主语+谓语+宾语），不是单个关键词。
+    "deny_surplus_value": {
+        "pattern": r"剩余价值(?:理论)?(?:是|并|根本|完全)?不(?:存在|成立)(?!于)"
+                   r"|不存在(?:什么)?剩余价值"
+                   r"|利润(?:完全)?来自(?:企业家|资本家)(?:的)?(?:才能|贡献|冒险)",
+        "label": "deviation",
+        "reason": "剩余价值理论是马克思政治经济学基石，否认它即否认剥削",
+    },
+    "capitalism_eternal": {
+        "pattern": r"资本主义(?:是|才是)(?:历史|人类)的?(?:终点|终结|最终形态|最后阶段)"
+                   r"|资本主义(?:将|会)?永(?:恒|远|世)(?:存在|延续|长存)",
+        "label": "deviation",
+        "reason": "资本主义不是历史的终点；两个必然（灭亡与胜利）是历史唯物主义结论",
+    },
+    "class_struggle_dismissed": {
+        "pattern": r"阶级斗争(?:只|仅|不过)?(?:是|不过是)(?:话术|口号|修辞|虚构|想象)"
+                   r"|现实(?:中)?(?:早已|已经)?(?:没有|不存在)阶级(?:斗争|矛盾)",
+        "label": "deviation",
+        "reason": "阶级斗争是历史唯物主义灵魂，不能降为话术或宣布已消失",
+    },
+    "culture_techno_determinism": {
+        "pattern": r"(?:文化|技术|地理环境|地理|人口)\s*(?:决定|最终决定)\s*"
+                   r"(?:社会|历史|制度|形态|发展)",
+        # 反驳句式（「不是文化决定社会」）不能当偏离
+        "exempt": r"(不是|并非|反对|批判|驳斥|否认|错)(?:这种|所谓|上述)?.{0,6}"
+                  r"(文化|技术|地理|人口)",
+        "label": "deviation",
+        "reason": "文化/技术/地理决定论与唯物史观的「经济基础决定上层建筑」相对立",
+    },
+    "deny_party_leadership": {
+        "pattern": r"(?:不需要|不必要|反对|否定|取消)(?:共产党|中国共产党|党的)(?:领导)"
+                   r"|(?:多党制|多党轮替|轮流执政)(?:才是|才能|更)",
+        "label": "deviation",
+        "reason": "党的领导是社会主义事业的核心，否定党的领导属立场红线",
+    },
+    "deconstruct_orthodox_core": {
+        "pattern": r"(?:解构|拆解|祛魅)(?:了)?(?:唯物辩证法|马克思主义|历史唯物主义|阶级斗争|无产阶级专政)",
+        "label": "deviation",
+        "reason": "解构主义把马克思主义当作待拆的文本，与唯物辩证法相对立",
+    },
+    "discourse_constructs_reality": {
+        "pattern": r"话语.{0,4}(?:建构|塑造|决定)(?:了)?(?:社会现实|现实|社会存在)",
+        "label": "deviation",
+        "reason": "社会存在决定意识；把现实当成话语建构属后马克思主义立场",
+    },
+    "movement_is_everything": {
+        "pattern": r"运动就是一切"
+                   r"|最终目的(?:是)?(?:微不足道|算不了什么|无关紧要)",
+        "label": "deviation",
+        "reason": "伯恩斯坦「运动就是一切，最终目的是微不足道的」是修正主义名言",
+    },
 }
 
 # ============================================================
@@ -150,6 +207,105 @@ _CRITICAL_RE = re.compile(re.escape(CRITICAL_MARKER_OPEN) + r".*?" + re.escape(C
 
 # 批判语境词——出现这些词说明批判对象术语是被批判性引用（P0-2 修复依据）
 _CRITICAL_CONTEXT_WORDS = ("批判", "错误", "反对", "歪曲", "否定", "揭露", "驳斥", "谬误", "攻击", "背离", "修正主义")
+
+# ------------------------------------------------------------------
+# 4. 主张归属层（D171）——从「字串命中」升级到「这句话到底是谁在主张」
+# ------------------------------------------------------------------
+# 为什么要有这一层：旧实现「命中即拦」，只要回答里出现批判对象术语
+# （物化/总体性/历史决定论…）或偏离句式，就整段 block。可「指出反面例子」
+# 和「自己主张反面观点」在字面上完全一样 ——
+#   用户提问「『阶级斗争已经过时』这种说法错在哪？」→ 被判宣扬，直接拒答
+#   回答「卢卡奇的物化错在把异化泛化」→ 缺一个「错误」就被整段拦截
+# 唯一的出路是让模型自己写机器标记 `【批判对象·非借鉴】`，正常回答不会这么写。
+# 现在按**句子**判断归属：引号内、带引述框架、带转折/纠偏词、或用户在提问
+# （仅输入侧）→ 判为「引述」，不算作者主张；批判对象术语只在**宣扬谓语**下
+# 才判偏离，其余（定义/比较/中性使用）一律降为标注，不拦整段。
+
+# 提问标记：用户在自己提问里引述一种错误说法 ≠ 用户自己主张它（只对输入侧生效）
+_QUESTION_MARKERS = ("？", "?", "为什么", "为何", "怎么理解", "如何理解", "如何看待",
+                     "是否", "对不对", "错在哪", "错在哪里", "这种说法", "这一说法",
+                     "这个观点", "这句话", "什么是", "何谓", "凭什么", "何以")
+
+# 引述框架：出现这些词说明该句是在复述别人的观点，而不是作者自己的结论
+# 注意：**不能**把「主张 / 声称 / 称为」这类词当引述框架 ——
+# 「伯恩斯坦主张和平长入社会主义是合理的」里「主张」是作者的推介，不是引述，
+# 收了它就等于给宣扬句式开后门（SC-003 实测漏拦）。
+_QUOTE_FRAME_WORDS = ("有人说", "有人认为", "有观点", "有人主张", "有人问", "错误观点",
+                      "所谓", "据说", "据称", "被说成", "被描述为", "归结为", "贴上")
+
+# 转折/纠偏词：同句内出现即视为「引述 + 反驳」，不算宣扬
+# 注意：**不得**加入「唯物」（常见于西马自我标榜：「解构唯物辩证法」），
+# 也不得加入「但」这类纯连接词（会把跨句串味的裸断言一并放过）。
+_REBUTTAL_WORDS = ("错", "谬", "荒谬", "唯心", "不是一回事", "不能混", "区别于",
+                   "不同", "相对立", "非正统", "误区", "曲解", "庸俗", "恰恰相反",
+                   "问题在于", "这说明", "应当指出", "不属于", "不是马克思主义",
+                   "无法", "不能", "并非")
+
+# 成对引号（含书名号）：引号内的字是「被引用的说法」，不是作者表态
+_QUOTE_PAIRS = (("「", "」"), ("『", "』"), ("“", "”"), ("‘", "’"), ('"', '"'), ("《", "》"))
+
+# 「宣扬」谓语：批判对象术语被当成**有效理论**推介时才判偏离。
+# 这是 D171 的关键收窄：术语本身（物化/总体性/生活世界…）是教材词汇，
+# 出现不等于偏离；只有「丰富了马克思主义」「揭示了…本质」「超越…局限」这种
+# 抬高/采纳句式才算宣扬（SC-004 的 deviation 样本正是这一类）。
+_ENDORSE_RE = re.compile(
+    r"(丰富|超越|发展|补充|完善|提供|奠定|揭示|证明|印证|深化|拓展).{0,10}"
+    r"(马克思主义|唯物史观|历史唯物主义|辩证唯物主义|正统|真谛|本质|新境界|新基础|新视野)"
+    r"|(解释|说明|表明|标志着|揭示)(了)?.{0,16}(起源|根源|秘密|本质|规律|根本对立|两个马克思)"
+    r"|(是|乃|堪称|属于).{0,8}(合理|科学|正确|真理|根本方法|核心|精髓)"
+    r"|(超越|摆脱|替代|取代).{0,8}(局限|束缚|无产阶级专政|暴力革命|阶级斗争|剩余价值)"
+    r"|(已经|正在)(终结|解体|失效|破产)"
+    r"|(只是|不过是|仅是).{0,8}(一种|之一)"
+    r"|比.{0,10}(更重要|更根本|更为根本)"
+    r"|(根本方法|核心病症|唯一出路|真正出路)"
+)
+
+
+def _in_quotes(text: str, start: int, end: int) -> bool:
+    """命中是否落在成对引号内（引述材料，不是作者表态）。"""
+    for lq, rq in _QUOTE_PAIRS:
+        lo = text.rfind(lq, 0, start)
+        if lo == -1:
+            continue
+        # 该开引号还没被闭合，且命中后能找到闭合符 → 命中在引号内
+        if text.find(rq, lo + len(lq), start) == -1 and text.find(rq, end) != -1:
+            return True
+    return False
+
+
+def _is_question(clause: str) -> bool:
+    return any(t in clause for t in _QUESTION_MARKERS)
+
+
+def _assess_occurrence(text: str, start: int, end: int, *, kind: str,
+                       context: str = "output") -> str:
+    """判定单处命中属于哪种主张类型。
+
+    返回：
+      "citation"  —— 引述/复述/被批判/用户在提问，不算作者主张
+      "deviation" —— 作者自己主张（唯一会触发拦截的一类）
+      "neutral"   —— 中性使用（仅 critical 术语有此类：定义、比较、教学口径）
+    """
+    if _in_quotes(text, start, end):
+        return "citation"
+    masked = _mask_markers(text)
+    l, r = _clause_bounds(masked, start, end)
+    clause = masked[l:r]
+    if any(w in clause for w in _CRITICAL_CONTEXT_WORDS):
+        return "citation"
+    if any(w in clause for w in _REBUTTAL_WORDS):
+        return "citation"
+    if any(w in clause for w in _QUOTE_FRAME_WORDS):
+        return "citation"
+    if context == "input" and _is_question(clause):
+        # 输入侧：用户提问/追问里引用错误说法，不等于用户自己主张它
+        return "citation"
+    if kind == "critical":
+        if _ENDORSE_RE.search(clause):
+            return "deviation"
+        return "neutral"
+    return "deviation"
+
 
 # 句读边界：自指批判语境判定只在**同一句内**做，不跨句串味
 _CLAUSE_TERMINATORS = "。！？；!?;\n"
@@ -291,14 +447,17 @@ class OrthodoxyGuard:
         if result["action"] == "block": → 走 fallback
     """
 
-    def check(self, text: str, mode: str = "explain", allow_critical: bool = False) -> dict[str, Any]:
+    def check(self, text: str, mode: str = "explain", allow_critical: bool = False,
+              context: str = "output") -> dict[str, Any]:
         """
         校验生成文本的立场
 
         Args:
-            text: AI 生成的回答
+            text: 待校验文本（AI 回答，或 context="input" 时的用户提问）
             mode: 会话模式（debate 模式触发豁免逻辑）
             allow_critical: 是否允许批判对象模式展示（FR-007，研究路径/批判性阅读开启）
+            context: "output"（AI 回答）|"input"（用户提问）——输入侧额外把提问语气
+                视为引述：用户在问「这种说法错在哪」，不是自己在主张它。
 
         Returns:
             {is_orthodox, action, flags, exempt, critical_objects_used}
@@ -321,45 +480,55 @@ class OrthodoxyGuard:
 
         flags = []
 
-        # (a) 批判对象术语检测
+        # (a) 批判对象术语检测——D171：术语本身不再判偏离，只有「宣扬谓语」才判
         critical_used = []
         for term, info in CRITICAL_OBJECTS.items():
-            if term in check_text:
-                # FR-007 收紧：批判对象必须包裹 CRITICAL_MARKER，否则视为"中立引用"→ 偏离
-                wrapped = (CRITICAL_MARKER_OPEN in text and
-                           text.find(CRITICAL_MARKER_OPEN) < text.find(term) < text.find(CRITICAL_MARKER_CLOSE, text.find(term)))
-                if not wrapped and not allow_critical:
-                    # P0-2 修复：检查批判语境——批判性引用（"XXX 是错误的/谬误/歪曲"）
-                    # 不算偏离，降级为记录；无批判语境的宣扬/中立引用才 block
-                    if _has_critical_context(check_text, term):
-                        flags.append({
-                            "type": "critical_citation",
-                            "term": term,
-                            "school": info["school"],
-                            "reason": f"批判性引用批判对象'{term}'（语境含批判词），保留",
-                        })
-                    else:
-                        flags.append({
-                            "type": "critical_object_unwrapped",
-                            "term": term,
-                            "school": info["school"],
-                            "reason": f"批判对象'{term}'未以批判姿态呈现（缺{CRITICAL_MARKER_OPEN}标记或批判语境），属中立引用，偏离原教旨",
-                        })
-                critical_used.append(term)
+            if term not in check_text:
+                continue
+            critical_used.append(term)
+            # FR-007 收紧：批判对象包裹了 CRITICAL_MARKER（或显式开了批判性阅读）→ 通过
+            wrapped = (CRITICAL_MARKER_OPEN in text and
+                       text.find(CRITICAL_MARKER_OPEN) < text.find(term) < text.find(CRITICAL_MARKER_CLOSE, text.find(term)))
+            if wrapped or allow_critical:
+                continue
+            verdicts = [
+                _assess_occurrence(check_text, m.start(), m.end(), kind="critical", context=context)
+                for m in re.finditer(re.escape(term), check_text)
+            ]
+            if "deviation" in verdicts:
+                flags.append({
+                    "type": "critical_object_endorsed",
+                    "term": term,
+                    "school": info["school"],
+                    "label": "deviation",
+                    "reason": (f"把批判对象'{term}'当有效理论推介（{info['error']}），"
+                               f"属偏离原教旨"),
+                })
+            elif verdicts and all(v == "citation" for v in verdicts):
+                flags.append({
+                    "type": "critical_citation",
+                    "term": term,
+                    "school": info["school"],
+                    "reason": f"批判性引用批判对象'{term}'（语境含批判词/引述框架），保留",
+                })
+            else:
+                # D171：教学口径的中性使用（定义、比较、举例）→ 只标注，不拦整段。
+                # 拦截留给定罪更明确的情形（宣扬谓语、裸偏离断言）或语义判定器。
+                flags.append({
+                    "type": "critical_object_unwrapped",
+                    "term": term,
+                    "school": info["school"],
+                    "label": "annotate",
+                    "reason": (f"涉及批判对象'{term}'（{info['school']}），未见明确批判姿态；"
+                               f"按标注处理，不拦截"),
+                })
 
         # (b) 立场模式检测
         for rule_name, rule in STANCE_PATTERNS.items():
-            if not re.search(rule["pattern"], check_text):
+            hits = list(re.finditer(rule["pattern"], check_text))
+            if not hits:
                 continue
-            if _all_matches_critical(check_text, rule["pattern"]):
-                # 自指批判语境：用户在批判这个错误论调本身，不是宣扬它 → 只记录
-                flags.append({
-                    "type": "stance_pattern_critical_citation",
-                    "rule": rule_name,
-                    "label": "citation",
-                    "reason": f"批判性引用偏离表述（语境含批判词），保留：{rule['reason']}",
-                })
-            elif rule.get("exempt") and _all_matches_exempt(
+            if rule.get("exempt") and _all_matches_exempt(
                     check_text, rule["pattern"], rule["exempt"]):
                 # 正统原话（恩格斯「归根到底」、毛「能动的革命的反映论」）→ 不判偏离
                 flags.append({
@@ -367,6 +536,19 @@ class OrthodoxyGuard:
                     "rule": rule_name,
                     "label": "citation",
                     "reason": f"正统限定语豁免（同句含正统表述），保留：{rule['reason']}",
+                })
+                continue
+            verdicts = [
+                _assess_occurrence(check_text, m.start(), m.end(), kind="stance", context=context)
+                for m in hits
+            ]
+            if all(v == "citation" for v in verdicts):
+                # 自指批判语境/引述框架：在批判或复述这个错误论调，不是宣扬 → 只记录
+                flags.append({
+                    "type": "stance_pattern_critical_citation",
+                    "rule": rule_name,
+                    "label": "citation",
+                    "reason": f"批判性引用偏离表述（语境含批判词/引述框架），保留：{rule['reason']}",
                 })
             else:
                 flags.append({
@@ -376,17 +558,16 @@ class OrthodoxyGuard:
                     "reason": rule["reason"],
                 })
 
-        # 判定动作
-        deviation_flags = [f for f in flags if f.get("label") == "deviation" or f.get("type") == "critical_object_unwrapped"]
-        if deviation_flags:
-            action = "block"
-        else:
-            action = "pass"
+        # 判定动作：只有**作者自己主张**的偏离才拦（D171 之前 critical_object_unwrapped
+        # 也算偏离，一个术语就能整段 block，是「过严」的主要来源）
+        deviation_flags = [f for f in flags if f.get("label") == "deviation"]
+        action = "block" if deviation_flags else "pass"
 
         return {
             "is_orthodox": action == "pass",
             "action": action,
             "flags": flags,
+            "annotations": [f for f in flags if f.get("label") == "annotate"],
             "exempt": exempt_active,
             "critical_objects_used": critical_used,
         }

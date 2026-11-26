@@ -22,6 +22,9 @@ class ChatTurn {
   // 立场层拦截时置 true：提示用户可切「批判性阅读」后重试
   final bool allowCriticalReading;
   final Map<String, dynamic>? instantSummary;
+  /// D171：立场待核标注（可疑但不构成自述偏离，如中性使用「物化」）。
+  /// 每条：{term, school, reason}。有值时 UI 只提示，不阻住回答。
+  final List<Map<String, String>> stanceNotes;
   /// 作答引擎：local / cloud:模型名 / local:guard-fallback（空=历史旧记录）
   final String engine;
 
@@ -40,6 +43,7 @@ class ChatTurn {
     this.blockedReason,
     this.allowCriticalReading = false,
     this.instantSummary,
+    this.stanceNotes = const [],
     this.engine = '',
     this.engineNote = '',
   });
@@ -161,6 +165,15 @@ class ChatService extends ChangeNotifier {
           provenance: provenance,
           sourceChunks: sourceIds,
           exempt: (j['guard'] as Map?)?['exempt'] == true,
+          stanceNotes: (((j['stance_notes'] as List?) ?? const [])
+                  .whereType<Map>())
+              .map((e) => {
+                    'term': '${e['term'] ?? e['rule'] ?? ''}',
+                    'school': '${e['school'] ?? ''}',
+                    'reason': '${e['reason'] ?? ''}',
+                  })
+              .where((e) => (e['term'] ?? '').isNotEmpty)
+              .toList(),
           engine: '${j['engine'] ?? ''}',
           engineNote: '${j['engine_note'] ?? ''}',
         ));

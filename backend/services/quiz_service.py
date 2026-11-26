@@ -280,8 +280,12 @@ async def start_section_test(user_id: str, section_id: str, route_id: str) -> di
     #  2) 优先保障每个知识点至少 1 道（先修覆盖完整）；
     #  3) 余量按题库顺序补齐；最后交错排序（P2-⑤ 降低块状）。
     excluded = await _recent_item_ids(user_id, section_id)
+    # 种子必须**跨进程稳定**：早先用内置 hash()，而 str 的 hash 每个进程随机化，
+    # 于是同一章节每次启动选出的题不一样 —— 掌握度在 0.8 阈值上下漂移，
+    # 测试偶发红/偶发绿，用户也会觉得「同一章两次考的题差太多」。
+    # crc32 与前端 `seedForSection` 一样是内容确定的。
     chosen = _select_items(items, exclude_ids=excluded,
-                           seed=abs(hash((section_id, len(excluded)))) % (2 ** 31))
+                           seed=_seed_for_section(section_id, len(excluded)))
     chosen = _order_by_tier(chosen)
     public = [_public_item(it) for it in chosen]
     async with session_scope() as s:
@@ -488,6 +492,18 @@ def _apply_stance_correction(quiz: QuizItem, answer: str, llm_data: dict) -> dic
         "confidence": round(confidence, 4),
         "grading_source": grading_source,
     }
+
+
+def _seed_for_section(section_id: str, excluded_count: int) -> int:
+    """章节内乱序种子（与前端 local_quiz.seedForSection 同口径：内容确定）。
+
+    `hash()` 在 Python 里对 str 是**进程级随机化**的（PYTHONHASHSEED），
+    拿它当种子会让同一章节每次启动选出不同题集：掌握度在阈值附近抖动、
+    测试偶发失败、用户「重考」也拿不到稳定对照。crc32 只依赖内容。
+    """
+    import zlib
+
+    return zlib.crc32(f"{section_id}:{excluded_count}".encode("utf-8")) % (2 ** 31)
 
 
 def _grade_subjective(quiz: QuizItem, answer: str) -> dict:

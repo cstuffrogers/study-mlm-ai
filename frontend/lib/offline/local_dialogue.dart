@@ -1971,15 +1971,20 @@ class LocalDialogue {
     // 修复前把「提问 + 选区」一起送进立场校验，用户一选中恩格斯「并非只有经济状况
     // 才是唯一决定性的因素」这类原话，整条对话就被判偏离、直接拒答——这是 APP 端
     // 「老是被拦截」的主要来源。
-    final guard = OfflineGuard.check(content, allowCritical: criticalReading);
+    // D171：输入侧只审「用户自己写的、且是直陈表态」的那部分。
+    // 用户在提问里引述一种错误说法（「『阶级斗争已经过时』错在哪？」）不是宣扬，
+    // 按 contextMode: 'input' 判 → 提问/引述/引号内一律按引述处理、不拒答。
+    final guard = OfflineGuard.check(content,
+        allowCritical: criticalReading, contextMode: 'input');
     if (guard.blocked && !criticalReading) {
       _persist(dialogueId, content, mode, blocked: true, paragraphId: paragraphId);
       return {
         'type': 'blocked',
         'reason': guard.reason,
-        'fallback': '这段表述涉及与本课程立场不一致的框架（${guard.hits.join('、')}），'
-            '已按防偏离规则拦截。若要了解它错在哪里，可开启「批判性阅读」，'
-            '把对方观点作为被批判对象来讨论。',
+        'fallback': '这段表述是直陈式地背离了本课程的立场（${guard.hits.join('、')}）。'
+            '如果你本意是问「这个说法错在哪」，把它放进引号里，或者写成'
+            '「有人说……」，系统就会按引述/批判处理，不会拦。'
+            '也可开启「批判性阅读」，把对方观点作为被批判对象来讨论。',
         'allow_critical_reading': true,
         'mode': mode,
       };
@@ -2060,6 +2065,7 @@ class LocalDialogue {
             'is_safe': true,
             'engine': 'local:guard-fallback',
             'guard': {'exempt': exempt, 'output_blocked': verdict.hits},
+            'stance_notes': verdict.notes,
             ..._provenanceOf(chunks),
           };
         }
@@ -2081,6 +2087,7 @@ class LocalDialogue {
             'debate_marked': mode == 'debate',
             if (markerRepaired != null) 'marker_stripped': true,
           },
+          'stance_notes': verdict.notes,
           ..._provenanceOf(chunks),
         };
       }
@@ -2105,6 +2112,8 @@ class LocalDialogue {
       'engine': 'local',
       'engine_note': ?engineNote,
       'guard': {'exempt': exempt, 'debate_marked': mode == 'debate'},
+      // 本机回答没走模型，但仍可能提到批判对象术语（中性使用）→ 只标注
+      'stance_notes': guard.notes,
       ..._provenanceOf(chunks),
     };
   }
