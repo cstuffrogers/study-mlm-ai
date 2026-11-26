@@ -220,10 +220,21 @@ def prune_web_build():
     log(f"      已裁剪未使用的前端渲染变体/符号表（约 {removed} 项），首屏载荷不变")
 
 
-def build_frontend():
-    log("[4/4] 检查 Flutter 并构建前端（可选）...")
-    if os.path.exists(os.path.join(FRONTEND, "build", "web", "index.html")):
-        log("      前端已构建，跳过（如需重建请删除 frontend/build/web 后重跑）")
+def build_frontend(force: bool = False, quiet: bool = False):
+    """确保 `frontend/build/web` 存在（缺了就构建）。
+
+    以前「一键启动」不调这个函数、只检查 index.html 在不在，在不在就静默跳过 ——
+    于是构建产物一旦被外部删掉，启动时就没人重建它，表现为「前端打不开且没报错」。
+    现在启动流程会先走这里，缺了自动补上。
+
+    force=True 时即使产物已存在也强制重建（给 `--rebuild` 用）。
+    注意：**不要**靠「删掉 frontend/build/web 再重跑」来触发重建，
+    那种做法把可重建的构建产物和源码混为一谈，容易被误当成「删掉也没事」。
+    """
+    if not quiet:
+        log("[4/4] 检查 Flutter 并构建前端（可选）...")
+    if os.path.exists(os.path.join(FRONTEND, "build", "web", "index.html")) and not force:
+        log("      前端构建产物已存在，直接启动（要强制重建请加 --rebuild）")
         return
     if not shutil.which("flutter"):
         log("      未检测到 Flutter，跳过前端构建。仅后端 API 可用（http://localhost:8190/docs）")
@@ -268,11 +279,20 @@ def do_install():
 
 # ------------------------------------------------------------------ 启动
 
+_FORCE_REBUILD = False
+
+
 def do_start():
     banner("正统马哲深度学习系统 — 一键启动")
     if not os.path.exists(VENV_PY):
         log("[错误] 尚未安装，请先运行「一键安装」（或 ./一键安装启动.sh install）。")
         raise SystemExit(1)
+
+    # 先保证前端构建产物在：这一步与后端端口无关，缺了就补，
+    # 避免「后端已在跑 → 脚本直接报错退出 → 前端产物永远补不上」。
+    log("[1/3] 校验前端构建产物 ...")
+    build_frontend(force=_FORCE_REBUILD, quiet=True)
+
     if port_busy(BACK_PORT):
         log(f"[错误] 端口 {BACK_PORT} 已被占用，后端可能已在运行。先「停止」再试。")
         raise SystemExit(1)
@@ -281,7 +301,7 @@ def do_start():
     env["LEARNING_DB_MODE"] = "memory"
     env["AUTO_CREATE_TABLES"] = "0"
 
-    log(f"[1/2] 启动后端 API（轻量模式，无需 Docker/PG）: :{BACK_PORT}")
+    log(f"[2/3] 启动后端 API（轻量模式，无需 Docker/PG）: :{BACK_PORT}")
     _spawn_detached([VENV_PY, "-m", "uvicorn", "app:app",
                      "--host", "0.0.0.0", "--port", str(BACK_PORT)],
                     cwd=BACKEND, env=env, log_path=BACKEND_LOG)
@@ -300,7 +320,7 @@ def do_start():
 
     web = None
     if os.path.exists(os.path.join(FRONTEND, "build", "web", "index.html")) and not port_busy(FRONT_PORT):
-        log(f"[2/2] 启动前端静态服务（无缓存）: :{FRONT_PORT}")
+        log(f"[3/3] 启动前端静态服务（无缓存）: :{FRONT_PORT}")
         # 用自带的无缓存静态服务器，确保浏览器每次都拿到最新构建，
         # 避免旧 main.dart.js / 字体被启发式缓存导致“改好了仍显示旧bug”。
         _spawn_detached([VENV_PY, os.path.join(ROOT, "scripts", "serve_frontend.py"), str(FRONT_PORT)],
@@ -311,8 +331,13 @@ def do_start():
             time.sleep(0.5)
         web = f"http://localhost:{FRONT_PORT}"
     else:
-        log("[2/2] 跳过前端静态服务（未构建或端口占用）")
-        log("      前端可用: cd frontend && flutter run -d chrome")
+        if port_busy(FRONT_PORT):
+            log("[3/3] 跳过前端静态服务：端口 8080 已被占用（先「停止」再试）")
+        else:
+            log("[3/3] 前端构建未成功，跳过静态服务")
+        log("      排查：cd frontend && flutter build web --pwa-strategy=none"
+            " --no-web-resources-cdn --no-tree-shake-icons")
+        log("      后端不受影响，接口文档: http://localhost:8190/docs")
 
     log("")
     log("=" * 52)
@@ -353,7 +378,13 @@ def do_stop():
 
 
 def main(argv):
-    action = argv[1] if len(argv) > 1 else "all"
+    global _FORCE_REBUILD
+    # --rebuild：即使 build/web 已存在也强制重建一次（不再需要靠「删掉产物」来触发）
+    args = [a for a in argv[1:] if not a.startswith("-")]
+    flags = [a for a in argv[1:] if a.startswith("-")]
+    if "--rebuild" in flags:
+        _FORCE_REBUILD = True
+    action = args[0] if args else "all"
     if action == "install":
         do_install()
     elif action == "start":

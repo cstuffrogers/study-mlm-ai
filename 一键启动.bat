@@ -8,7 +8,8 @@ cd /d "%~dp0"
 where python >nul 2>nul
 if errorlevel 1 goto nopython
 
-python "%~dp0scripts\oneclick.py" start
+REM  可选：一键启动.bat --rebuild   即使 build/web 已存在也强制重建一次
+python "%~dp0scripts\oneclick.py" start %*
 echo.
 pause
 exit /b 0
