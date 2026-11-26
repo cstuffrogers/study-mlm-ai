@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/study-mlm-ai/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="唯物 · 马哲精读 —— 正统马哲深度学习系统">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="唯物 · 马哲精读">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <!-- Favicon（革命红金主题）。主图标用内联 SVG data-URI：零网络请求，
+       即使服务器未就绪/被并发阻塞也绝不会显示“裂图/带框 X”；PNG/ICO 作降级。 -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxMyIgcnk9IjEzIiBmaWxsPSIjQzgxNjFEIi8+CiAgPHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiByeD0iMTEiIHJ5PSIxMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRDRBMDE3IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuODUiLz4KICA8cG9seWdvbiBwb2ludHM9IjMyLjAwLDkuMDAgMjYuNDIsMjQuMzEgMTAuMTMsMjQuODkgMjIuOTYsMzQuOTQgMTguNDgsNTAuNjEgMzIuMDAsNDEuNTAgNDUuNTIsNTAuNjEgNDEuMDQsMzQuOTQgNTMuODcsMjQuODkgMzcuNTgsMjQuMzEiIGZpbGw9IiNENEEwMTciLz4KPC9zdmc+">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=3">
+  <link rel="icon" href="favicon.ico?v=3" sizes="any">
+
+  <title>唯物 · 马哲精读</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- 破除历史遗留的 Service Worker / 缓存：
+       早期构建曾用 PWA，旧 Service Worker 会一直从缓存提供旧的 main.dart.js 与
+       旧字体文件，导致“明明修好了仍然显示豆腐块 / 旧界面”。此处主动注销所有
+       Service Worker 并清空 CacheStorage，确保加载并运行最新构建。 -->
+  <script>
+    (function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (rs) {
+            rs.forEach(function (r) { r.unregister(); });
+          }).catch(function () {});
+        }
+        if (window.caches && caches.keys) {
+          caches.keys().then(function (ks) {
+            ks.forEach(function (k) { caches.delete(k); });
+          }).catch(function () {});
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
