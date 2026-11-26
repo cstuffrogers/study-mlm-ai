@@ -38,10 +38,11 @@ class _BadgeScreenState extends State<BadgeScreen> {
 
   Future<void> _load() async {
     try {
-      final [mine, unseen] = await Future.wait([
-        BadgeApi.mine(routeId: widget.routeId),
-        BadgeApi.unseen(routeId: widget.routeId),
-      ]);
+      // 顺序不能颠倒、也不能并行：`mine()` 内部会懒评估（可能刚落盘新授予），
+      // 先读 `unseen` 会把这次刚授予的勋章漏掉，等下次进页面才弹。
+      // `fresh: true` 绕过 GET 短缓存：刚收下勋章返回时不能还判成「未查看」。
+      final mine = await BadgeApi.mine(routeId: widget.routeId, fresh: true);
+      final unseen = await BadgeApi.unseen(routeId: widget.routeId, fresh: true);
       final unseenAwards = ((unseen['awards'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => e.cast<String, dynamic>())

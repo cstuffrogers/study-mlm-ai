@@ -48,6 +48,11 @@ class ApiClient {
     if (path.startsWith('/api/llm-config')) {
       invalidatePrefix('/api/llm-config');
     }
+    // 勋章：markRead 之后首页红点数量与开箱动画都靠 GET /api/badges/unseen 判断，
+    // 不失效会读到 30s 内的旧缓存 —— 表现为「刚收下勋章，红点数字还在、点开又弹一次」。
+    if (path.startsWith('/api/badges')) {
+      invalidatePrefix('/api/badges');
+    }
     if (path.startsWith('/api/quiz') ||
         path.startsWith('/api/review') ||
         path.startsWith('/api/mastery') ||

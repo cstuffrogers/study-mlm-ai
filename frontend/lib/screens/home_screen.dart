@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUnseenBadges() async {
     try {
-      final r = await BadgeApi.unseen(routeId: 'route_A');
+      final r = await BadgeApi.unseen(routeId: 'route_A', fresh: true);
       final n = (r['count'] as num?)?.toInt() ?? 0;
       if (mounted) setState(() => _unseenBadges = n);
     } catch (_) {} // 提醒失败不阻断首页
@@ -97,9 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           tooltip: '我的勋章',
                           icon: Icons.emoji_events_rounded,
                           badgeCount: _unseenBadges,
-                          onTap: () {
-                            _loadUnseenBadges();
-                            _push(const BadgeScreen());
+                          onTap: () async {
+                            // 必须在从勋章页**返回之后**再刷新红点数量：
+                            // 以前是进页面之前刷一次，收下勋章回来数字照旧挂着。
+                            await _push(const BadgeScreen());
+                            await _loadUnseenBadges();
                           },
                         ),
                         _HeaderAction(
