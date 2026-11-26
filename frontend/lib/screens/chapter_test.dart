@@ -128,6 +128,72 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
     }
   }
 
+  // 难度档位标签（D169）：一次测试按 易 → 中 → 难 → 拓展 递进出题，
+  // 卷首给出各档题数，让学习者知道这套卷子的坡度，而不是一片看上去一样的题。
+  static const Map<String, String> _bandLabels = {
+    'easy': '易',
+    'medium': '中',
+    'hard': '难',
+    'challenge': '拓展',
+  };
+  static const Map<String, Color> _bandColors = {
+    'easy': Color(0xFF047857),
+    'medium': Color(0xFFB45309),
+    'hard': Color(0xFFB91C1C),
+    'challenge': Color(0xFF6D28D9),
+  };
+  static const List<String> _bandOrder = ['easy', 'medium', 'hard', 'challenge'];
+
+  Widget _bandChip(String band, {String? extra}) {
+    final label = _bandLabels[band] ?? '';
+    if (label.isEmpty) return const SizedBox.shrink();
+    final c = _bandColors[band] ?? AppColors.brand;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: c.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        extra == null ? label : '$label $extra',
+        style: TextStyle(fontSize: 10.5, color: c, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildTierHeader() {
+    final counts = <String, int>{};
+    for (final it in _items) {
+      counts.update(it.band, (v) => v + 1, ifAbsent: () => 1);
+    }
+    final chips = <Widget>[
+      for (final b in _bandOrder)
+        if ((counts[b] ?? 0) > 0) _bandChip(b, extra: '${counts[b]} 题'),
+    ];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.line),
+        boxShadow: AppShadows.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('本套 ${_items.length} 题 · 由易到难', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 6, children: chips),
+          const SizedBox(height: 6),
+          Text('易 = 认出概念 · 中 = 分清定义与概念名 · 难 = 找出张冠李戴 · 拓展 = 用自己的话复述',
+              style: TextStyle(fontSize: 11, color: AppColors.ink400, height: 1.5)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -150,6 +216,7 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (_items.isNotEmpty) AnimatedEntrance(child: _buildTierHeader()),
             for (var i = 0; i < _items.length; i++)
               AnimatedEntrance(delayMs: i * 45, child: _buildQuestion(i, _items[i])),
             const SizedBox(height: 8),
@@ -195,6 +262,8 @@ class _ChapterTestScreenState extends State<ChapterTestScreen> {
               child: Text('${i + 1}. ${_typeLabel(it.type)}',
                   style: const TextStyle(fontSize: 11, color: AppColors.brandDeep, fontWeight: FontWeight.w600)),
             ),
+            const SizedBox(width: 6),
+            _bandChip(it.band),
             const Spacer(),
             if (it.trialOnly)
               const Padding(

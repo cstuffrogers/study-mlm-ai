@@ -83,8 +83,15 @@ void main() {
     final answers = items.map((it) {
       final src = bank['${it['id']}'] ?? const <String, dynamic>{};
       final isOpen = it['subjective'] == true || it['application'] == true;
+      // 开放题（应用题/费曼题）按论证结构 + 概念运用评分，必须真的用上该知识点的
+      // 概念名并给出因果链，否则 concept_use=0、评分不及格（D169 起每卷固定含 1+1 道）。
+      final exp = '${src['explanation'] ?? ''}';
+      final m = RegExp(r'「([^」]{2,20})」').firstMatch('${src['stem'] ?? ''}') ??
+          RegExp(r'「([^」]{2,20})」').firstMatch(exp);
+      final name = m?.group(1) ?? '这一原理';
       final good = isOpen
-          ? '实践是检验真理的唯一标准，只有在改造客观世界的实践中才能验证认识的真理性。'
+          ? '例如，${name}在实际工作中处处可见：因为${name}讲的是客观规律，'
+              '所以办事必须按它来，这体现了${name}的要求。$exp'
           : '${src['answer'] ?? 'A'}';
       return {
         'item_id': it['id'],

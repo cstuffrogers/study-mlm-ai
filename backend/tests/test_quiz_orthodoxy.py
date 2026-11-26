@@ -50,7 +50,9 @@ def _correct_answers(items: list[dict]) -> list[dict]:
     for it in items:
         src = key.get(it["id"], {})
         if it.get("subjective"):
-            ans = "实践是检验真理的唯一标准，因为只有在改造客观世界的实践中才能验证思维的真理性。"
+            # 按题库给的参考要点作答（应用题/费曼题按论证结构评分，乱答一句会真的扣分）
+            ans = str(src.get("explanation") or
+                      "实践是检验真理的唯一标准，因为只有在改造客观世界的实践中才能验证思维的真理性。")
         else:
             ans = str(src.get("answer") or "A")
         out.append({"item_id": it["id"], "answer": ans})

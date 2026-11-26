@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 
 from sqlalchemy import select
 
@@ -63,48 +64,146 @@ async def _items_for_section(section_id: str) -> list[QuizItem]:
         return list(res.scalars().all())
 
 
-def _select_items(items: list[QuizItem]) -> list[QuizItem]:
-    """从题库选出 8-12 题：特殊题型限额优先 + 保证每知识点至少 1 题 + 余量顺序补齐。
+# ------------------------------------------------------------ 难度分档（D169）
+# 与前端 `LocalQuiz.bandOf/bandQuota` 同口径：<0.45 易，<0.65 中，其余难；
+# 主观/应用题单列 challenge（「拓展」），不混进「难」档。
+BAND_EASY_MAX = 0.45
+BAND_MED_MAX = 0.65
+BAND_ORDER = ("easy", "medium", "hard", "challenge")
+BAND_LABELS = {"easy": "易", "medium": "中", "hard": "难", "challenge": "拓展"}
 
-    题库扩充后每个知识点都有一道费曼自述题，若仍「特殊题型全部优先」，
-    一章 12 个知识点就会把 12 个名额全占成论述题，学习者拿不到客观题。
-    因此特殊题型只占总名额的 1/3（至少 1 题），其余留给知识点的客观题。
+
+def band_of(it: QuizItem) -> str:
+    if it.type == "application" or it.subjective:
+        return "challenge"
+    d = it.difficulty if it.difficulty is not None else 0.5
+    if d < BAND_EASY_MAX:
+        return "easy"
+    if d < BAND_MED_MAX:
+        return "medium"
+    return "hard"
+
+
+def band_quota(cap: int) -> dict[str, int]:
+    """每档名额：cap=12 → 易 4 / 中 4 / 难 2 / 拓展 2；cap=8 → 3/3/1/1。
+
+    拓展档留两个名额：一个案例应用题（application）+ 一个费曼自述题
+    （error_diagnosis/subjective），两者评分维度不同，不能互相顶替。
     """
-    cap = max(QUIZ_SIZE_MIN, min(QUIZ_SIZE_MAX, len(items)))
-    if len(items) <= cap:
-        return list(items)
+    challenge = 2 if cap >= 10 else 1
+    rest = max(3, cap - challenge)
+    easy = max(1, round(rest * 0.36))
+    med = max(1, round(rest * 0.36))
+    hard = max(1, rest - easy - med)
+    return {"easy": easy, "medium": med, "hard": hard, "challenge": challenge}
+
+
+def _stem_key(it: QuizItem) -> str:
+    return "".join((it.stem or "").split())
+
+
+async def _recent_item_ids(user_id: str, section_id: str, last_tests: int = 2) -> set[str]:
+    """同一章最近两次做过的题号：重考时优先换一批，不再原样重复（D169）。"""
+    async with session_scope() as s:
+        res = await _exec(s, select(SectionTest).where(
+            SectionTest.user_id == user_id,
+            SectionTest.section_id == section_id,
+        ).order_by(SectionTest.created_at.desc()).limit(last_tests))
+        out: set[str] = set()
+        for t in res.scalars().all():
+            for iid in (t.item_ids or []):
+                out.add(str(iid))
+        return out
+
+
+def _select_items(items: list[QuizItem], exclude_ids: set[str] | None = None,
+                  seed: int = 0) -> list[QuizItem]:
+    """按「易 / 中 / 难 / 拓展」三档出题（D169）。
+
+    旧版只做「特殊题型限额 + 每知识点保底 + 余量顺序补齐」：不看难度，同一章
+    重考一模一样，题库里重复登记的题还会同一卷出现两次。现在：
+      ① 题干重复的只留一条；
+      ② 每档按名额取题（不够由别的档补）；
+      ③ `exclude_ids`（最近两次做过的题）优先避开，`seed` 打乱档内顺序。
+    """
+    import random
+
+    uniq: list[QuizItem] = []
+    seen: set[str] = set()
+    for it in items:
+        key = _stem_key(it)
+        if key and key in seen:
+            continue
+        seen.add(key)
+        uniq.append(it)
+
+    cap = max(QUIZ_SIZE_MIN, min(QUIZ_SIZE_MAX, len(uniq)))
+    quota = band_quota(cap)
+    exclude = exclude_ids or set()
+    buckets: dict[str, list[QuizItem]] = {b: [] for b in BAND_ORDER}
+    for it in uniq:
+        buckets[band_of(it)].append(it)
+
+    rnd = random.Random(seed)
+
+    def _priority(it: QuizItem) -> int:
+        """拓展档内部顺序：案例应用题 0、费曼自述题 1、其它 2。"""
+        if it.type == "application" and it.subjective:
+            return 0
+        if it.subjective:
+            return 1
+        return 2
+
+    for b in BAND_ORDER:
+        fresh = [it for it in buckets[b] if it.id not in exclude]
+        used = [it for it in buckets[b] if it.id in exclude]
+        rnd.shuffle(fresh)
+        rnd.shuffle(used)
+        buckets[b] = sorted(fresh, key=_priority) + sorted(used, key=_priority)
+    # 拓展档「应用—费曼」交替：两个名额一人一个，评分维度互补
+    ch = buckets["challenge"]
+    apps = [it for it in ch if _priority(it) == 0]
+    feyns = [it for it in ch if _priority(it) == 1]
+    rest = [it for it in ch if _priority(it) == 2]
+    merged: list[QuizItem] = []
+    for i in range(max(len(apps), len(feyns))):
+        if i < len(apps):
+            merged.append(apps[i])
+        if i < len(feyns):
+            merged.append(feyns[i])
+    buckets["challenge"] = merged + rest
+
     chosen: list[QuizItem] = []
     chosen_ids: set[str] = set()
 
-    def _add(it):
-        if it.id not in chosen_ids and len(chosen) < cap:
-            chosen.append(it)
-            chosen_ids.add(it.id)
+    def _add(it: QuizItem) -> bool:
+        if len(chosen) >= cap or it.id in chosen_ids:
+            return False
+        chosen.append(it)
+        chosen_ids.add(it.id)
+        return True
 
-    # 1) 特殊题型优先（应用/主观/费曼），但限额，避免整份卷子全是论述题
-    special_cap = max(1, cap // 3)
-    special_taken = 0
-    for it in items:
-        if special_taken >= special_cap:
-            break
-        if it.type == "application" or it.subjective:
-            before = len(chosen)
+    for b in BAND_ORDER:
+        taken = 0
+        for it in buckets[b]:
+            if taken >= quota[b]:
+                break
+            if _add(it):
+                taken += 1
+    for b in BAND_ORDER:
+        for it in buckets[b]:
+            if len(chosen) >= cap:
+                break
             _add(it)
-            if len(chosen) > before:
-                special_taken += 1
-    # 2) 每个知识点保底 1 题（客观题优先，让每个知识点至少有一道可判对错的题）
-    seen_nodes: set[str] = set()
-    for it in items:
-        if it.node_id in seen_nodes:
-            continue
-        if it.type == "application" or it.subjective:
-            continue
-        seen_nodes.add(it.node_id)
-        _add(it)
-    # 3) 余量按原顺序补齐
-    for it in items:
-        _add(it)
     return chosen
+
+
+def _order_by_tier(items: list[QuizItem]) -> list[QuizItem]:
+    """排序：易 → 中 → 难 → 拓展，档内按知识点轮转。"""
+    out: list[QuizItem] = []
+    for b in BAND_ORDER:
+        out.extend(_interleave_items([it for it in items if band_of(it) == b]))
+    return out
 
 
 def _interleave_items(items: list[QuizItem]) -> list[QuizItem]:
@@ -152,7 +251,8 @@ def _public_item(it: QuizItem) -> dict:
         raise OrthodoxyViolation(f"题目 {it.id} 缺少溯源 chunk_id，拒绝出题")
     return {
         "id": it.id, "type": it.type, "stem": it.stem, "options": it.options,
-        "difficulty": it.difficulty, "subjective": it.subjective,
+        "difficulty": it.difficulty, "difficulty_band": band_of(it),
+        "subjective": it.subjective,
         "application": it.type == "application",
         "source_chunk_id": it.source_chunk_id,
         "authority_status": it.authority_status,
@@ -179,8 +279,10 @@ async def start_section_test(user_id: str, section_id: str, route_id: str) -> di
     #  1) 应用题/主观题（特殊题型）必选；
     #  2) 优先保障每个知识点至少 1 道（先修覆盖完整）；
     #  3) 余量按题库顺序补齐；最后交错排序（P2-⑤ 降低块状）。
-    chosen = _select_items(items)
-    chosen = _interleave_items(chosen)
+    excluded = await _recent_item_ids(user_id, section_id)
+    chosen = _select_items(items, exclude_ids=excluded,
+                           seed=abs(hash((section_id, len(excluded)))) % (2 ** 31))
+    chosen = _order_by_tier(chosen)
     public = [_public_item(it) for it in chosen]
     async with session_scope() as s:
         test = SectionTest(user_id=user_id, section_id=section_id, route_id=route_id,
@@ -448,6 +550,14 @@ def _grade_application(quiz: QuizItem, answer: str) -> dict:
     node_ids = [quiz.node_id]
     terms = terms_for(node_ids)
     misconceptions = misconceptions_for(node_ids)
+    if not terms:
+        # 概念词典没覆盖到这条节点时，退回到知识点名/题干里的「引号词」，
+        # 否则 concept_use 恒为 0、应用题永远判不及格（D169 新题多为新节点）。
+        name = (node or {}).get("name") or ""
+        m = re.search(r"「([^」]{2,20})」", quiz.stem or "")
+        fallback = name or (m.group(1) if m else "")
+        if fallback:
+            terms = [fallback]
     # 1) 概念运用：命中核心术语比例
     hit = [t for t in terms if t in ans]
     concept_use = round(min(1.0, len(hit) / max(1, min(3, len(terms)))), 4)

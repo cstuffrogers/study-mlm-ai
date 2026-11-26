@@ -20,6 +20,7 @@ class LocalQuiz {
         'stem': it['stem'],
         'options': it['options'] ?? const [],
         'difficulty': it['difficulty'] ?? 0.5,
+        'difficulty_band': bandOf(it),
         'subjective': it['subjective'] ?? false,
         'application': it['application'] ?? (it['type'] == 'application'),
         'source_chunk_id': it['source_chunk_id'] ?? '',
@@ -68,50 +69,180 @@ class LocalQuiz {
       it['trial_only'] == true ||
       (it['authority_status'] ?? 'reviewed') != 'reviewed';
 
+  // ------------------------------------------------------------ 难度分档
+  /// 易 / 中 / 难三档阈值（与 `backend/services/quiz_service.py`、
+  /// `backend/content/expand_quiz_bank.py` 同口径）：<0.45 易，<0.65 中，其余难。
+  static const double bandEasyMax = 0.45;
+  static const double bandMedMax = 0.65;
+
+  /// 难度档位标识（`difficulty_band` 字段值）。
+  /// 主观题/应用题单列 `challenge`（「拓展」）：它们难度值也很高，但若混进
+  /// 「难」档，一章 12 个知识点会全被论述题占满（旧版就是 4 道同模板论述题）。
+  static String bandOf(Map<String, dynamic> it) {
+    final type = '${it['type'] ?? ''}';
+    if (type == 'application' || it['subjective'] == true) return 'challenge';
+    final d = dnum(it['difficulty'], 0.5);
+    if (d < bandEasyMax) return 'easy';
+    if (d < bandMedMax) return 'medium';
+    return 'hard';
+  }
+
+  static const List<String> bandOrder = ['easy', 'medium', 'hard', 'challenge'];
+
+  static String bandLabel(String band) {
+    switch (band) {
+      case 'easy':
+        return '易';
+      case 'medium':
+        return '中';
+      case 'hard':
+        return '难';
+      case 'challenge':
+        return '拓展';
+      default:
+        return '';
+    }
+  }
+
+  /// 每档出题名额：cap=12 → 易 4 / 中 4 / 难 2 / 拓展 2；cap=8 → 3/3/1/1。
+  ///
+  /// 拓展档留两个名额：一个案例应用题（application）+ 一个费曼自述题
+  /// （error_diagnosis / subjective），两者评分维度不同，不能互相顶替。
+  static Map<String, int> bandQuota(int cap) {
+    final challenge = cap >= 10 ? 2 : 1;
+    final rest = math.max(3, cap - challenge);
+    final easy = math.max(1, (rest * 0.36).round());
+    final med = math.max(1, (rest * 0.36).round());
+    final hard = math.max(1, rest - easy - med);
+    return {'easy': easy, 'medium': med, 'hard': hard, 'challenge': challenge};
+  }
+
+  /// 题干归一化（去所有空白）：用于「同一道题重复登记」去重。
+  static String _stemKey(Map<String, dynamic> it) =>
+      '${it['stem'] ?? ''}'.replaceAll(RegExp(r'\s+'), '').trim();
+
   // ------------------------------------------------------------ 选题
+  /// 按「易 / 中 / 难 / 拓展」三档出题（D169）。
+  ///
+  /// 旧版只按「每知识点保底一道 + 余量顺序补齐」，结果：不看难度、同一张卷子
+  /// 反复重考一模一样、题库里重复登记的题会同一卷里出现两次。现在：
+  ///   ① 题干重复的只留一条；
+  ///   ② 每档按名额取题（不够由别的档补）；
+  ///   ③ [excludeIds]（最近两次做过的题）优先避开，[seed] 打乱档内顺序，
+  ///      所以重考同一章不会原样重复。
   static List<Map<String, dynamic>> selectItems(
-      List<Map<String, dynamic>> items) {
+    List<Map<String, dynamic>> items, {
+    Set<String> excludeIds = const <String>{},
+    int seed = 0,
+  }) {
     final minSize = inum(OfflineContent.config['quiz_size_min'], 8);
     final maxSize = inum(OfflineContent.config['quiz_size_max'], 12);
-    final cap = math.max(minSize, math.min(maxSize, items.length));
-    if (items.length <= cap) return List<Map<String, dynamic>>.from(items);
-    final chosen = <Map<String, dynamic>>[];
-    final ids = <String>{};
-    void add(Map<String, dynamic> it) {
-      if (chosen.length >= cap) return;
-      final id = '${it['id']}';
-      if (!ids.add(id)) return;
-      chosen.add(it);
+
+    // ① 去重（同题干只留第一条）
+    final uniq = <Map<String, dynamic>>[];
+    final seenStem = <String>{};
+    for (final it in items) {
+      final key = _stemKey(it);
+      if (key.isNotEmpty && !seenStem.add(key)) continue;
+      uniq.add(it);
     }
 
-    // 与后端 `quiz_service._select_items()` 同口径：特殊题型（应用/主观）只占
-    // 总名额的 1/3（至少 1 题）。题库扩充后每知识点都有费曼自述题，若全部优先，
-    // 一章 12 个知识点会把名额占满成论述题，客观题一道不剩。
-    final specialCap = math.max(1, cap ~/ 3);
-    var specialTaken = 0;
-    for (final it in items) {
-      if (specialTaken >= specialCap) break;
-      final type = '${it['type'] ?? ''}';
-      if (type == 'application' || it['subjective'] == true) {
+    final cap = math.max(minSize, math.min(maxSize, uniq.length));
+    final quota = bandQuota(cap);
+    final buckets = <String, List<Map<String, dynamic>>>{
+      for (final b in bandOrder) b: <Map<String, dynamic>>[],
+    };
+    for (final it in uniq) {
+      (buckets[bandOf(it)] ?? buckets['hard']!).add(it);
+    }
+
+    // ③ 档内：没做过（fresh）在前，各自按种子打乱
+    final rnd = math.Random(seed);
+    // 拓展档内部顺序：案例应用题 0、费曼自述题 1、其它 2
+    int priority(Map<String, dynamic> e) {
+      if ('${e['type']}' == 'application' && e['subjective'] == true) return 0;
+      if (e['subjective'] == true) return 1;
+      return 2;
+    }
+
+    for (final b in bandOrder) {
+      final list = buckets[b]!;
+      final fresh = list.where((e) => !excludeIds.contains('${e['id']}')).toList()..shuffle(rnd);
+      final used = list.where((e) => excludeIds.contains('${e['id']}')).toList()..shuffle(rnd);
+      fresh.sort((x, y) => priority(x) - priority(y));
+      used.sort((x, y) => priority(x) - priority(y));
+      buckets[b] = [...fresh, ...used];
+    }
+    // 拓展档「应用—费曼」交替：两个名额一人一个，评分维度互补
+    final ch = buckets['challenge']!;
+    final apps = ch.where((e) => priority(e) == 0).toList();
+    final feyns = ch.where((e) => priority(e) == 1).toList();
+    final rest = ch.where((e) => priority(e) == 2).toList();
+    final merged = <Map<String, dynamic>>[];
+    for (var i = 0; i < math.max(apps.length, feyns.length); i++) {
+      if (i < apps.length) merged.add(apps[i]);
+      if (i < feyns.length) merged.add(feyns[i]);
+    }
+    buckets['challenge'] = [...merged, ...rest];
+
+    // ② 按名额取
+    final chosen = <Map<String, dynamic>>[];
+    final ids = <String>{};
+    void take(Map<String, dynamic> it) {
+      if (chosen.length >= cap) return;
+      if (ids.add('${it['id']}')) chosen.add(it);
+    }
+
+    for (final b in bandOrder) {
+      var n = 0;
+      for (final it in buckets[b]!) {
+        if (n >= (quota[b] ?? 0)) break;
         final before = chosen.length;
-        add(it);
-        if (chosen.length > before) specialTaken++;
+        take(it);
+        if (chosen.length > before) n++;
       }
     }
-    final covered = <String>{};
-    for (final it in items) {
-      final type = '${it['type'] ?? ''}';
-      // 每知识点保底一道客观题
-      if (type == 'application' || it['subjective'] == true) continue;
-      final nid = '${it['node_id'] ?? ''}';
-      if (covered.contains(nid)) continue;
-      add(it);
-      covered.add(nid);
-    }
-    for (final it in items) {
-      add(it);
+    // 某档题不够 → 按 易→中→难→拓展 补齐
+    for (final b in bandOrder) {
+      for (final it in buckets[b]!) {
+        if (chosen.length >= cap) break;
+        take(it);
+      }
     }
     return chosen;
+  }
+
+  /// 排序：易 → 中 → 难 → 拓展，档内仍按知识点轮转（避免同知识点连坐）。
+  static List<Map<String, dynamic>> orderByTier(List<Map<String, dynamic>> items) {
+    final out = <Map<String, dynamic>>[];
+    for (final b in bandOrder) {
+      out.addAll(interleaveItems(items.where((it) => bandOf(it) == b).toList()));
+    }
+    return out;
+  }
+
+  /// 同一章最近两次做过的题号：重考时优先换一批，不再原样重复。
+  static Set<String> recentItemIds(String sectionId, {int lastTests = 2}) {
+    final tests = LocalDb.tests.values
+        .where((t) => '${t['section_id'] ?? ''}' == sectionId)
+        .toList()
+      ..sort((a, b) =>
+          '${b['created_at'] ?? ''}'.compareTo('${a['created_at'] ?? ''}'));
+    final out = <String>{};
+    for (final t in tests.take(lastTests)) {
+      for (final id in (t['item_ids'] as List?) ?? const []) {
+        out.add('$id');
+      }
+    }
+    return out;
+  }
+
+  /// 出题随机种子：同一章的考次越多，种子越不同（重考换题）。
+  static int seedForSection(String sectionId) {
+    final n = LocalDb.tests.values
+        .where((t) => '${t['section_id'] ?? ''}' == sectionId)
+        .length;
+    return (sectionId.hashCode ^ (0x9E3779B9 * (n + 1))) & 0x7fffffff;
   }
 
   static List<Map<String, dynamic>> interleaveItems(
@@ -175,7 +306,11 @@ class LocalQuiz {
       throw LocalApiException(
           409, '章节 $sectionId 暂无题库，降级为按段落学习 + 简化测试');
     }
-    final selected = interleaveItems(selectItems(items));
+    final selected = orderByTier(selectItems(
+      items,
+      excludeIds: recentItemIds(sectionId),
+      seed: seedForSection(sectionId),
+    ));
     final testId = 'local_${DateTime.now().microsecondsSinceEpoch}';
     LocalDb.tests[testId] = {
       'id': testId,
@@ -390,8 +525,15 @@ class LocalQuiz {
   static Map<String, dynamic> gradeApplication(
       Map<String, dynamic> quiz, String answer) {
     final nodeId = '${quiz['node_id'] ?? ''}';
-    final terms = termsFor(nodeId);
+    var terms = termsFor(nodeId);
     final misconceptions = misconceptionsFor(nodeId);
+    if (terms.isEmpty) {
+      // 概念词典没覆盖到这条节点时，退回到题干里的「引号词」，
+      // 否则 concept_use 恒为 0、应用题永远判不及格（D169 新题多为新节点）。
+      final m = RegExp(r'「([^」]{2,20})」').firstMatch('${quiz['stem'] ?? ''}');
+      final fallback = m?.group(1) ?? '';
+      if (fallback.isNotEmpty) terms = [fallback];
+    }
     final hits = terms.where(answer.contains).toList();
     final conceptUse = round4(
         math.min(1.0, hits.length / math.max(1, math.min(3, terms.length))));

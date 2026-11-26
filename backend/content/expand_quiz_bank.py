@@ -1,21 +1,29 @@
 """
 题库扩充脚本：为每个知识点生成 易/中/难 3 道客观题 + 1 道费曼自述题。
 
-策略：
-- 易 (concept_discrimination, diff ~0.30): 直接考查定义识别
-- 中 (logical_deduction, diff ~0.55): 考查从定义推出的逻辑判断
-- 难 (application, diff ~0.75): 考查正确运用
-- 费曼 (error_diagnosis, subjective=True, diff ~0.70): 论述自述
+D169 重做（用户实报「题目重复太多、完全没有易中难层次」）：
+旧版每档的干扰项都是套话 ——
+  「将「X」与其他概念混淆，并未准确表述其含义」「认为「X」的含义与实际定义相反」
+  「在学习和运用中，应当完整把握「X」的含义，避免片面理解」
+四选项里只有一个「读起来像正确答案」，**不认识知识点也能选对**，于是 103 个知识点
+生成了 103 道几乎一样的题，正确项也全是「应当完整把握X」这类空话。这就是重复感的根因。
 
-干扰项生成：
-- 反转：检测定义中的"A决定B"等关系，反转为"B决定A"
-- 否定：对定义做自然否定
-- 局部：仅取定义首句（不完整）
+新版一律拿**真内容**做选项（来源：知识图谱里其它知识点人工撰写的定义），
+四个选项都是像样的理论表述，必须真分清概念才选得出，且三档考的技能各不相同：
+
+  易 concept_discrimination 0.30  四个真实定义里挑出属于「X」的那一条
+  中 logical_deduction      0.50  给出定义，反查它对应哪个概念名
+  难 error_diagnosis        0.70  四条「定义 —— 概念名」配对里找出标错（张冠李戴）的那条
+  拓展 费曼 subjective      0.70  自述含义 + 指出常见错误理解（每卷只出 1 道，见 band_quota）
+
+答案字母按题目 id 做确定性打乱，不再恒为 A。
 """
 import json
+import random
 import re
 import sys
 import os
+import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # backend 目录需在 path 中，因为 chapter_content 内部用 `from content.xxx`
@@ -25,211 +33,206 @@ import chapter_content as cc
 
 QUIZ_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'quiz_bank')
 
-# 难度分档
+# 难度分档（与 quiz_service.BAND_* / 前端 LocalQuiz.bandOf 同口径）
 EASY_MAX = 0.45
 MED_MAX = 0.65
+LETTERS = 'ABCD'
 
 
-def reverse_definition(definition: str):
-    """检测并反转定义中的关键关系，生成一个合理但错误的干扰项。"""
-    patterns = [
-        (r'(.+?)决定(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}决定{m.group(1)}'),
-        (r'(.+?)是(.+?)的(基础|前提|核心|实质|关键|根本)(?:[，。；]|$)',
-         lambda m: f'{m.group(2)}是{m.group(1)}的{m.group(3)}'),
-        (r'(.+?)作用于(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}作用于{m.group(1)}'),
-        (r'(.+?)产生(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}产生{m.group(1)}'),
-        (r'(.+?)反映(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}反映{m.group(1)}'),
-        (r'(.+?)源于(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}源于{m.group(1)}'),
-        (r'(.+?)来源于(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}来源于{m.group(1)}'),
-        (r'(.+?)决定着(.+?)(?:[，。；]|$)', lambda m: f'{m.group(2)}决定着{m.group(1)}'),
-    ]
-    for pat, fn in patterns:
-        m = re.search(pat, definition)
-        if m:
-            result = fn(m)
-            if result != definition and len(result) > 4:
-                return result
-    return None
+def _norm(s: str) -> str:
+    return re.sub(r'\s+', '', s or '')
 
 
-def partial_definition(definition: str):
-    """取定义的首句作为不完整干扰项。"""
-    parts = re.split(r'[，。；]', definition)
-    if len(parts) > 1:
-        return parts[0]
-    return None
+def _seed(*parts) -> int:
+    return zlib.crc32('|'.join(str(p) for p in parts).encode('utf-8'))
 
 
-def negate_definition(definition: str, name: str):
-    """生成一个自然否定的干扰项。"""
-    # 尝试否定关键动词
-    for verb in ['决定', '是', '产生', '反映', '源于', '来源于', '作用于']:
-        if verb in definition:
-            idx = definition.index(verb)
-            before = definition[:idx]
-            after = definition[idx + len(verb):]
-            return f'{before}并不{verb}{after}'
-    # 通用否定
-    return f'认为「{name}」的含义与实际定义相反'
+def _pack(correct: str, distractors: list, *seed_parts):
+    """把正确答案和干扰项打散，返回 (options, answer_letter)。"""
+    opts = [correct]
+    seen = {_norm(correct)}
+    for d in distractors:
+        if _norm(d) in seen or not d:
+            continue
+        seen.add(_norm(d))
+        opts.append(d)
+        if len(opts) == 4:
+            break
+    if len(opts) < 4:
+        return None
+    random.Random(_seed(*seed_parts)).shuffle(opts)
+    return opts, LETTERS[opts.index(correct)]
 
 
-def gen_consequence(definition: str, name: str) -> str:
-    """从定义生成逻辑推论（中题的正确答案）。"""
-    if '决定' in definition:
-        return f'把握「{name}」是正确认识相关原理的前提与基础'
-    if '基础' in definition or '前提' in definition:
-        return f'离开对「{name}」的正确认识，相关理解就失去了根基'
-    if any(k in definition for k in ['核心', '实质', '关键', '枢纽']):
-        return f'理解「{name}」才能抓住事物的根本与关键'
-    if '动力' in definition:
-        return f'把握「{name}」是理解事物发展变化的关键所在'
-    if '来源' in definition:
-        return f'认识「{name}」的来源，是把握其作用的必要前提'
-    return f'正确认识「{name}」，是把握相关原理的必要条件'
+def concept_pool(node: dict, node_map: dict) -> list:
+    """可做干扰项的 (概念名, 定义)：同一章优先 → 同一路线 → 全库。
+
+    只收有人工撰写定义的知识点，保证选项都是准确、像样的理论表述。
+    """
+    sec = node.get('section_id', '')
+    route = sec.split('_')[0]
+    own = _norm(node.get('definition') or '')
+    same_sec, same_route, other = [], [], []
+    for nid, n in node_map.items():
+        if nid == node.get('id'):
+            continue
+        d = (n.get('definition') or '').strip()
+        if not d or _norm(d) == own:
+            continue
+        pair = (n.get('name', ''), d)
+        nsec = n.get('section_id') or ''
+        if nsec and nsec == sec:
+            same_sec.append(pair)
+        elif nsec and nsec.split('_')[0] == route:
+            same_route.append(pair)
+        else:
+            other.append(pair)
+    return same_sec + same_route + other
 
 
-def gen_application(definition: str, name: str) -> str:
-    """生成正确运用表述（难题的正确答案）。"""
-    if '决定' in definition:
-        return f'分析实际问题时，应当从「{name}」所揭示的关系入手，把握其决定性作用'
-    if '基础' in definition or '前提' in definition:
-        return f'运用「{name}」的原理，需先把握其基础地位，再分析具体问题'
-    if any(k in definition for k in ['核心', '实质', '关键', '枢纽']):
-        return f'运用「{name}」分析问题，关键在于把握其核心内涵，避免停留表面'
-    if '动力' in definition:
-        return f'运用「{name}」分析发展变化，需抓住其作为动力的机制'
-    return f'在学习和运用中，应当完整把握「{name}」的含义，避免片面理解'
+def _item(node, sec_id, band, typ, stem, options, answer, explanation,
+          difficulty, subjective=False, exempt=False):
+    return {
+        'id': f'q_{node["id"]}_{band}',
+        'section_id': sec_id,
+        'node_id': node['id'],
+        'type': typ,
+        'stem': stem,
+        'options': options,
+        'answer': answer,
+        'explanation': explanation,
+        'difficulty': difficulty,
+        'source_chunk_id': node.get('source_chunk_id', ''),
+        'authority_status': 'reviewed',
+        'exempt_marked': exempt,
+        'trial_only': False,
+        'subjective': subjective,
+    }
 
 
-def gen_distractors(definition: str, name: str, correct: str):
-    """生成三个干扰项。"""
-    distractors = []
-
-    # 1. 反转
-    rev = reverse_definition(definition)
-    if rev and rev != correct:
-        distractors.append(rev)
-
-    # 2. 局部（不完整）
-    part = partial_definition(definition)
-    if part and part != correct and part not in distractors:
-        distractors.append(part)
-
-    # 3. 否定
-    neg = negate_definition(definition, name)
-    if neg != correct and neg not in distractors:
-        distractors.append(neg)
-
-    # 确保有三个不同的干扰项
-    if len(distractors) < 3:
-        fallback = [
-            f'将「{name}」与其他概念混淆，并未准确表述其含义',
-            f'对「{name}」的表述偏离了其核心要义，不够准确',
-            f'仅涉及「{name}」的表象，未触及本质',
-        ]
-        for f in fallback:
-            if f not in distractors and f != correct:
-                distractors.append(f)
-            if len(distractors) >= 3:
-                break
-
-    return distractors[:3]
-
-
-def gen_questions(node: dict, sec_id: str):
-    """为一个知识点生成 3 道客观题 + 1 道费曼题。"""
+def gen_easy(node: dict, pool: list, sec_id: str):
+    """易：四段真实定义里挑出属于「X」的那一条。"""
     name = node['name']
-    defn = node['definition']
-    chunk = node.get('source_chunk_id', '')
-    node_id = node['id']
+    defn = (node.get('definition') or '').strip()
+    if not defn:
+        return None
+    others = [d for (_n, d) in pool][:3]
+    if len(others) < 3:
+        return None
+    packed = _pack(defn, others, node['id'], 'easy')
+    if not packed:
+        return None
+    options, answer = packed
+    return _item(
+        node, sec_id, 'easy', 'concept_discrimination',
+        f'关于「{name}」，下列说法正确的是？',
+        options, answer,
+        f'「{name}」：{defn}其余三项分别是其他概念的表述，注意别把相邻概念的定义当成本概念的定义。',
+        0.30,
+    )
 
-    questions = []
 
-    # === 易题：concept_discrimination ===
-    distractors_e = gen_distractors(defn, name, defn)
-    questions.append({
-        'id': f'q_{node_id}_easy',
-        'section_id': sec_id,
-        'node_id': node_id,
-        'type': 'concept_discrimination',
-        'stem': f'关于「{name}」，下列说法正确的是？',
-        'options': [defn, *distractors_e],
-        'answer': 'A',
-        'explanation': f'「{name}」的核心定义是：{defn}。B、C、D 项分别在核心关系、完整性和准确性上与定义不符。',
-        'difficulty': 0.30,
-        'source_chunk_id': chunk,
-        'authority_status': 'reviewed',
-        'exempt_marked': False,
-        'trial_only': False,
-        'subjective': False,
-    })
+def gen_med(node: dict, pool: list, sec_id: str):
+    """中：给出定义，反查是哪一个概念。"""
+    name = node['name']
+    defn = (node.get('definition') or '').strip()
+    if not defn:
+        return None
+    others = [n for (n, _d) in pool][:3]
+    if len(others) < 3:
+        return None
+    packed = _pack(name, others, node['id'], 'med')
+    if not packed:
+        return None
+    options, answer = packed
+    return _item(
+        node, sec_id, 'med', 'logical_deduction',
+        f'下列哪一概念，其表述是：{defn}',
+        options, answer,
+        f'这句话讲的是「{name}」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。',
+        0.50,
+    )
 
-    # === 中题：logical_deduction ===
-    consequence = gen_consequence(defn, name)
-    distractors_m = gen_distractors(defn, name, consequence)
-    # 如果干扰项与正确答案重复，替换
-    while len(distractors_m) < 3:
-        distractors_m.append(f'对「{name}」的推论偏离了其定义所揭示的关系')
-    questions.append({
-        'id': f'q_{node_id}_med',
-        'section_id': sec_id,
-        'node_id': node_id,
-        'type': 'logical_deduction',
-        'stem': f'根据「{name}」的内涵，可以判断下列哪一说法成立？',
-        'options': [consequence, *distractors_m[:3]],
-        'answer': 'A',
-        'explanation': f'由「{name}」的定义（{defn}）可推出：{consequence}。其余选项的推论与定义所揭示的关系不符。',
-        'difficulty': 0.55,
-        'source_chunk_id': chunk,
-        'authority_status': 'reviewed',
-        'exempt_marked': False,
-        'trial_only': False,
-        'subjective': False,
-    })
 
-    # === 难题：logical_deduction（客观选择题）
-    # 注意：不能标 type=application —— application 走自由文本论证评分
-    #（_grade_application），带 options 的选择题会被当成空作答判 0。
-    application = gen_application(defn, name)
-    distractors_h = gen_distractors(defn, name, application)
-    while len(distractors_h) < 3:
-        distractors_h.append(f'对「{name}」的运用偏离了其核心原理，属于错误应用')
-    questions.append({
-        'id': f'q_{node_id}_hard',
-        'section_id': sec_id,
-        'node_id': node_id,
-        'type': 'logical_deduction',
-        'stem': f'在学习与运用「{name}」时，下列做法正确的是？',
-        'options': [application, *distractors_h[:3]],
-        'answer': 'A',
-        'explanation': f'「{name}」的定义是{defn}，正确运用要求把握其完整内涵：{application}。其余选项在运用中偏离了核心原理。',
-        'difficulty': 0.75,
-        'source_chunk_id': chunk,
-        'authority_status': 'reviewed',
-        'exempt_marked': False,
-        'trial_only': False,
-        'subjective': False,
-    })
+def gen_hard(node: dict, pool: list, sec_id: str):
+    """难：四条「定义——概念名」配对里，找出把名字标错的那条（张冠李戴）。"""
+    name = node['name']
+    defn = (node.get('definition') or '').strip()
+    if not defn or len(pool) < 3:
+        return None
+    pairs = [(name, defn)] + pool[:3]
+    pairs = pairs[:4]                      # 4 个真实概念（含自己）
+    lines = [f'「{d}」——{n}' for (n, d) in pairs]
+    # 把第 2 条的定义挂到第 3 条的名字上：两个概念共用一个定义，必有一错
+    if len(pairs) < 3:
+        return None
+    wrong = f'「{pairs[1][1]}」——{pairs[2][0]}'
+    correct_line = f'「{pairs[1][1]}」——{pairs[1][0]}'
+    distract = [ln for ln in lines if ln not in (wrong, correct_line)]
+    packed = _pack(wrong, distract, node['id'], 'hard')
+    if not packed:
+        return None
+    options, answer = packed
+    return _item(
+        node, sec_id, 'hard', 'error_diagnosis',
+        f'下列关于「{name}」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？',
+        options, answer,
+        f'标错的是「{pairs[1][1]}」这一条 —— 它对应的是「{pairs[1][0]}」，不是「{pairs[2][0]}」。'
+        f'「{pairs[2][0]}」的表述是：{pairs[2][1]}',
+        0.70, exempt=True,   # 里含刻意标错的配对，立场守门豁免
+    )
 
-    # === 费曼自述题 ===
-    questions.append({
-        'id': f'q_{node_id}_feyn',
-        'section_id': sec_id,
-        'node_id': node_id,
-        'type': 'error_diagnosis',
-        'stem': f'（论述/费曼）请用自己的话阐述「{name}」的含义，并指出一种常见的错误理解。',
-        'options': [],
-        'answer': '',
-        'explanation': f'参考要点：「{name}」的核心含义是{defn}。常见错误理解：将核心关系颠倒或忽略关键限定，导致对「{name}」的认识偏离其本义。',
-        'difficulty': 0.70,
-        'source_chunk_id': chunk,
-        'authority_status': 'reviewed',
-        'exempt_marked': False,
-        'trial_only': False,
-        'subjective': True,
-    })
 
-    return questions
+def gen_feyn(node: dict, sec_id: str):
+    """拓展（费曼自述）：不伪造原文，只要求复述 + 指出常见错误理解。"""
+    name = node['name']
+    defn = (node.get('definition') or '').strip()
+    if not defn:
+        return None
+    return _item(
+        node, sec_id, 'feyn', 'error_diagnosis',
+        f'（论述/费曼）请用自己的话阐述「{name}」的含义，并指出一种常见的错误理解。',
+        [], '',
+        f'参考要点：「{name}」——{defn}常见错误理解：把核心关系颠倒、丢掉关键限定，'
+        f'或把相邻概念的表述套到「{name}」头上。',
+        0.70, subjective=True,
+    )
+
+
+def gen_apply(node: dict, pool: list, sec_id: str):
+    """拓展（应用/案例）：把本知识点的准确表述当材料，要求落到现实例子上。
+
+    材料就是知识图谱里这条定义本身，不编造原文；作答按论证结构 + 术语使用评分。
+    """
+    name = node['name']
+    defn = (node.get('definition') or '').strip()
+    if not defn:
+        return None
+    peer = f'（可与「{pool[0][0]}」对照）' if pool else ''
+    item = _item(
+        node, sec_id, 'apply', 'application',
+        f'（应用/案例）材料：{defn}{peer}　'
+        f'请结合原著关于「{name}」的论述，举一个现实中的例子，说明这条原理在什么条件下成立、'
+        f'机械套用会出什么问题。',
+        [], '',
+        f'参考要点：先复述「{name}」的科学内涵，再指出它成立的条件与边界，最后用一个具体事例'
+        f'说明怎样按这一原理办事；只堆术语、不给例子或把原理绝对化都要扣分。',
+        0.70, subjective=True,
+    )
+    return item
+
+
+def gen_questions(node: dict, sec_id: str, pool: list = None):
+    """为一个知识点生成 易/中/难 3 道客观题 + 费曼题 + 案例应用题（缺料时跳过）。"""
+    pool = pool if pool is not None else []
+    out = [q for q in (
+        gen_easy(node, pool, sec_id),
+        gen_med(node, pool, sec_id),
+        gen_hard(node, pool, sec_id),
+        gen_feyn(node, sec_id),
+        gen_apply(node, pool, sec_id),
+    ) if q]
+    return out
 
 
 def difficulty_band(difficulty: float, subjective: bool) -> str:
@@ -240,6 +243,17 @@ def difficulty_band(difficulty: float, subjective: bool) -> str:
     elif difficulty < MED_MAX:
         return 'medium'
     return 'hard'
+
+
+def bank_band(it: dict) -> str:
+    """题库里的「难度档」键：案例应用题单独一档，否则按 difficulty 分档。
+
+    注意别和 services.quiz_service.band_of 混：那个是「出题档」
+    （主观/应用一律 challenge），这个只管「这个知识点还缺哪类题」。
+    """
+    if it.get('type') == 'application' and it.get('subjective'):
+        return 'apply'
+    return difficulty_band(it.get('difficulty', 0.5), it.get('subjective', False))
 
 
 def process_file(filename: str, section_ids: set, node_map: dict):
@@ -257,7 +271,7 @@ def process_file(filename: str, section_ids: set, node_map: dict):
         nid = it.get('node_id', '')
         if not nid:
             continue
-        band = difficulty_band(it.get('difficulty', 0.5), it.get('subjective', False))
+        band = bank_band(it)
         if nid not in node_bands:
             node_bands[nid] = set()
         node_bands[nid].add(band)
@@ -279,14 +293,16 @@ def process_file(filename: str, section_ids: set, node_map: dict):
             needed.append('hard')
         if 'feynman' not in bands:
             needed.append('feynman')
+        if 'apply' not in bands:
+            needed.append('apply')
 
         if not needed:
             continue
 
         # 生成该知识点的所有题目，然后只取需要的
-        all_qs = gen_questions(node, sec)
+        all_qs = gen_questions(node, sec, concept_pool({**node, 'section_id': sec}, node_map))
         for q in all_qs:
-            band = difficulty_band(q['difficulty'], q['subjective'])
+            band = bank_band(q)
             if band in needed:
                 # 确保 ID 不冲突
                 if q['id'] in existing_ids:

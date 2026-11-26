@@ -50,13 +50,14 @@
 | 26 | 巩固条目跳章节测试而非导读页（D162） | ✓（旧行为：`route_map._practice` 推 `ChapterGuideScreen`，点「去做练习」落到只读导读页；改为直接推 `ChapterTestScreen`（章节测试本身按知识点 `interleaveItems` 交错排题，正好对上「巩固」语义），返回 `true` 时同时 `_reload()` 与 `_loadDue()` 刷新队列；`review_card` 按钮改名「去做巩固题」、条目说明改「已掌握、不到期；进本章测试做几道题巩固」、组标题「建议巩固 · 不到期，做几道巩固题即可」；使用说明第十节同步；新增 `test/review_practice_jump_test.dart` 3 条源码门禁；前端 **627** 项全绿） |
 | 27 | 逐题解析补齐题目/我的答案/正确答案 + 申诉按钮不再「点了没反应」（D166/D167） | ✓（用户实报①「逐题解析只有解析」②「点申诉没反应」。① `chapter_test` 的 `_buildReviewCard` 只渲染 explanation/错因/溯源，而后端 `quiz_service.submit` 与 `LocalQuiz.submit` 早已同构回 `stem`/`options`/`answer_key`/`chosen` —— 抽出 `widgets/quiz_review_card.dart`（`QuizReviewCard`）按「题号+题型+对错 → 题干 → 我的答案 → 正确答案 → 评分反馈 → 解析/参考答案 → 错因 → 溯源」渲染，错因回推 5 个私有 helper 一并搬过去；客观题只报**选项正文**不报字母（作答时选项被 `choice_shuffle` 乱序过，报原始字母会出现「我选 A 怎么显示 C」），未选写「未作答」；主观题凭反馈体标「主观复述/应用论证」（题库里主观题挂在 `error_diagnosis` 题型下，直摆题型名会错位）、解析改标「参考答案」。② 申诉原先 `_api.appeal()` 一调了事——不收理由、不看回执、不提示，本机侧也只往 `LocalDb.tests[tid].appeals` 记一笔，既不改分也无复核台：新增 `widgets/quiz_appeal_dialog.dart`（弹窗明写「本机只记录、不会自动改分」+ 引导先点溯源核原文 + 可选填理由 + 失败不关框就地报错），提交后卡片换「已申诉 · 待复核」、`LocalInsight.appeal` 改为同题去重（`appeal_id` 一题一条对齐后端）并强制回 `status/message`，`LocalQuiz.history` 行补 `appealed`/`appeal_reason` 让错题本标出申诉理由；后端 `/api/quiz/appeal` 补齐 `message` 并注明「不重判、不落库」；新增 `test/quiz_review_card_test.dart` 4 条、`test/quiz_appeal_test.dart` 6 条；前端 **637** 项全绿、`flutter analyze` 零问题；后端 `pytest -k quiz` 26 passed） |
 | 28 | 勋章达成动画重做：正中爆开烟花 + 勋章从无到有弹出，一次拿几枚显示几枚（D168） | ✓（用户实报「得到勋章弹出的界面有问题」） | 旧版是「礼物盒掀盖 + 一枚勋章」，且 `badge_screen._load` 只把 `unseenAwards.first` 传进动画、其余静默标记已读 —— 一次拿多枚永远只看得到第一枚。新版 `BadgeGiftOpen` 换成 「一个 340×330 的舞台」：`_FireworksPainter` 自绘三簇烟花（中心 + 左上 + 右三处、各自 delay/span/半径/配色，扩散圆环 + 拖尾粒子 + 爆心白光，progress 用 `easeOutCubic`、粒子角度与速度在 `initState` 一次算好避免抖动）；勋章改 `_Medal`（金盘 + 专属图标 + 小字名），按数量分档 118/92/74/62/54 px、Wrap 自动换行（超多枚时 `SingleChildScrollView` 兜底），每枚用 `Interval(0.22+i*0.055, +0.34)` 的 `Curves.elasticOut` 做 `scale 0→1` 过冲弹出 + `Opacity` 渐显（真·从无到有）；标题单枚显示勋章名+描述、多枚显示「一次获得 N 枚勋章」+ 名称串。同时修 `_c.status` 变化不重建导致「收下勋章」按钮不出现（`addStatusListener` 触发 `setState`）；`badge_screen` 改为整批传入、关掉动画后整批 `markRead`。新增 `test/d168_badge_fireworks_test.dart` 8 条（多枚全显示 / 开场 opacity=0 / 单枚 / 空列表兜底 / 烟花 CustomPaint / 12 枚小屏不溢出 / 源码门禁两条）；前端 **645** 全绿、analyze 零问题） |
+| 29 | 章节测试按「易 / 中 / 难 / 拓展」分层出题 + 清除重复题（D169） | ✓（用户实报「题目重复太多、根本没有易中难三个层次」） | 旧题库由固定模板生成（`关于「X」，下列说法正确的是？` 等四套句式），选项是「与其他概念混淆」「应当完整把握」这类不看知识点也能选对的套话，答案恒为 A —— 于是每道题看起来都一样。重写 `backend/content/expand_quiz_bank.py`：① 干扰项改用**其它知识点的真实定义**（同章 → 同路线 → 全书逐级扩池），`crc32` 种子确定性打乱选项位置（答案字母不再恒为 A）；② 四档按认知层次重排 —— 易 0.30「这条表述说的是哪个概念」/中 0.50「给一段表述认出概念名」/难 0.70「四个定义里有一对概念名标错，找出它」（`error_diagnosis` + `exempt_marked`，含刻意错配故豁免立场守门）/ 拓展 0.70「案例应用题（`application`，走 rubric 三维评分）」+「费曼自述题（`error_diagnosis`+`subjective`，走三维度批改）」；③ `quiz_service` 侧新增 `band_of`/`band_quota`（12 题 → 易 4/中 4/难 2/拓展 2）、`_select_items`（同题干归一化去重 + 档内未做过的优先 + 种子乱序，重考换一批）与 `_order_by_tier`（易→中→难→拓展，档内 `_interleave_items` 按知识点轮转）；拓展档「应用—费曼」交替排位，保证每卷各一题；④ `_recent_item_ids` 让同章重考优先避开最近两次做过的题；⑤ 单机侧 `frontend/lib/offline/local_quiz.dart` 同口径复刻（含 `difficulty_band` 下发、`recentItemIds`/`seedForSection`），`QuizItem.band` 供界面用；⑥ 清掉题库 9 组重复题（同知识点挂两章、模板化题干成对），题库 427 → **524 道**；⑦ 修「应用题怎么写都不及格」—— 概念词典没覆盖的新节点 `concept_use` 恒为 0，改为退回按知识点名/题干引号词计分（前后端同改）。界面：`chapter_test` 每题右上角加 易/中/难/拓展 徽标、卷首加「本套 N 题 · 由易到难」+ 各档题数摘要。新增 `backend/tests/test_d169_quiz_tiers.py`（15 条）+ `frontend/test/d169_quiz_tiers_test.dart`（10 条）；前端 **655** 全绿、`flutter analyze` 零问题、后端 **844 passed + 2 xfailed**） |
 
 ### 构建信息（v2 重打，合规加固后）
 
 | 产物 | 路径 | 大小 |
 |---|---|---|
-| 安卓安装包 | `xxmz-1.4.26-android-universal.apk` | 74.3 MB（77,905,776 B） |
-| 安卓构建产物 | `frontend/build/app/outputs/flutter-apk/app-release.apk` | 同上（sha1 `7fb729b1bd71dc40d5cd6eb5c6d7ca49ef82b795`） |
+| 安卓安装包 | `xxmz-1.4.27-android-universal.apk` | 74.4 MB（78,056,700 B） |
+| 安卓构建产物 | `frontend/build/app/outputs/flutter-apk/app-release.apk` | 同上（sha1 `93b5d4952e963b4937005a7d69068bc3e24d92ef`） |
 | Web 静态站 | `frontend/build/web/` | 72 MB |
 
 - **签名已换成自建 release keystore**：`apksigner verify --print-certs` 显示
@@ -64,9 +65,9 @@
   不再是 `CN=Android Debug`。口令在 `frontend/android/key.properties`（已被 `.gitignore` 忽略），
   keystore 在 `frontend/android/keystore/xxmz-release.jks`——**丢了就再也发不了更新包，请离线备份**。
 - 权限仍只有 `INTERNET`（详细核对：无第三方 SDK、无埋点、无广告）。
-- 体积 74.3 MB（v1.4.26）。增量仍在 `assets/flutter_assets`（离线数据约 23.4 MB）与通用 ABI 的多架构原生库。
+- 体积 74.4 MB（v1.4.27）。增量仍在 `assets/flutter_assets`（离线数据约 23.4 MB）与通用 ABI 的多架构原生库。
 
-- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **645** 项全绿、`flutter analyze` 零问题；后端 **829 passed + 2 xfailed**（0 skipped）。
+- **229 部原著 / 22,377 分片**（含 D127 考茨基 4 篇、D128 硬换行还原、D131 提纲统一库内通行本、D140 章节正则收紧补回 9 段正文）。前端测试 **655** 项全绿、`flutter analyze` 零问题；后端 **829 passed + 2 xfailed**（0 skipped）。
 - 三个分片数各自的口径（**都是预期，不是不一致**）：
   - **22,371** = `all_book_chunks()`：229 部本书的分片（书目与分片浏览用全量）。
   - **22,243** = `retrievable_chunks()`：再剔「选集目录序言」等导览专用条目，是 AI 对话实际建的索引。

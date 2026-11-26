@@ -1,5 +1,6 @@
 """US5 推荐：门控0.8边界 / 推荐理由 / 回补优先"""
 import io
+import re
 import json
 import os
 import uuid
@@ -30,6 +31,18 @@ def _answer_key() -> dict[str, dict]:
     return out
 
 
+def _open_answer(src: dict) -> str:
+    """开放题的「满分答案」：用上该题引号里的概念名 + 因果链 + 参考要点。
+
+    抄一段固定自述过不了 D169 的论证评分（concept_use 按该知识点术语命中算）。
+    """
+    exp = str(src.get("explanation") or "")
+    m = re.search(r"「([^」]{2,20})」", str(src.get("stem") or "")) or         re.search(r"「([^」]{2,20})」", exp)
+    name = m.group(1) if m else "这一原理"
+    return (f"例如，{name}在实际工作中处处可见：因为{name}讲的是客观规律，"
+            f"所以办事必须按它来，这体现了{name}的要求。" + exp)
+
+
 def _all_correct(items: list[dict]) -> list[dict]:
     """全对作答：客观题取题库答案；主观/应用题给一段像样的自述。
 
@@ -41,7 +54,8 @@ def _all_correct(items: list[dict]) -> list[dict]:
         src = key.get(it["id"], {})
         open_q = bool(it.get("subjective")) or it.get("type") == "application"
         out.append({"item_id": it["id"],
-                    "answer": _ESSAY if open_q else str(src.get("answer") or "A")})
+                    "answer": _open_answer(src) if open_q
+                    else str(src.get("answer") or "A")})
     return out
 
 
