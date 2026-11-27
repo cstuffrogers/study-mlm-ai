@@ -1062,48 +1062,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a00_basic_med",
-      "section_id": "sec_A_00",
-      "node_id": "kn_a00_basic",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。",
-      "options": [
-        "物质与意识",
-        "日常感想与完整哲学",
-        "唯物论与唯心论两大阵营",
-        "哲学是世界观"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「哲学是世界观」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DZ-015",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a00_basic_hard",
-      "section_id": "sec_A_00",
-      "node_id": "kn_a00_basic",
-      "type": "error_diagnosis",
-      "stem": "下列关于「哲学是世界观」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。」——日常感想与完整哲学",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「物质决定意识，意识具有能动反作用。」——物质与意识",
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——日常感想与完整哲学"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」这一条 —— 它对应的是「唯物论与唯心论两大阵营」，不是「日常感想与完整哲学」。「日常感想与完整哲学」的表述是：日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZ-015",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a00_basic_feyn",
       "section_id": "sec_A_00",
       "node_id": "kn_a00_basic",
@@ -1134,48 +1092,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a00_parties_med",
-      "section_id": "sec_A_00",
-      "node_id": "kn_a00_parties",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。",
-      "options": [
-        "唯物论与唯心论两大阵营",
-        "日常感想与完整哲学",
-        "哲学是世界观",
-        "物质与意识"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「唯物论与唯心论两大阵营」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DZ-032",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a00_parties_hard",
-      "section_id": "sec_A_00",
-      "node_id": "kn_a00_parties",
-      "type": "error_diagnosis",
-      "stem": "下列关于「唯物论与唯心论两大阵营」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——唯物论与唯心论两大阵营",
-        "「日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。」——日常感想与完整哲学",
-        "「物质决定意识，意识具有能动反作用。」——物质与意识",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——日常感想与完整哲学"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」这一条 —— 它对应的是「哲学是世界观」，不是「日常感想与完整哲学」。「日常感想与完整哲学」的表述是：日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZ-032",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a00_parties_feyn",
@@ -1231,27 +1147,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a00_agnostic_hard",
-      "section_id": "sec_A_00",
-      "node_id": "kn_a00_agnostic",
-      "type": "error_diagnosis",
-      "stem": "下列关于「日常感想与完整哲学」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——唯物论与唯心论两大阵营",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——唯物论与唯心论两大阵营",
-        "「物质决定意识，意识具有能动反作用。」——物质与意识",
-        "「日常感想片断含糊、不算完整哲学；须经研究才成体系，正确哲学须反映世界发展总规律。」——日常感想与完整哲学"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」这一条 —— 它对应的是「哲学是世界观」，不是「唯物论与唯心论两大阵营」。「唯物论与唯心论两大阵营」的表述是：各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZ-002",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a00_agnostic_feyn",
       "section_id": "sec_A_00",
       "node_id": "kn_a00_agnostic",
@@ -1284,48 +1179,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_a01_matter_med",
-      "section_id": "sec_A_01",
-      "node_id": "kn_a01_matter",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：物质决定意识，意识具有能动反作用。",
-      "options": [
-        "实践与认识",
-        "对立统一规律",
-        "物质与意识",
-        "哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「物质与意识」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DZ-096",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a01_matter_hard",
-      "section_id": "sec_A_01",
-      "node_id": "kn_a01_matter",
-      "type": "error_diagnosis",
-      "stem": "下列关于「物质与意识」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「矛盾是事物发展的根本动力，是辩证法的实质与核心。」——实践与认识",
-        "「物质决定意识，意识具有能动反作用。」——物质与意识",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「实践是认识的来源、动力、目的和检验真理的唯一标准。」——实践与认识"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「矛盾是事物发展的根本动力，是辩证法的实质与核心。」这一条 —— 它对应的是「对立统一规律」，不是「实践与认识」。「实践与认识」的表述是：实践是认识的来源、动力、目的和检验真理的唯一标准。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZ-096",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a01_matter_feyn",
       "section_id": "sec_A_01",
       "node_id": "kn_a01_matter",
@@ -1356,48 +1209,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a01_contradiction_med",
-      "section_id": "sec_A_01",
-      "node_id": "kn_a01_contradiction",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：矛盾是事物发展的根本动力，是辩证法的实质与核心。",
-      "options": [
-        "对立统一规律",
-        "物质与意识",
-        "实践与认识",
-        "哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「对立统一规律」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DZ-214",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a01_contradiction_hard",
-      "section_id": "sec_A_01",
-      "node_id": "kn_a01_contradiction",
-      "type": "error_diagnosis",
-      "stem": "下列关于「对立统一规律」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「实践是认识的来源、动力、目的和检验真理的唯一标准。」——实践与认识",
-        "「矛盾是事物发展的根本动力，是辩证法的实质与核心。」——对立统一规律",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「物质决定意识，意识具有能动反作用。」——实践与认识"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「物质决定意识，意识具有能动反作用。」这一条 —— 它对应的是「物质与意识」，不是「实践与认识」。「实践与认识」的表述是：实践是认识的来源、动力、目的和检验真理的唯一标准。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZ-214",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a01_contradiction_feyn",
@@ -1453,27 +1264,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a01_practice_med",
-      "section_id": "sec_A_01",
-      "node_id": "kn_a01_practice",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：实践是认识的来源、动力、目的和检验真理的唯一标准。",
-      "options": [
-        "对立统一规律",
-        "物质与意识",
-        "哲学是世界观",
-        "实践与认识"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「实践与认识」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DZ-127",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a01_practice_feyn",
       "section_id": "sec_A_01",
       "node_id": "kn_a01_practice",
@@ -1504,48 +1294,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a03_practice_med",
-      "section_id": "sec_A_03",
-      "node_id": "kn_a03_practice",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。",
-      "options": [
-        "实践与认识",
-        "主要矛盾与矛盾的主要方面",
-        "矛盾的普遍性与特殊性",
-        "哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「实践与认识」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-SJL-003",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a03_practice_hard",
-      "section_id": "sec_A_03",
-      "node_id": "kn_a03_practice",
-      "type": "error_diagnosis",
-      "stem": "下列关于「实践与认识」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。」——实践与认识",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。」——主要矛盾与矛盾的主要方面",
-        "「抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。」——主要矛盾与矛盾的主要方面"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。」这一条 —— 它对应的是「矛盾的普遍性与特殊性」，不是「主要矛盾与矛盾的主要方面」。「主要矛盾与矛盾的主要方面」的表述是：抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SJL-003",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a03_practice_apply",
@@ -1581,27 +1329,6 @@
       "source_chunk_id": "CH-MDL-045",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a03_general_hard",
-      "section_id": "sec_A_03",
-      "node_id": "kn_a03_general",
-      "type": "error_diagnosis",
-      "stem": "下列关于「矛盾的普遍性与特殊性」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。」——主要矛盾与矛盾的主要方面",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。」——矛盾的普遍性与特殊性",
-        "「抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。」——主要矛盾与矛盾的主要方面"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。」这一条 —— 它对应的是「实践与认识」，不是「主要矛盾与矛盾的主要方面」。「主要矛盾与矛盾的主要方面」的表述是：抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MDL-045",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1659,27 +1386,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a03_principal_hard",
-      "section_id": "sec_A_03",
-      "node_id": "kn_a03_principal",
-      "type": "error_diagnosis",
-      "stem": "下列关于「主要矛盾与矛盾的主要方面」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。」——矛盾的普遍性与特殊性",
-        "「共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。」——矛盾的普遍性与特殊性",
-        "「抓主要矛盾和矛盾的主要方面，是具体问题具体分析的关键。」——主要矛盾与矛盾的主要方面"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。」这一条 —— 它对应的是「实践与认识」，不是「矛盾的普遍性与特殊性」。「矛盾的普遍性与特殊性」的表述是：共性寓于个性之中，个性包含共性，是矛盾问题的精髓（《矛盾论》）。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MDL-049",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a03_principal_feyn",
       "section_id": "sec_A_03",
       "node_id": "kn_a03_principal",
@@ -1710,48 +1416,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a04_core_med",
-      "section_id": "sec_A_04",
-      "node_id": "kn_a04_core",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：列宁把对立面的统一确立为辩证法的实质与核心。",
-      "options": [
-        "辩证法、逻辑、认识论三者一致",
-        "对立统一是辩证法的核心",
-        "哲学是世界观",
-        "能动的反映论"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「对立统一是辩证法的核心」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-ZXBJ-150",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a04_core_hard",
-      "section_id": "sec_A_04",
-      "node_id": "kn_a04_core",
-      "type": "error_diagnosis",
-      "stem": "下列关于「对立统一是辩证法的核心」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「列宁把对立面的统一确立为辩证法的实质与核心。」——对立统一是辩证法的核心",
-        "「认识是人对客观世界的能动反映，由现象到本质不断深入。」——能动的反映论",
-        "「三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。」——能动的反映论",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。」这一条 —— 它对应的是「辩证法、逻辑、认识论三者一致」，不是「能动的反映论」。「能动的反映论」的表述是：认识是人对客观世界的能动反映，由现象到本质不断深入。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZXBJ-150",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a04_core_feyn",
@@ -1803,27 +1467,6 @@
       "source_chunk_id": "CH-ZXBJ-115",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a04_unity_hard",
-      "section_id": "sec_A_04",
-      "node_id": "kn_a04_unity",
-      "type": "error_diagnosis",
-      "stem": "下列关于「辩证法、逻辑、认识论三者一致」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「列宁把对立面的统一确立为辩证法的实质与核心。」——能动的反映论",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。」——辩证法、逻辑、认识论三者一致",
-        "「认识是人对客观世界的能动反映，由现象到本质不断深入。」——能动的反映论"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「列宁把对立面的统一确立为辩证法的实质与核心。」这一条 —— 它对应的是「对立统一是辩证法的核心」，不是「能动的反映论」。「能动的反映论」的表述是：认识是人对客观世界的能动反映，由现象到本质不断深入。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZXBJ-115",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1881,27 +1524,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a04_reflect_hard",
-      "section_id": "sec_A_04",
-      "node_id": "kn_a04_reflect",
-      "type": "error_diagnosis",
-      "stem": "下列关于「能动的反映论」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。」——辩证法、逻辑、认识论三者一致",
-        "「列宁把对立面的统一确立为辩证法的实质与核心。」——辩证法、逻辑、认识论三者一致",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「认识是人对客观世界的能动反映，由现象到本质不断深入。」——能动的反映论"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「列宁把对立面的统一确立为辩证法的实质与核心。」这一条 —— 它对应的是「对立统一是辩证法的核心」，不是「辩证法、逻辑、认识论三者一致」。「辩证法、逻辑、认识论三者一致」的表述是：三者是同一唯物辩证法的不同侧面，在唯物主义基础上统一。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZXBJ-299",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a04_reflect_feyn",
       "section_id": "sec_A_04",
       "node_id": "kn_a04_reflect",
@@ -1951,27 +1573,6 @@
       "source_chunk_id": "CH-GDGB-085",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a05_transition_hard",
-      "section_id": "sec_A_05",
-      "node_id": "kn_a05_transition",
-      "type": "error_diagnosis",
-      "stem": "下列关于「过渡时期」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会主义按劳分配，共产主义高级阶段按需分配。」——按劳与按需分配",
-        "「共产主义分第一阶段（社会主义）与高级阶段。」——按劳与按需分配",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」——过渡时期"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「共产主义分第一阶段（社会主义）与高级阶段。」这一条 —— 它对应的是「共产主义两个阶段」，不是「按劳与按需分配」。「按劳与按需分配」的表述是：社会主义按劳分配，共产主义高级阶段按需分配。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GDGB-085",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -2029,27 +1630,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a05_twostage_hard",
-      "section_id": "sec_A_05",
-      "node_id": "kn_a05_twostage",
-      "type": "error_diagnosis",
-      "stem": "下列关于「共产主义两个阶段」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会主义按劳分配，共产主义高级阶段按需分配。」——按劳与按需分配",
-        "「共产主义分第一阶段（社会主义）与高级阶段。」——共产主义两个阶段",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」——按劳与按需分配"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」这一条 —— 它对应的是「过渡时期」，不是「按劳与按需分配」。「按劳与按需分配」的表述是：社会主义按劳分配，共产主义高级阶段按需分配。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GDGB-049",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a05_twostage_feyn",
       "section_id": "sec_A_05",
       "node_id": "kn_a05_twostage",
@@ -2103,27 +1683,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a05_distribution_hard",
-      "section_id": "sec_A_05",
-      "node_id": "kn_a05_distribution",
-      "type": "error_diagnosis",
-      "stem": "下列关于「按劳与按需分配」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会主义按劳分配，共产主义高级阶段按需分配。」——按劳与按需分配",
-        "「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」——共产主义两个阶段",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「共产主义分第一阶段（社会主义）与高级阶段。」——共产主义两个阶段"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」这一条 —— 它对应的是「过渡时期」，不是「共产主义两个阶段」。「共产主义两个阶段」的表述是：共产主义分第一阶段（社会主义）与高级阶段。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GDGB-050",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a05_distribution_feyn",
       "section_id": "sec_A_05",
       "node_id": "kn_a05_distribution",
@@ -2154,48 +1713,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a06_class_med",
-      "section_id": "sec_A_06",
-      "node_id": "kn_a06_class",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：至今一切社会的历史都是阶级斗争的历史，阶级斗争是阶级社会发展的直接动力。",
-      "options": [
-        "哲学是世界观",
-        "阶级斗争是历史动力",
-        "无产阶级历史使命",
-        "资产阶级历史作用与矛盾"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「阶级斗争是历史动力」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-XY-013",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a06_class_hard",
-      "section_id": "sec_A_06",
-      "node_id": "kn_a06_class",
-      "type": "error_diagnosis",
-      "stem": "下列关于「阶级斗争是历史动力」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。」——无产阶级历史使命",
-        "「至今一切社会的历史都是阶级斗争的历史，阶级斗争是阶级社会发展的直接动力。」——阶级斗争是历史动力",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「无产阶级是资本主义的掘墓人，须组织成为阶级、建立政党，解放全人类。」——无产阶级历史使命"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。」这一条 —— 它对应的是「资产阶级历史作用与矛盾」，不是「无产阶级历史使命」。「无产阶级历史使命」的表述是：无产阶级是资本主义的掘墓人，须组织成为阶级、建立政党，解放全人类。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-XY-013",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a06_class_feyn",
@@ -2251,27 +1768,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a06_bourgeois_med",
-      "section_id": "sec_A_06",
-      "node_id": "kn_a06_bourgeois",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。",
-      "options": [
-        "无产阶级历史使命",
-        "哲学是世界观",
-        "阶级斗争是历史动力",
-        "资产阶级历史作用与矛盾"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「资产阶级历史作用与矛盾」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-XY-072",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a06_bourgeois_feyn",
       "section_id": "sec_A_06",
       "node_id": "kn_a06_bourgeois",
@@ -2302,48 +1798,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a06_mission_med",
-      "section_id": "sec_A_06",
-      "node_id": "kn_a06_mission",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：无产阶级是资本主义的掘墓人，须组织成为阶级、建立政党，解放全人类。",
-      "options": [
-        "资产阶级历史作用与矛盾",
-        "哲学是世界观",
-        "阶级斗争是历史动力",
-        "无产阶级历史使命"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「无产阶级历史使命」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-XY-099",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a06_mission_hard",
-      "section_id": "sec_A_06",
-      "node_id": "kn_a06_mission",
-      "type": "error_diagnosis",
-      "stem": "下列关于「无产阶级历史使命」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「至今一切社会的历史都是阶级斗争的历史，阶级斗争是阶级社会发展的直接动力。」——资产阶级历史作用与矛盾",
-        "「资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。」——资产阶级历史作用与矛盾",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「无产阶级是资本主义的掘墓人，须组织成为阶级、建立政党，解放全人类。」——无产阶级历史使命"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「至今一切社会的历史都是阶级斗争的历史，阶级斗争是阶级社会发展的直接动力。」这一条 —— 它对应的是「阶级斗争是历史动力」，不是「资产阶级历史作用与矛盾」。「资产阶级历史作用与矛盾」的表述是：资产阶级创造巨大生产力，但生产社会化与私人占有的基本矛盾注定其历史暂时性。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-XY-099",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a06_mission_feyn",
@@ -2378,48 +1832,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_a07_social_med",
-      "section_id": "sec_A_07",
-      "node_id": "kn_a07_social",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：不是意识决定生活，而是生活决定意识；意识是现实物质生活过程的反映。",
-      "options": [
-        "物质生产是历史前提",
-        "社会存在决定社会意识",
-        "哲学是世界观",
-        "生产力与交往形式的矛盾"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「社会存在决定社会意识」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DYZT-026",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a07_social_hard",
-      "section_id": "sec_A_07",
-      "node_id": "kn_a07_social",
-      "type": "error_diagnosis",
-      "stem": "下列关于「社会存在决定社会意识」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「不是意识决定生活，而是生活决定意识；意识是现实物质生活过程的反映。」——社会存在决定社会意识",
-        "「物质生活资料的生产是一切历史的基本条件与前提。」——生产力与交往形式的矛盾",
-        "「一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。」——生产力与交往形式的矛盾",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「物质生活资料的生产是一切历史的基本条件与前提。」这一条 —— 它对应的是「物质生产是历史前提」，不是「生产力与交往形式的矛盾」。「生产力与交往形式的矛盾」的表述是：一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DYZT-026",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a07_social_feyn",
       "section_id": "sec_A_07",
       "node_id": "kn_a07_social",
@@ -2450,48 +1862,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a07_production_med",
-      "section_id": "sec_A_07",
-      "node_id": "kn_a07_production",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：物质生活资料的生产是一切历史的基本条件与前提。",
-      "options": [
-        "哲学是世界观",
-        "生产力与交往形式的矛盾",
-        "物质生产是历史前提",
-        "社会存在决定社会意识"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「物质生产是历史前提」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DYZT-024",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a07_production_hard",
-      "section_id": "sec_A_07",
-      "node_id": "kn_a07_production",
-      "type": "error_diagnosis",
-      "stem": "下列关于「物质生产是历史前提」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。」——生产力与交往形式的矛盾",
-        "「不是意识决定生活，而是生活决定意识；意识是现实物质生活过程的反映。」——生产力与交往形式的矛盾",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「物质生活资料的生产是一切历史的基本条件与前提。」——物质生产是历史前提"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「不是意识决定生活，而是生活决定意识；意识是现实物质生活过程的反映。」这一条 —— 它对应的是「社会存在决定社会意识」，不是「生产力与交往形式的矛盾」。「生产力与交往形式的矛盾」的表述是：一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DYZT-024",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a07_production_feyn",
@@ -2540,27 +1910,6 @@
       "answer": "D",
       "explanation": "「生产力与交往形式的矛盾」：一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。其余三项分别是其他概念的表述，注意别把相邻概念的定义当成本概念的定义。",
       "difficulty": 0.3,
-      "source_chunk_id": "CH-DYZT-096",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a07_contradiction_med",
-      "section_id": "sec_A_07",
-      "node_id": "kn_a07_contradiction",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：一切历史冲突根源于生产力与交往形式（生产关系）之间的矛盾。",
-      "options": [
-        "物质生产是历史前提",
-        "生产力与交往形式的矛盾",
-        "社会存在决定社会意识",
-        "哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「生产力与交往形式的矛盾」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
       "source_chunk_id": "CH-DYZT-096",
       "authority_status": "reviewed",
       "exempt_marked": false,
@@ -2617,27 +1966,6 @@
       "source_chunk_id": "CH-ZBL-001",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a08_commodity_hard",
-      "section_id": "sec_A_08",
-      "node_id": "kn_a08_commodity",
-      "type": "error_diagnosis",
-      "stem": "下列关于「商品二因素与劳动二重性」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「资本家无偿占有工人剩余劳动创造的剩余价值，是资本主义剥削的本质。」——资本主义积累的一般规律",
-        "「商品是使用价值与价值的统一，劳动二重性是理解政治经济学的枢纽。」——商品二因素与劳动二重性",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「积累导致财富与贫困两极积累，激化基本矛盾，最终『剥夺者被剥夺』。」——资本主义积累的一般规律"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「资本家无偿占有工人剩余劳动创造的剩余价值，是资本主义剥削的本质。」这一条 —— 它对应的是「剩余价值的生产」，不是「资本主义积累的一般规律」。「资本主义积累的一般规律」的表述是：积累导致财富与贫困两极积累，激化基本矛盾，最终『剥夺者被剥夺』。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZBL-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -2748,27 +2076,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a08_accumulation_med",
-      "section_id": "sec_A_08",
-      "node_id": "kn_a08_accumulation",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：积累导致财富与贫困两极积累，激化基本矛盾，最终『剥夺者被剥夺』。",
-      "options": [
-        "剩余价值的生产",
-        "哲学是世界观",
-        "商品二因素与劳动二重性",
-        "资本主义积累的一般规律"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「资本主义积累的一般规律」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-ZBL-908",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a08_accumulation_feyn",
       "section_id": "sec_A_08",
       "node_id": "kn_a08_accumulation",
@@ -2818,27 +2125,6 @@
       "source_chunk_id": "CH-FLNZ-023",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a09_smash_hard",
-      "section_id": "sec_A_09",
-      "node_id": "kn_a09_smash",
-      "type": "error_diagnosis",
-      "stem": "下列关于「打碎旧国家机器」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「公社以人民武装代替常备军、公职人员选举可撤换领工人工资，是新型国家政权。」——国家是阶级压迫工具",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「工人阶级不能简单掌握现成国家机器来达到自己的目的，必须打碎它。」——打碎旧国家机器",
-        "「国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。」——国家是阶级压迫工具"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「公社以人民武装代替常备军、公职人员选举可撤换领工人工资，是新型国家政权。」这一条 —— 它对应的是「巴黎公社：劳动者政治形式」，不是「国家是阶级压迫工具」。「国家是阶级压迫工具」的表述是：国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FLNZ-023",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -2896,27 +2182,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a09_commune_hard",
-      "section_id": "sec_A_09",
-      "node_id": "kn_a09_commune",
-      "type": "error_diagnosis",
-      "stem": "下列关于「巴黎公社：劳动者政治形式」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。」——国家是阶级压迫工具",
-        "「公社以人民武装代替常备军、公职人员选举可撤换领工人工资，是新型国家政权。」——巴黎公社：劳动者政治形式",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「工人阶级不能简单掌握现成国家机器来达到自己的目的，必须打碎它。」——国家是阶级压迫工具"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「工人阶级不能简单掌握现成国家机器来达到自己的目的，必须打碎它。」这一条 —— 它对应的是「打碎旧国家机器」，不是「国家是阶级压迫工具」。「国家是阶级压迫工具」的表述是：国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FLNZ-107",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a09_commune_feyn",
       "section_id": "sec_A_09",
       "node_id": "kn_a09_commune",
@@ -2970,27 +2235,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a09_state_med",
-      "section_id": "sec_A_09",
-      "node_id": "kn_a09_state",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：国家本质上是维护统治阶级利益、镇压被压迫阶级的工具。",
-      "options": [
-        "巴黎公社：劳动者政治形式",
-        "国家是阶级压迫工具",
-        "哲学是世界观",
-        "打碎旧国家机器"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「国家是阶级压迫工具」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-FLNZ-020",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a09_state_feyn",
       "section_id": "sec_A_09",
       "node_id": "kn_a09_state",
@@ -3021,48 +2265,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a11_basicq_med",
-      "section_id": "sec_A_11",
-      "node_id": "kn_a11_basicq",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：思维和存在的关系问题是全部哲学特别是近代哲学的重大的基本问题。",
-      "options": [
-        "费尔巴哈的‘半截子唯物主义’",
-        "哲学基本问题",
-        "哲学是世界观",
-        "黑格尔辩证法的合理内核"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「哲学基本问题」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-FEBH-025",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a11_basicq_hard",
-      "section_id": "sec_A_11",
-      "node_id": "kn_a11_basicq",
-      "type": "error_diagnosis",
-      "stem": "下列关于「哲学基本问题」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「思维和存在的关系问题是全部哲学特别是近代哲学的重大的基本问题。」——哲学基本问题",
-        "「费尔巴哈自然观唯物、历史观唯心，唯物主义未能贯彻到底。」——黑格尔辩证法的合理内核",
-        "「黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。」——黑格尔辩证法的合理内核"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「费尔巴哈自然观唯物、历史观唯心，唯物主义未能贯彻到底。」这一条 —— 它对应的是「费尔巴哈的‘半截子唯物主义’」，不是「黑格尔辩证法的合理内核」。「黑格尔辩证法的合理内核」的表述是：黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FEBH-025",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a11_basicq_feyn",
@@ -3118,27 +2320,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a11_half_hard",
-      "section_id": "sec_A_11",
-      "node_id": "kn_a11_half",
-      "type": "error_diagnosis",
-      "stem": "下列关于「费尔巴哈的‘半截子唯物主义’」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「思维和存在的关系问题是全部哲学特别是近代哲学的重大的基本问题。」——黑格尔辩证法的合理内核",
-        "「费尔巴哈自然观唯物、历史观唯心，唯物主义未能贯彻到底。」——费尔巴哈的‘半截子唯物主义’",
-        "「黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。」——黑格尔辩证法的合理内核"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「思维和存在的关系问题是全部哲学特别是近代哲学的重大的基本问题。」这一条 —— 它对应的是「哲学基本问题」，不是「黑格尔辩证法的合理内核」。「黑格尔辩证法的合理内核」的表述是：黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FEBH-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a11_half_feyn",
       "section_id": "sec_A_11",
       "node_id": "kn_a11_half",
@@ -3185,27 +2366,6 @@
       "answer": "A",
       "explanation": "「黑格尔辩证法的合理内核」：黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。其余三项分别是其他概念的表述，注意别把相邻概念的定义当成本概念的定义。",
       "difficulty": 0.3,
-      "source_chunk_id": "CH-FEBH-011",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a11_dialectic_med",
-      "section_id": "sec_A_11",
-      "node_id": "kn_a11_dialectic",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：黑格尔哲学以唯心主义外壳包裹辩证法合理内核，马克思批判地继承。",
-      "options": [
-        "哲学是世界观",
-        "黑格尔辩证法的合理内核",
-        "费尔巴哈的‘半截子唯物主义’",
-        "哲学基本问题"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「黑格尔辩证法的合理内核」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
       "source_chunk_id": "CH-FEBH-011",
       "authority_status": "reviewed",
       "exempt_marked": false,
@@ -3266,27 +2426,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a12_alienation_hard",
-      "section_id": "sec_A_12",
-      "node_id": "kn_a12_alienation",
-      "type": "error_diagnosis",
-      "stem": "下列关于「异化劳动四重规定」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「劳动产品、劳动活动、人的类本质、人与人的异化。」——异化劳动四重规定",
-        "「共产主义是私有财产即人的自我异化的积极的扬弃。」——共产主义是异化的积极扬弃",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「异化劳动是私有财产的根源，二者相互作用。」——共产主义是异化的积极扬弃"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「异化劳动是私有财产的根源，二者相互作用。」这一条 —— 它对应的是「异化劳动与私有财产」，不是「共产主义是异化的积极扬弃」。「共产主义是异化的积极扬弃」的表述是：共产主义是私有财产即人的自我异化的积极的扬弃。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SG-196",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a12_alienation_feyn",
       "section_id": "sec_A_12",
       "node_id": "kn_a12_alienation",
@@ -3336,27 +2475,6 @@
       "source_chunk_id": "CH-SG-157",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a12_private_hard",
-      "section_id": "sec_A_12",
-      "node_id": "kn_a12_private",
-      "type": "error_diagnosis",
-      "stem": "下列关于「异化劳动与私有财产」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「共产主义是私有财产即人的自我异化的积极的扬弃。」——共产主义是异化的积极扬弃",
-        "「异化劳动是私有财产的根源，二者相互作用。」——异化劳动与私有财产",
-        "「劳动产品、劳动活动、人的类本质、人与人的异化。」——共产主义是异化的积极扬弃",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「劳动产品、劳动活动、人的类本质、人与人的异化。」这一条 —— 它对应的是「异化劳动四重规定」，不是「共产主义是异化的积极扬弃」。「共产主义是异化的积极扬弃」的表述是：共产主义是私有财产即人的自我异化的积极的扬弃。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SG-157",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -3414,27 +2532,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a12_communism_med",
-      "section_id": "sec_A_12",
-      "node_id": "kn_a12_communism",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：共产主义是私有财产即人的自我异化的积极的扬弃。",
-      "options": [
-        "哲学是世界观",
-        "异化劳动四重规定",
-        "共产主义是异化的积极扬弃",
-        "异化劳动与私有财产"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「共产主义是异化的积极扬弃」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-SG-239",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a12_communism_feyn",
       "section_id": "sec_A_12",
       "node_id": "kn_a12_communism",
@@ -3465,27 +2562,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a13_worldview_hard",
-      "section_id": "sec_A_13",
-      "node_id": "kn_a13_worldview",
-      "type": "error_diagnosis",
-      "stem": "下列关于「辩证唯物主义是世界观与方法论」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「世界的物质性、物质第一性意识第二性、世界及其规律的可知性。」——哲学唯物主义三项特征",
-        "「普遍联系、运动发展、量变质变（飞跃）、对立面斗争是发展的实在内容。」——哲学唯物主义三项特征",
-        "「辩证唯物主义是对自然界的辩证看法与唯物主义解释的统一；历史唯物主义是其原理向社会生活的推广。」——辩证唯物主义是世界观与方法论",
-        "「社会存在决定社会意识；决定社会面貌的是物质资料的生产方式而非地理环境或人口增长。」——历史唯物主义＝原理的推广"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「普遍联系、运动发展、量变质变（飞跃）、对立面斗争是发展的实在内容。」这一条 —— 它对应的是「辩证法四个基本特征」，不是「哲学唯物主义三项特征」。「哲学唯物主义三项特征」的表述是：世界的物质性、物质第一性意识第二性、世界及其规律的可知性。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SDL-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a13_worldview_feyn",
@@ -3541,27 +2617,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a13_dialectics_hard",
-      "section_id": "sec_A_13",
-      "node_id": "kn_a13_dialectics",
-      "type": "error_diagnosis",
-      "stem": "下列关于「辩证法四个基本特征」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会存在决定社会意识；决定社会面貌的是物质资料的生产方式而非地理环境或人口增长。」——历史唯物主义＝原理的推广",
-        "「辩证唯物主义是对自然界的辩证看法与唯物主义解释的统一；历史唯物主义是其原理向社会生活的推广。」——哲学唯物主义三项特征",
-        "「世界的物质性、物质第一性意识第二性、世界及其规律的可知性。」——哲学唯物主义三项特征",
-        "「普遍联系、运动发展、量变质变（飞跃）、对立面斗争是发展的实在内容。」——辩证法四个基本特征"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「辩证唯物主义是对自然界的辩证看法与唯物主义解释的统一；历史唯物主义是其原理向社会生活的推广。」这一条 —— 它对应的是「辩证唯物主义是世界观与方法论」，不是「哲学唯物主义三项特征」。「哲学唯物主义三项特征」的表述是：世界的物质性、物质第一性意识第二性、世界及其规律的可知性。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SDL-004",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a13_dialectics_feyn",
       "section_id": "sec_A_13",
       "node_id": "kn_a13_dialectics",
@@ -3576,48 +2631,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a13_materialism_med",
-      "section_id": "sec_A_13",
-      "node_id": "kn_a13_materialism",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：世界的物质性、物质第一性意识第二性、世界及其规律的可知性。",
-      "options": [
-        "历史唯物主义＝原理的推广",
-        "哲学唯物主义三项特征",
-        "辩证法四个基本特征",
-        "辩证唯物主义是世界观与方法论"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「哲学唯物主义三项特征」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-SDL-013",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a13_materialism_hard",
-      "section_id": "sec_A_13",
-      "node_id": "kn_a13_materialism",
-      "type": "error_diagnosis",
-      "stem": "下列关于「哲学唯物主义三项特征」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「普遍联系、运动发展、量变质变（飞跃）、对立面斗争是发展的实在内容。」——辩证法四个基本特征",
-        "「社会存在决定社会意识；决定社会面貌的是物质资料的生产方式而非地理环境或人口增长。」——历史唯物主义＝原理的推广",
-        "「世界的物质性、物质第一性意识第二性、世界及其规律的可知性。」——哲学唯物主义三项特征",
-        "「辩证唯物主义是对自然界的辩证看法与唯物主义解释的统一；历史唯物主义是其原理向社会生活的推广。」——辩证法四个基本特征"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「辩证唯物主义是对自然界的辩证看法与唯物主义解释的统一；历史唯物主义是其原理向社会生活的推广。」这一条 —— 它对应的是「辩证唯物主义是世界观与方法论」，不是「辩证法四个基本特征」。「辩证法四个基本特征」的表述是：普遍联系、运动发展、量变质变（飞跃）、对立面斗争是发展的实在内容。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SDL-013",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a13_materialism_feyn",
@@ -3705,48 +2718,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_a14_unity_med",
-      "section_id": "sec_A_14",
-      "node_id": "kn_a14_unity",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。",
-      "options": [
-        "阶级与国家",
-        "辩证唯物主义与历史唯物主义不可分割",
-        "生产方式是社会发展的决定力量",
-        "经济基础与上层建筑"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「辩证唯物主义与历史唯物主义不可分割」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DZJX-251",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_a14_unity_hard",
-      "section_id": "sec_A_14",
-      "node_id": "kn_a14_unity",
-      "type": "error_diagnosis",
-      "stem": "下列关于「辩证唯物主义与历史唯物主义不可分割」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会形态是经济基础与上层建筑的统一；经济基础决定上层建筑，上层建筑反作用于经济基础。」——经济基础与上层建筑",
-        "「阶级社会的矛盾必然表现为阶级斗争；国家是阶级统治的工具，是上层建筑中最主要的东西。」——阶级与国家",
-        "「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」——辩证唯物主义与历史唯物主义不可分割",
-        "「生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。」——经济基础与上层建筑"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。」这一条 —— 它对应的是「生产方式是社会发展的决定力量」，不是「经济基础与上层建筑」。「经济基础与上层建筑」的表述是：社会形态是经济基础与上层建筑的统一；经济基础决定上层建筑，上层建筑反作用于经济基础。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZJX-251",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a14_unity_feyn",
       "section_id": "sec_A_14",
       "node_id": "kn_a14_unity",
@@ -3777,27 +2748,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_a14_mode_hard",
-      "section_id": "sec_A_14",
-      "node_id": "kn_a14_mode",
-      "type": "error_diagnosis",
-      "stem": "下列关于「生产方式是社会发展的决定力量」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」——经济基础与上层建筑",
-        "「生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。」——生产方式是社会发展的决定力量",
-        "「阶级社会的矛盾必然表现为阶级斗争；国家是阶级统治的工具，是上层建筑中最主要的东西。」——阶级与国家",
-        "「社会形态是经济基础与上层建筑的统一；经济基础决定上层建筑，上层建筑反作用于经济基础。」——经济基础与上层建筑"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」这一条 —— 它对应的是「辩证唯物主义与历史唯物主义不可分割」，不是「经济基础与上层建筑」。「经济基础与上层建筑」的表述是：社会形态是经济基础与上层建筑的统一；经济基础决定上层建筑，上层建筑反作用于经济基础。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZJX-267",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_a14_mode_feyn",
@@ -3906,27 +2856,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a14_classstate_hard",
-      "section_id": "sec_A_14",
-      "node_id": "kn_a14_classstate",
-      "type": "error_diagnosis",
-      "stem": "下列关于「阶级与国家」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」——生产方式是社会发展的决定力量",
-        "「社会形态是经济基础与上层建筑的统一；经济基础决定上层建筑，上层建筑反作用于经济基础。」——经济基础与上层建筑",
-        "「生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。」——生产方式是社会发展的决定力量",
-        "「阶级社会的矛盾必然表现为阶级斗争；国家是阶级统治的工具，是上层建筑中最主要的东西。」——阶级与国家"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」这一条 —— 它对应的是「辩证唯物主义与历史唯物主义不可分割」，不是「生产方式是社会发展的决定力量」。「生产方式是社会发展的决定力量」的表述是：生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZJX-323",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a14_classstate_feyn",
       "section_id": "sec_A_14",
       "node_id": "kn_a14_classstate",
@@ -3964,27 +2893,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_a14_masses_hard",
-      "section_id": "sec_A_14",
-      "node_id": "kn_a14_masses",
-      "type": "error_diagnosis",
-      "stem": "下列关于「人民群众是历史的创造者」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。」——生产方式是社会发展的决定力量",
-        "「社会形态是经济基础与上层建筑的统一；经济基础决定上层建筑，上层建筑反作用于经济基础。」——经济基础与上层建筑",
-        "「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」——生产方式是社会发展的决定力量",
-        "「从生产方式是社会存在和发展的基础出发，肯定人民群众的决定作用，同时承认个别人物的重大作用。」——人民群众是历史的创造者"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「马克思主义哲学是由一整块钢铁铸成的整体，去掉任一基本前提即离开客观真理。」这一条 —— 它对应的是「辩证唯物主义与历史唯物主义不可分割」，不是「生产方式是社会发展的决定力量」。「生产方式是社会发展的决定力量」的表述是：生产方式是社会发展变革的最后决定力量；生产力与生产关系的矛盾是一切社会形态的基本矛盾。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DZJX-426",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_a14_masses_feyn",
       "section_id": "sec_A_14",
       "node_id": "kn_a14_masses",
@@ -4011,6 +2919,22 @@
       "explanation": "参考要点：先复述「人民群众是历史的创造者」的科学内涵，再指出它成立的条件与边界，最后用一个具体事例说明怎样按这一原理办事；只堆术语、不给例子或把原理绝对化都要扣分。",
       "difficulty": 0.7,
       "source_chunk_id": "CH-DZJX-426",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_a03_practice_feyn",
+      "section_id": "sec_A_03",
+      "node_id": "kn_a03_practice",
+      "type": "error_diagnosis",
+      "stem": "（论述/费曼）请用自己的话阐述「实践与认识」的含义，并指出一种常见的错误理解。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：「实践与认识」——实践是认识的来源、动力、目的和检验真理的唯一标准（《实践论》）。常见错误理解：把核心关系颠倒、丢掉关键限定，或把相邻概念的表述套到「实践与认识」头上。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-SJL-003",
       "authority_status": "reviewed",
       "exempt_marked": false,
       "trial_only": false,

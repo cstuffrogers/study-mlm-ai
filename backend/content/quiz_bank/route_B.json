@@ -537,48 +537,6 @@
       "application": true
     },
     {
-      "id": "q_kn_b00_practice_med",
-      "section_id": "sec_B_00",
-      "node_id": "kn_b00_practice",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：把对象当作感性的人的活动、当作实践去理解。",
-      "options": [
-        "唯物论与唯心论两大阵营",
-        "实践观点",
-        "社会关系总和",
-        "哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「实践观点」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-MLTH-001",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b00_practice_hard",
-      "section_id": "sec_B_00",
-      "node_id": "kn_b00_practice",
-      "type": "error_diagnosis",
-      "stem": "下列关于「实践观点」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「把对象当作感性的人的活动、当作实践去理解。」——实践观点",
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——唯物论与唯心论两大阵营",
-        "「人的本质实际上是一切社会关系的总和。」——哲学是世界观",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「人的本质实际上是一切社会关系的总和。」这一条 —— 它对应的是「社会关系总和」，不是「哲学是世界观」。「哲学是世界观」的表述是：哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b00_practice_feyn",
       "section_id": "sec_B_00",
       "node_id": "kn_b00_practice",
@@ -632,27 +590,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b00_social_hard",
-      "section_id": "sec_B_00",
-      "node_id": "kn_b00_social",
-      "type": "error_diagnosis",
-      "stem": "下列关于「社会关系总和」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「人的本质实际上是一切社会关系的总和。」——社会关系总和",
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——唯物论与唯心论两大阵营",
-        "「把对象当作感性的人的活动、当作实践去理解。」——哲学是世界观"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「把对象当作感性的人的活动、当作实践去理解。」这一条 —— 它对应的是「实践观点」，不是「哲学是世界观」。「哲学是世界观」的表述是：哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b00_social_feyn",
       "section_id": "sec_B_00",
       "node_id": "kn_b00_social",
@@ -683,48 +620,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b01_theory_med",
-      "section_id": "sec_B_01",
-      "node_id": "kn_b01_theory",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：没有革命的理论就不会有革命的运动。",
-      "options": [
-        "革命理论的作用",
-        "职业革命家组织",
-        "灌输论",
-        "哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「革命理论的作用」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-ZMB-042",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b01_theory_hard",
-      "section_id": "sec_B_01",
-      "node_id": "kn_b01_theory",
-      "type": "error_diagnosis",
-      "stem": "下列关于「革命理论的作用」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会主义意识须从外部灌输，不能自发产生。」——职业革命家组织",
-        "「没有革命的理论就不会有革命的运动。」——革命理论的作用",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「集中统一、纪律严明的职业革命家组织是迫切任务。」——职业革命家组织"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「社会主义意识须从外部灌输，不能自发产生。」这一条 —— 它对应的是「灌输论」，不是「职业革命家组织」。「职业革命家组织」的表述是：集中统一、纪律严明的职业革命家组织是迫切任务。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZMB-042",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b01_theory_feyn",
@@ -776,27 +671,6 @@
       "source_chunk_id": "CH-ZMB-072",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b01_instill_hard",
-      "section_id": "sec_B_01",
-      "node_id": "kn_b01_instill",
-      "type": "error_diagnosis",
-      "stem": "下列关于「灌输论」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「社会主义意识须从外部灌输，不能自发产生。」——灌输论",
-        "「集中统一、纪律严明的职业革命家组织是迫切任务。」——职业革命家组织",
-        "「没有革命的理论就不会有革命的运动。」——职业革命家组织"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「没有革命的理论就不会有革命的运动。」这一条 —— 它对应的是「革命理论的作用」，不是「职业革命家组织」。「职业革命家组织」的表述是：集中统一、纪律严明的职业革命家组织是迫切任务。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZMB-072",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -854,27 +728,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b01_vanguard_hard",
-      "section_id": "sec_B_01",
-      "node_id": "kn_b01_vanguard",
-      "type": "error_diagnosis",
-      "stem": "下列关于「职业革命家组织」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「集中统一、纪律严明的职业革命家组织是迫切任务。」——职业革命家组织",
-        "「社会主义意识须从外部灌输，不能自发产生。」——灌输论",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「没有革命的理论就不会有革命的运动。」——灌输论"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「没有革命的理论就不会有革命的运动。」这一条 —— 它对应的是「革命理论的作用」，不是「灌输论」。「灌输论」的表述是：社会主义意识须从外部灌输，不能自发产生。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-ZMB-097",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b01_vanguard_feyn",
       "section_id": "sec_B_01",
       "node_id": "kn_b01_vanguard",
@@ -905,48 +758,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b02_power_med",
-      "section_id": "sec_B_02",
-      "node_id": "kn_b02_power",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：革命的根本问题是国家政权问题。",
-      "options": [
-        "打碎与重建",
-        "巴黎公社经验",
-        "哲学是世界观",
-        "政权问题"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「政权问题」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-GJGM-015",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b02_power_hard",
-      "section_id": "sec_B_02",
-      "node_id": "kn_b02_power",
-      "type": "error_diagnosis",
-      "stem": "下列关于「政权问题」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「革命的根本问题是国家政权问题。」——政权问题",
-        "「打碎旧官僚军事机器并建立新型国家。」——巴黎公社经验",
-        "「公社是使劳动在经济上获得解放的政治形式。」——巴黎公社经验"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「打碎旧官僚军事机器并建立新型国家。」这一条 —— 它对应的是「打碎与重建」，不是「巴黎公社经验」。「巴黎公社经验」的表述是：公社是使劳动在经济上获得解放的政治形式。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GJGM-015",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b02_power_feyn",
@@ -998,27 +809,6 @@
       "source_chunk_id": "CH-GJGM-121",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b02_smash_hard",
-      "section_id": "sec_B_02",
-      "node_id": "kn_b02_smash",
-      "type": "error_diagnosis",
-      "stem": "下列关于「打碎与重建」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「革命的根本问题是国家政权问题。」——巴黎公社经验",
-        "「公社是使劳动在经济上获得解放的政治形式。」——巴黎公社经验",
-        "「打碎旧官僚军事机器并建立新型国家。」——打碎与重建",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「革命的根本问题是国家政权问题。」这一条 —— 它对应的是「政权问题」，不是「巴黎公社经验」。「巴黎公社经验」的表述是：公社是使劳动在经济上获得解放的政治形式。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GJGM-121",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1076,27 +866,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b02_commune_hard",
-      "section_id": "sec_B_02",
-      "node_id": "kn_b02_commune",
-      "type": "error_diagnosis",
-      "stem": "下列关于「巴黎公社经验」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「公社是使劳动在经济上获得解放的政治形式。」——巴黎公社经验",
-        "「打碎旧官僚军事机器并建立新型国家。」——打碎与重建",
-        "「革命的根本问题是国家政权问题。」——打碎与重建",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「革命的根本问题是国家政权问题。」这一条 —— 它对应的是「政权问题」，不是「打碎与重建」。「打碎与重建」的表述是：打碎旧官僚军事机器并建立新型国家。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GJGM-183",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b02_commune_feyn",
       "section_id": "sec_B_02",
       "node_id": "kn_b02_commune",
@@ -1127,48 +896,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b03_enemy_med",
-      "section_id": "sec_B_03",
-      "node_id": "kn_b03_enemy",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：谁是我们的敌人、谁是我们的朋友，是革命的首要问题。",
-      "options": [
-        "哲学是世界观",
-        "阶级分析方法",
-        "分清敌友",
-        "农民同盟军"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「分清敌友」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-JJFX-002",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b03_enemy_hard",
-      "section_id": "sec_B_03",
-      "node_id": "kn_b03_enemy",
-      "type": "error_diagnosis",
-      "stem": "下列关于「分清敌友」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「贫农是无产阶级最可靠的同盟军。」——农民同盟军",
-        "「以经济地位为基础分析各阶级政治态度。」——农民同盟军",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「谁是我们的敌人、谁是我们的朋友，是革命的首要问题。」——分清敌友"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「以经济地位为基础分析各阶级政治态度。」这一条 —— 它对应的是「阶级分析方法」，不是「农民同盟军」。「农民同盟军」的表述是：贫农是无产阶级最可靠的同盟军。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-JJFX-002",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b03_enemy_feyn",
@@ -1224,27 +951,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b03_method_hard",
-      "section_id": "sec_B_03",
-      "node_id": "kn_b03_method",
-      "type": "error_diagnosis",
-      "stem": "下列关于「阶级分析方法」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「以经济地位为基础分析各阶级政治态度。」——阶级分析方法",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「贫农是无产阶级最可靠的同盟军。」——农民同盟军",
-        "「谁是我们的敌人、谁是我们的朋友，是革命的首要问题。」——农民同盟军"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「谁是我们的敌人、谁是我们的朋友，是革命的首要问题。」这一条 —— 它对应的是「分清敌友」，不是「农民同盟军」。「农民同盟军」的表述是：贫农是无产阶级最可靠的同盟军。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-JJFX-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b03_method_feyn",
       "section_id": "sec_B_03",
       "node_id": "kn_b03_method",
@@ -1275,48 +981,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b03_peasant_med",
-      "section_id": "sec_B_03",
-      "node_id": "kn_b03_peasant",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：贫农是无产阶级最可靠的同盟军。",
-      "options": [
-        "农民同盟军",
-        "哲学是世界观",
-        "阶级分析方法",
-        "分清敌友"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「农民同盟军」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-JJFX-001",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b03_peasant_hard",
-      "section_id": "sec_B_03",
-      "node_id": "kn_b03_peasant",
-      "type": "error_diagnosis",
-      "stem": "下列关于「农民同盟军」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「谁是我们的敌人、谁是我们的朋友，是革命的首要问题。」——阶级分析方法",
-        "「贫农是无产阶级最可靠的同盟军。」——农民同盟军",
-        "「以经济地位为基础分析各阶级政治态度。」——阶级分析方法",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「谁是我们的敌人、谁是我们的朋友，是革命的首要问题。」这一条 —— 它对应的是「分清敌友」，不是「阶级分析方法」。「阶级分析方法」的表述是：以经济地位为基础分析各阶级政治态度。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-JJFX-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b03_peasant_feyn",
@@ -1351,48 +1015,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_b04_massline_med",
-      "section_id": "sec_B_04",
-      "node_id": "kn_b04_massline",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：从群众中来，到群众中去，是基本领导方法。",
-      "options": [
-        "调查研究（领导方法）",
-        "出主意用干部",
-        "群众路线",
-        "哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「群众路线」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-HLDZ-013",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b04_massline_hard",
-      "section_id": "sec_B_04",
-      "node_id": "kn_b04_massline",
-      "type": "error_diagnosis",
-      "stem": "下列关于「群众路线」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「从群众中来，到群众中去，是基本领导方法。」——群众路线",
-        "「领导者的任务主要是出主意、用干部并检查落实。」——出主意用干部",
-        "「没有调查就没有发言权（领导工作中的运用）。」——出主意用干部"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「没有调查就没有发言权（领导工作中的运用）。」这一条 —— 它对应的是「调查研究（领导方法）」，不是「出主意用干部」。「出主意用干部」的表述是：领导者的任务主要是出主意、用干部并检查落实。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-HLDZ-013",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b04_massline_feyn",
       "section_id": "sec_B_04",
       "node_id": "kn_b04_massline",
@@ -1423,48 +1045,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b04_survey_med",
-      "section_id": "sec_B_04",
-      "node_id": "kn_b04_survey",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：没有调查就没有发言权（领导工作中的运用）。",
-      "options": [
-        "哲学是世界观",
-        "群众路线",
-        "出主意用干部",
-        "调查研究（领导方法）"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「调查研究（领导方法）」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-HLDZ-005",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b04_survey_hard",
-      "section_id": "sec_B_04",
-      "node_id": "kn_b04_survey",
-      "type": "error_diagnosis",
-      "stem": "下列关于「调查研究（领导方法）」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「没有调查就没有发言权（领导工作中的运用）。」——调查研究（领导方法）",
-        "「从群众中来，到群众中去，是基本领导方法。」——出主意用干部",
-        "「领导者的任务主要是出主意、用干部并检查落实。」——出主意用干部",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「从群众中来，到群众中去，是基本领导方法。」这一条 —— 它对应的是「群众路线」，不是「出主意用干部」。「出主意用干部」的表述是：领导者的任务主要是出主意、用干部并检查落实。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-HLDZ-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b04_survey_feyn",
@@ -1520,27 +1100,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b04_cadre_med",
-      "section_id": "sec_B_04",
-      "node_id": "kn_b04_cadre",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：领导者的任务主要是出主意、用干部并检查落实。",
-      "options": [
-        "哲学是世界观",
-        "调查研究（领导方法）",
-        "群众路线",
-        "出主意用干部"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「出主意用干部」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-HLDZ-001",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b04_cadre_feyn",
       "section_id": "sec_B_04",
       "node_id": "kn_b04_cadre",
@@ -1571,48 +1130,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b05_survey_med",
-      "section_id": "sec_B_05",
-      "node_id": "kn_b05_survey",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：不了解实际情况就没有发言权，结论产生于调查之后。",
-      "options": [
-        "反对本本主义",
-        "独立自主",
-        "哲学是世界观",
-        "没有调查没有发言权"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「没有调查没有发言权」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-FDBB-020",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b05_survey_hard",
-      "section_id": "sec_B_05",
-      "node_id": "kn_b05_survey",
-      "type": "error_diagnosis",
-      "stem": "下列关于「没有调查没有发言权」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「不了解实际情况就没有发言权，结论产生于调查之后。」——没有调查没有发言权",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「中国革命要靠中国同志了解中国情况，独立自主解决本国问题。」——独立自主",
-        "「反对把书本当教条、脱离实际的照搬，主张理论联系实际。」——独立自主"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「反对把书本当教条、脱离实际的照搬，主张理论联系实际。」这一条 —— 它对应的是「反对本本主义」，不是「独立自主」。「独立自主」的表述是：中国革命要靠中国同志了解中国情况，独立自主解决本国问题。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FDBB-020",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b05_survey_feyn",
@@ -1664,27 +1181,6 @@
       "source_chunk_id": "CH-FDBB-001",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b05_antidogma_hard",
-      "section_id": "sec_B_05",
-      "node_id": "kn_b05_antidogma",
-      "type": "error_diagnosis",
-      "stem": "下列关于「反对本本主义」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「中国革命要靠中国同志了解中国情况，独立自主解决本国问题。」——独立自主",
-        "「反对把书本当教条、脱离实际的照搬，主张理论联系实际。」——反对本本主义",
-        "「不了解实际情况就没有发言权，结论产生于调查之后。」——独立自主",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「不了解实际情况就没有发言权，结论产生于调查之后。」这一条 —— 它对应的是「没有调查没有发言权」，不是「独立自主」。「独立自主」的表述是：中国革命要靠中国同志了解中国情况，独立自主解决本国问题。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FDBB-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1742,27 +1238,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b05_independent_hard",
-      "section_id": "sec_B_05",
-      "node_id": "kn_b05_independent",
-      "type": "error_diagnosis",
-      "stem": "下列关于「独立自主」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「不了解实际情况就没有发言权，结论产生于调查之后。」——反对本本主义",
-        "「反对把书本当教条、脱离实际的照搬，主张理论联系实际。」——反对本本主义",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「中国革命要靠中国同志了解中国情况，独立自主解决本国问题。」——独立自主"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「不了解实际情况就没有发言权，结论产生于调查之后。」这一条 —— 它对应的是「没有调查没有发言权」，不是「反对本本主义」。「反对本本主义」的表述是：反对把书本当教条、脱离实际的照搬，主张理论联系实际。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-FDBB-013",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b05_independent_feyn",
       "section_id": "sec_B_05",
       "node_id": "kn_b05_independent",
@@ -1812,48 +1287,6 @@
       "source_chunk_id": "CH-DGZY-035",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b06_monopoly_med",
-      "section_id": "sec_B_06",
-      "node_id": "kn_b06_monopoly",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：垄断代替自由竞争是帝国主义的根本经济特征。",
-      "options": [
-        "帝国主义五大基本特征",
-        "帝国主义是垄断资本主义",
-        "政治经济发展不平衡规律",
-        "哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「帝国主义是垄断资本主义」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DGZY-035",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b06_monopoly_hard",
-      "section_id": "sec_B_06",
-      "node_id": "kn_b06_monopoly",
-      "type": "error_diagnosis",
-      "stem": "下列关于「帝国主义是垄断资本主义」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「发展不平衡使社会主义革命可能首先在一国或数国取得胜利。」——政治经济发展不平衡规律",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「垄断代替自由竞争是帝国主义的根本经济特征。」——帝国主义是垄断资本主义",
-        "「垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。」——政治经济发展不平衡规律"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。」这一条 —— 它对应的是「帝国主义五大基本特征」，不是「政治经济发展不平衡规律」。「政治经济发展不平衡规律」的表述是：发展不平衡使社会主义革命可能首先在一国或数国取得胜利。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DGZY-035",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1911,48 +1344,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b06_five_med",
-      "section_id": "sec_B_06",
-      "node_id": "kn_b06_five",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。",
-      "options": [
-        "帝国主义五大基本特征",
-        "哲学是世界观",
-        "帝国主义是垄断资本主义",
-        "政治经济发展不平衡规律"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「帝国主义五大基本特征」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DGZY-148",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b06_five_hard",
-      "section_id": "sec_B_06",
-      "node_id": "kn_b06_five",
-      "type": "error_diagnosis",
-      "stem": "下列关于「帝国主义五大基本特征」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「垄断代替自由竞争是帝国主义的根本经济特征。」——政治经济发展不平衡规律",
-        "「发展不平衡使社会主义革命可能首先在一国或数国取得胜利。」——政治经济发展不平衡规律",
-        "「垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。」——帝国主义五大基本特征",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「垄断代替自由竞争是帝国主义的根本经济特征。」这一条 —— 它对应的是「帝国主义是垄断资本主义」，不是「政治经济发展不平衡规律」。「政治经济发展不平衡规律」的表述是：发展不平衡使社会主义革命可能首先在一国或数国取得胜利。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DGZY-148",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b06_five_feyn",
       "section_id": "sec_B_06",
       "node_id": "kn_b06_five",
@@ -2002,48 +1393,6 @@
       "source_chunk_id": "CH-DGZY-137",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b06_onesided_med",
-      "section_id": "sec_B_06",
-      "node_id": "kn_b06_onesided",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：发展不平衡使社会主义革命可能首先在一国或数国取得胜利。",
-      "options": [
-        "帝国主义是垄断资本主义",
-        "帝国主义五大基本特征",
-        "哲学是世界观",
-        "政治经济发展不平衡规律"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「政治经济发展不平衡规律」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-DGZY-137",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b06_onesided_hard",
-      "section_id": "sec_B_06",
-      "node_id": "kn_b06_onesided",
-      "type": "error_diagnosis",
-      "stem": "下列关于「政治经济发展不平衡规律」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「垄断代替自由竞争是帝国主义的根本经济特征。」——帝国主义五大基本特征",
-        "「发展不平衡使社会主义革命可能首先在一国或数国取得胜利。」——政治经济发展不平衡规律",
-        "「垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。」——帝国主义五大基本特征"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「垄断代替自由竞争是帝国主义的根本经济特征。」这一条 —— 它对应的是「帝国主义是垄断资本主义」，不是「帝国主义五大基本特征」。「帝国主义五大基本特征」的表述是：垄断组织、金融资本与金融寡头、资本输出、国际垄断同盟、列强瓜分世界。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-DGZY-137",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -2101,27 +1450,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b08_strategy_hard",
-      "section_id": "sec_B_08",
-      "node_id": "kn_b08_strategy",
-      "type": "error_diagnosis",
-      "stem": "下列关于「战略与策略的统一」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「先锋队须在议会、工会等一切场合争取群众，反对自我孤立。」——领袖·政党·阶级·群众",
-        "「把对共产主义的忠诚同善于灵活运用一切斗争形式结合起来。」——战略与策略的统一",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。」——领袖·政党·阶级·群众"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「先锋队须在议会、工会等一切场合争取群众，反对自我孤立。」这一条 —— 它对应的是「争取群众是胜利根本」，不是「领袖·政党·阶级·群众」。「领袖·政党·阶级·群众」的表述是：群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-YZB-127",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b08_strategy_feyn",
       "section_id": "sec_B_08",
       "node_id": "kn_b08_strategy",
@@ -2171,27 +1499,6 @@
       "source_chunk_id": "CH-YZB-031",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b08_masses_hard",
-      "section_id": "sec_B_08",
-      "node_id": "kn_b08_masses",
-      "type": "error_diagnosis",
-      "stem": "下列关于「争取群众是胜利根本」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「把对共产主义的忠诚同善于灵活运用一切斗争形式结合起来。」——领袖·政党·阶级·群众",
-        "「先锋队须在议会、工会等一切场合争取群众，反对自我孤立。」——争取群众是胜利根本",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。」——领袖·政党·阶级·群众"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「把对共产主义的忠诚同善于灵活运用一切斗争形式结合起来。」这一条 —— 它对应的是「战略与策略的统一」，不是「领袖·政党·阶级·群众」。「领袖·政党·阶级·群众」的表述是：群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-YZB-031",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -2249,27 +1556,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b08_leadership_med",
-      "section_id": "sec_B_08",
-      "node_id": "kn_b08_leadership",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：群众划分为阶级、阶级由政党领导、政党由领袖集团主持，四者不可分离。",
-      "options": [
-        "战略与策略的统一",
-        "哲学是世界观",
-        "争取群众是胜利根本",
-        "领袖·政党·阶级·群众"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「领袖·政党·阶级·群众」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-YZB-001",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b08_leadership_feyn",
       "section_id": "sec_B_08",
       "node_id": "kn_b08_leadership",
@@ -2302,48 +1588,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_b09_peasant_med",
-      "section_id": "sec_B_09",
-      "node_id": "kn_b09_peasant",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：农民问题是中国革命的基本问题，贫农是革命的先锋。",
-      "options": [
-        "哲学是世界观",
-        "调查研究方法",
-        "农民问题与贫农先锋",
-        "革命不是请客吃饭"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「农民问题与贫农先锋」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-HN-011",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b09_peasant_hard",
-      "section_id": "sec_B_09",
-      "node_id": "kn_b09_peasant",
-      "type": "error_diagnosis",
-      "stem": "下列关于「农民问题与贫农先锋」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「革命是一个阶级推翻一个阶级的暴烈行动，不能温良恭俭让。」——调查研究方法",
-        "「通过实地考察、开调查会掌握第一手材料，反对空谈。」——调查研究方法",
-        "「农民问题是中国革命的基本问题，贫农是革命的先锋。」——农民问题与贫农先锋"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「革命是一个阶级推翻一个阶级的暴烈行动，不能温良恭俭让。」这一条 —— 它对应的是「革命不是请客吃饭」，不是「调查研究方法」。「调查研究方法」的表述是：通过实地考察、开调查会掌握第一手材料，反对空谈。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-HN-011",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b09_peasant_feyn",
       "section_id": "sec_B_09",
       "node_id": "kn_b09_peasant",
@@ -2374,48 +1618,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b09_revolution_med",
-      "section_id": "sec_B_09",
-      "node_id": "kn_b09_revolution",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：革命是一个阶级推翻一个阶级的暴烈行动，不能温良恭俭让。",
-      "options": [
-        "革命不是请客吃饭",
-        "调查研究方法",
-        "哲学是世界观",
-        "农民问题与贫农先锋"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「革命不是请客吃饭」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-HN-009",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b09_revolution_hard",
-      "section_id": "sec_B_09",
-      "node_id": "kn_b09_revolution",
-      "type": "error_diagnosis",
-      "stem": "下列关于「革命不是请客吃饭」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「革命是一个阶级推翻一个阶级的暴烈行动，不能温良恭俭让。」——革命不是请客吃饭",
-        "「农民问题是中国革命的基本问题，贫农是革命的先锋。」——调查研究方法",
-        "「通过实地考察、开调查会掌握第一手材料，反对空谈。」——调查研究方法"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「农民问题是中国革命的基本问题，贫农是革命的先锋。」这一条 —— 它对应的是「农民问题与贫农先锋」，不是「调查研究方法」。「调查研究方法」的表述是：通过实地考察、开调查会掌握第一手材料，反对空谈。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-HN-009",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b09_revolution_feyn",
@@ -2471,27 +1673,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_b09_investigate_med",
-      "section_id": "sec_B_09",
-      "node_id": "kn_b09_investigate",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：通过实地考察、开调查会掌握第一手材料，反对空谈。",
-      "options": [
-        "调查研究方法",
-        "革命不是请客吃饭",
-        "哲学是世界观",
-        "农民问题与贫农先锋"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「调查研究方法」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-HN-002",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b09_investigate_feyn",
       "section_id": "sec_B_09",
       "node_id": "kn_b09_investigate",
@@ -2524,48 +1705,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_b10_shishi_med",
-      "section_id": "sec_B_10",
-      "node_id": "kn_b10_shishi",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：从客观实际出发，研究事物的内部联系即规律性。",
-      "options": [
-        "主观主义批判",
-        "哲学是世界观",
-        "理论联系实际",
-        "实事求是"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「实事求是」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-GZ-013",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b10_shishi_hard",
-      "section_id": "sec_B_10",
-      "node_id": "kn_b10_shishi",
-      "type": "error_diagnosis",
-      "stem": "下列关于「实事求是」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「从客观实际出发，研究事物的内部联系即规律性。」——实事求是",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「学习的目的全在于应用，要有的放矢。」——理论联系实际",
-        "「教条主义、经验主义脱离实际，是党性不纯的表现。」——理论联系实际"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「教条主义、经验主义脱离实际，是党性不纯的表现。」这一条 —— 它对应的是「主观主义批判」，不是「理论联系实际」。「理论联系实际」的表述是：学习的目的全在于应用，要有的放矢。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GZ-013",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_b10_shishi_feyn",
       "section_id": "sec_B_10",
       "node_id": "kn_b10_shishi",
@@ -2596,48 +1735,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_b10_subjectivism_med",
-      "section_id": "sec_B_10",
-      "node_id": "kn_b10_subjectivism",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：教条主义、经验主义脱离实际，是党性不纯的表现。",
-      "options": [
-        "哲学是世界观",
-        "理论联系实际",
-        "实事求是",
-        "主观主义批判"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「主观主义批判」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-GZ-001",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b10_subjectivism_hard",
-      "section_id": "sec_B_10",
-      "node_id": "kn_b10_subjectivism",
-      "type": "error_diagnosis",
-      "stem": "下列关于「主观主义批判」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「教条主义、经验主义脱离实际，是党性不纯的表现。」——主观主义批判",
-        "「从客观实际出发，研究事物的内部联系即规律性。」——理论联系实际",
-        "「学习的目的全在于应用，要有的放矢。」——理论联系实际"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「从客观实际出发，研究事物的内部联系即规律性。」这一条 —— 它对应的是「实事求是」，不是「理论联系实际」。「理论联系实际」的表述是：学习的目的全在于应用，要有的放矢。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GZ-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_b10_subjectivism_feyn",
@@ -2686,27 +1783,6 @@
       "answer": "D",
       "explanation": "「理论联系实际」：学习的目的全在于应用，要有的放矢。其余三项分别是其他概念的表述，注意别把相邻概念的定义当成本概念的定义。",
       "difficulty": 0.3,
-      "source_chunk_id": "CH-GZ-015",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_b10_method_med",
-      "section_id": "sec_B_10",
-      "node_id": "kn_b10_method",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：学习的目的全在于应用，要有的放矢。",
-      "options": [
-        "理论联系实际",
-        "哲学是世界观",
-        "实事求是",
-        "主观主义批判"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「理论联系实际」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
       "source_chunk_id": "CH-GZ-015",
       "authority_status": "reviewed",
       "exempt_marked": false,

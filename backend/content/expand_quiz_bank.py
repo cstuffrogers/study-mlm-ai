@@ -1,21 +1,25 @@
 """
-题库扩充脚本：为每个知识点生成 易/中/难 3 道客观题 + 1 道费曼自述题。
+题库扩充脚本：为每个知识点生成 1 道客观题 + 费曼自述题 + 案例应用题。
 
-D169 重做（用户实报「题目重复太多、完全没有易中难层次」）：
+D169 重做过一次干扰项（用户实报「题目重复太多、完全没有易中难层次」）：
 旧版每档的干扰项都是套话 ——
   「将「X」与其他概念混淆，并未准确表述其含义」「认为「X」的含义与实际定义相反」
   「在学习和运用中，应当完整把握「X」的含义，避免片面理解」
-四选项里只有一个「读起来像正确答案」，**不认识知识点也能选对**，于是 103 个知识点
-生成了 103 道几乎一样的题，正确项也全是「应当完整把握X」这类空话。这就是重复感的根因。
+四选项里只有一个「读起来像正确答案」，**不认识知识点也能选对**。
+于是改成拿知识图谱里其它知识点人工撰写的定义做选项。
 
-新版一律拿**真内容**做选项（来源：知识图谱里其它知识点人工撰写的定义），
-四个选项都是像样的理论表述，必须真分清概念才选得出，且三档考的技能各不相同：
+D176（用户再报：「所谓不同难度实际上就换了一种表述而已」）——
+分档本身才是重复的来源：易＝四段定义里挑一条、中＝给定义反查概念名、
+难＝四条配对里找张冠李戴，**三种问法共用同一张「概念—定义」对照表**，
+把同一句定义问了三遍；难档 88 个知识点的题干还是同一句模板。
+所以中/难两档（gen_med / gen_hard）全部删掉，一个知识点只留：
 
-  易 concept_discrimination 0.30  四个真实定义里挑出属于「X」的那一条
-  中 logical_deduction      0.50  给出定义，反查它对应哪个概念名
-  难 error_diagnosis        0.70  四条「定义 —— 概念名」配对里找出标错（张冠李戴）的那条
-  拓展 费曼 subjective      0.70  自述含义 + 指出常见错误理解（每卷只出 1 道，见 band_quota）
+  客观题 concept_discrimination 0.30  四段真实定义里挑出属于「X」的那一条
+  费曼   subjective            0.70  自述含义 + 指出常见错误理解
+  应用   application           0.70  拿准确定义当材料，举现实例子
 
+同一知识点的这几道变体只用于**重考轮换** —— 一套卷子里每个知识点只出一道，
+口径见 services.quiz_service._select_items。
 答案字母按题目 id 做确定性打乱，不再恒为 A。
 """
 import json
@@ -33,9 +37,8 @@ import chapter_content as cc
 
 QUIZ_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'quiz_bank')
 
-# 难度分档（与 quiz_service.BAND_* / 前端 LocalQuiz.bandOf 同口径）
+# 客观题难度（与 quiz_service 同口径：低难度客观题）
 EASY_MAX = 0.45
-MED_MAX = 0.65
 LETTERS = 'ABCD'
 
 
@@ -73,12 +76,15 @@ def concept_pool(node: dict, node_map: dict) -> list:
     route = sec.split('_')[0]
     own = _norm(node.get('definition') or '')
     same_sec, same_route, other = [], [], []
+    seen: set[str] = {own}   # 定义重复的知识点（如「实践」与「革命的实践」）只取一条，
+                            # 否则干扰项不足 3 条，客观题生成不出来（D176）
     for nid, n in node_map.items():
         if nid == node.get('id'):
             continue
         d = (n.get('definition') or '').strip()
-        if not d or _norm(d) == own:
+        if not d or _norm(d) in seen:
             continue
+        seen.add(_norm(d))
         pair = (n.get('name', ''), d)
         nsec = n.get('section_id') or ''
         if nsec and nsec == sec:
@@ -132,57 +138,6 @@ def gen_easy(node: dict, pool: list, sec_id: str):
     )
 
 
-def gen_med(node: dict, pool: list, sec_id: str):
-    """中：给出定义，反查是哪一个概念。"""
-    name = node['name']
-    defn = (node.get('definition') or '').strip()
-    if not defn:
-        return None
-    others = [n for (n, _d) in pool][:3]
-    if len(others) < 3:
-        return None
-    packed = _pack(name, others, node['id'], 'med')
-    if not packed:
-        return None
-    options, answer = packed
-    return _item(
-        node, sec_id, 'med', 'logical_deduction',
-        f'下列哪一概念，其表述是：{defn}',
-        options, answer,
-        f'这句话讲的是「{name}」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。',
-        0.50,
-    )
-
-
-def gen_hard(node: dict, pool: list, sec_id: str):
-    """难：四条「定义——概念名」配对里，找出把名字标错的那条（张冠李戴）。"""
-    name = node['name']
-    defn = (node.get('definition') or '').strip()
-    if not defn or len(pool) < 3:
-        return None
-    pairs = [(name, defn)] + pool[:3]
-    pairs = pairs[:4]                      # 4 个真实概念（含自己）
-    lines = [f'「{d}」——{n}' for (n, d) in pairs]
-    # 把第 2 条的定义挂到第 3 条的名字上：两个概念共用一个定义，必有一错
-    if len(pairs) < 3:
-        return None
-    wrong = f'「{pairs[1][1]}」——{pairs[2][0]}'
-    correct_line = f'「{pairs[1][1]}」——{pairs[1][0]}'
-    distract = [ln for ln in lines if ln not in (wrong, correct_line)]
-    packed = _pack(wrong, distract, node['id'], 'hard')
-    if not packed:
-        return None
-    options, answer = packed
-    return _item(
-        node, sec_id, 'hard', 'error_diagnosis',
-        f'下列关于「{name}」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？',
-        options, answer,
-        f'标错的是「{pairs[1][1]}」这一条 —— 它对应的是「{pairs[1][0]}」，不是「{pairs[2][0]}」。'
-        f'「{pairs[2][0]}」的表述是：{pairs[2][1]}',
-        0.70, exempt=True,   # 里含刻意标错的配对，立场守门豁免
-    )
-
-
 def gen_feyn(node: dict, sec_id: str):
     """拓展（费曼自述）：不伪造原文，只要求复述 + 指出常见错误理解。"""
     name = node['name']
@@ -223,12 +178,14 @@ def gen_apply(node: dict, pool: list, sec_id: str):
 
 
 def gen_questions(node: dict, sec_id: str, pool: list = None):
-    """为一个知识点生成 易/中/难 3 道客观题 + 费曼题 + 案例应用题（缺料时跳过）。"""
+    """为一个知识点生成客观题 + 费曼题 + 案例应用题（缺料时跳过）。
+
+    D176：不再生成「中（反查概念名）」「难（找张冠李戴）」—— 它们和客观题共用
+    同一张概念—定义对照表，只是换个问法，一套卷子里全出来就成了重复题。
+    """
     pool = pool if pool is not None else []
     out = [q for q in (
         gen_easy(node, pool, sec_id),
-        gen_med(node, pool, sec_id),
-        gen_hard(node, pool, sec_id),
         gen_feyn(node, sec_id),
         gen_apply(node, pool, sec_id),
     ) if q]
@@ -238,11 +195,7 @@ def gen_questions(node: dict, sec_id: str, pool: list = None):
 def difficulty_band(difficulty: float, subjective: bool) -> str:
     if subjective:
         return 'feynman'
-    if difficulty < EASY_MAX:
-        return 'easy'
-    elif difficulty < MED_MAX:
-        return 'medium'
-    return 'hard'
+    return 'easy' if difficulty < EASY_MAX else 'objective'
 
 
 def bank_band(it: dict) -> str:
@@ -283,14 +236,10 @@ def process_file(filename: str, section_ids: set, node_map: dict):
             continue
         bands = node_bands.get(nid, set())
 
-        # 需要补充的难度
+        # 需要补充的题型（D176：只补客观题 / 费曼 / 应用，不再补中、难档）
         needed = []
-        if 'easy' not in bands:
+        if 'easy' not in bands and 'objective' not in bands:
             needed.append('easy')
-        if 'medium' not in bands:
-            needed.append('medium')
-        if 'hard' not in bands:
-            needed.append('hard')
         if 'feynman' not in bands:
             needed.append('feynman')
         if 'apply' not in bands:

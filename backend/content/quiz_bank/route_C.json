@@ -481,48 +481,6 @@
       "application": true
     },
     {
-      "id": "q_kn_c00_standard_med",
-      "section_id": "sec_C_00",
-      "node_id": "kn_c00_standard",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：实践是检验真理、也是检验政策的标准。",
-      "options": [
-        "实践标准",
-        "从现实关系出发",
-        "唯物论与唯心论两大阵营",
-        "哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「实践标准」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-MLTH-002",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c00_standard_hard",
-      "section_id": "sec_C_00",
-      "node_id": "kn_c00_standard",
-      "type": "error_diagnosis",
-      "stem": "下列关于「实践标准」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「实践是检验真理、也是检验政策的标准。」——实践标准",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「建设要从现实社会关系出发，实事求是。」——哲学是世界观",
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——唯物论与唯心论两大阵营"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「建设要从现实社会关系出发，实事求是。」这一条 —— 它对应的是「从现实关系出发」，不是「哲学是世界观」。「哲学是世界观」的表述是：哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-002",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c00_standard_feyn",
       "section_id": "sec_C_00",
       "node_id": "kn_c00_standard",
@@ -572,27 +530,6 @@
       "source_chunk_id": "CH-MLTH-005",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c00_reality_hard",
-      "section_id": "sec_C_00",
-      "node_id": "kn_c00_reality",
-      "type": "error_diagnosis",
-      "stem": "下列关于「从现实关系出发」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「各种世界观归根到底归结为唯物论和唯心论两种世界观的斗争；哲学思想有阶级性。」——唯物论与唯心论两大阵营",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「建设要从现实社会关系出发，实事求是。」——从现实关系出发",
-        "「实践是检验真理、也是检验政策的标准。」——哲学是世界观"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「实践是检验真理、也是检验政策的标准。」这一条 —— 它对应的是「实践标准」，不是「哲学是世界观」。「哲学是世界观」的表述是：哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -650,69 +587,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c01_transition_hard",
-      "section_id": "sec_C_01",
-      "node_id": "kn_c01_transition",
-      "type": "error_diagnosis",
-      "stem": "下列关于「过渡时期」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「社会主义按劳分配，共产主义高级阶段按需分配。」——按劳与按需分配",
-        "「共产主义分第一阶段（社会主义）与高级阶段。」——按劳与按需分配",
-        "「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」——过渡时期",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「共产主义分第一阶段（社会主义）与高级阶段。」这一条 —— 它对应的是「共产主义两个阶段」，不是「按劳与按需分配」。「按劳与按需分配」的表述是：社会主义按劳分配，共产主义高级阶段按需分配。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GDGB-085",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c01_twostage_med",
-      "section_id": "sec_C_01",
-      "node_id": "kn_c01_twostage",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：共产主义分第一阶段（社会主义）与高级阶段。",
-      "options": [
-        "按劳与按需分配",
-        "过渡时期",
-        "共产主义两个阶段",
-        "哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「共产主义两个阶段」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-GDGB-049",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c01_twostage_hard",
-      "section_id": "sec_C_01",
-      "node_id": "kn_c01_twostage",
-      "type": "error_diagnosis",
-      "stem": "下列关于「共产主义两个阶段」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「社会主义按劳分配，共产主义高级阶段按需分配。」——按劳与按需分配",
-        "「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」——按劳与按需分配",
-        "「共产主义分第一阶段（社会主义）与高级阶段。」——共产主义两个阶段"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」这一条 —— 它对应的是「过渡时期」，不是「按劳与按需分配」。「按劳与按需分配」的表述是：社会主义按劳分配，共产主义高级阶段按需分配。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GDGB-049",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c01_distribution_easy",
       "section_id": "sec_C_01",
       "node_id": "kn_c01_distribution",
@@ -730,69 +604,6 @@
       "source_chunk_id": "CH-GDGB-050",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c01_distribution_hard",
-      "section_id": "sec_C_01",
-      "node_id": "kn_c01_distribution",
-      "type": "error_diagnosis",
-      "stem": "下列关于「按劳与按需分配」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」——共产主义两个阶段",
-        "「社会主义按劳分配，共产主义高级阶段按需分配。」——按劳与按需分配",
-        "「共产主义分第一阶段（社会主义）与高级阶段。」——共产主义两个阶段"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。」这一条 —— 它对应的是「过渡时期」，不是「共产主义两个阶段」。「共产主义两个阶段」的表述是：共产主义分第一阶段（社会主义）与高级阶段。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-GDGB-050",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c02_twostep_med",
-      "section_id": "sec_C_02",
-      "node_id": "kn_c02_twostep",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。",
-      "options": [
-        "哲学是世界观",
-        "无产阶级领导权",
-        "新民主主义社会",
-        "中国革命两步走"
-      ],
-      "answer": "D",
-      "explanation": "这句话讲的是「中国革命两步走」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-XMZ-009",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c02_twostep_hard",
-      "section_id": "sec_C_02",
-      "node_id": "kn_c02_twostep",
-      "type": "error_diagnosis",
-      "stem": "下列关于「中国革命两步走」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。」——中国革命两步走",
-        "「新民主主义革命必须由无产阶级（经过共产党）领导。」——无产阶级领导权",
-        "「过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。」——无产阶级领导权",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。」这一条 —— 它对应的是「新民主主义社会」，不是「无产阶级领导权」。「无产阶级领导权」的表述是：新民主主义革命必须由无产阶级（经过共产党）领导。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-XMZ-009",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -850,27 +661,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c02_society_hard",
-      "section_id": "sec_C_02",
-      "node_id": "kn_c02_society",
-      "type": "error_diagnosis",
-      "stem": "下列关于「新民主主义社会」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。」——无产阶级领导权",
-        "「过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。」——新民主主义社会",
-        "「新民主主义革命必须由无产阶级（经过共产党）领导。」——无产阶级领导权",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。」这一条 —— 它对应的是「中国革命两步走」，不是「无产阶级领导权」。「无产阶级领导权」的表述是：新民主主义革命必须由无产阶级（经过共产党）领导。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-XMZ-040",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c02_society_feyn",
       "section_id": "sec_C_02",
       "node_id": "kn_c02_society",
@@ -920,27 +710,6 @@
       "source_chunk_id": "CH-XMZ-021",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c02_leadership_hard",
-      "section_id": "sec_C_02",
-      "node_id": "kn_c02_leadership",
-      "type": "error_diagnosis",
-      "stem": "下列关于「无产阶级领导权」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。」——新民主主义社会",
-        "「过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。」——新民主主义社会",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「新民主主义革命必须由无产阶级（经过共产党）领导。」——无产阶级领导权"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「第一步新民主主义革命，第二步社会主义革命，前者为后者准备条件。」这一条 —— 它对应的是「中国革命两步走」，不是「新民主主义社会」。「新民主主义社会」的表述是：过渡性社会形态，多种经济成分并存，社会主义因素居领导地位。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-XMZ-021",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -998,27 +767,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c03_nature_hard",
-      "section_id": "sec_C_03",
-      "node_id": "kn_c03_nature",
-      "type": "error_diagnosis",
-      "stem": "下列关于「人民民主专政」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「政权巩固要与经济建设相结合。」——经济建设任务",
-        "「对人民民主与对敌人专政的统一。」——人民民主专政",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「工人阶级领导、以工农联盟为基础。」——经济建设任务"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「工人阶级领导、以工农联盟为基础。」这一条 —— 它对应的是「工农联盟」，不是「经济建设任务」。「经济建设任务」的表述是：政权巩固要与经济建设相结合。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-RMZ-010",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c03_nature_feyn",
       "section_id": "sec_C_03",
       "node_id": "kn_c03_nature",
@@ -1049,48 +797,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_c03_alliance_med",
-      "section_id": "sec_C_03",
-      "node_id": "kn_c03_alliance",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：工人阶级领导、以工农联盟为基础。",
-      "options": [
-        "工农联盟",
-        "哲学是世界观",
-        "人民民主专政",
-        "经济建设任务"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「工农联盟」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-RMZ-034",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c03_alliance_hard",
-      "section_id": "sec_C_03",
-      "node_id": "kn_c03_alliance",
-      "type": "error_diagnosis",
-      "stem": "下列关于「工农联盟」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「政权巩固要与经济建设相结合。」——经济建设任务",
-        "「工人阶级领导、以工农联盟为基础。」——工农联盟",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「对人民民主与对敌人专政的统一。」——经济建设任务"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「对人民民主与对敌人专政的统一。」这一条 —— 它对应的是「人民民主专政」，不是「经济建设任务」。「经济建设任务」的表述是：政权巩固要与经济建设相结合。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-RMZ-034",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_c03_alliance_feyn",
@@ -1142,27 +848,6 @@
       "source_chunk_id": "CH-RMZ-035",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c03_build_hard",
-      "section_id": "sec_C_03",
-      "node_id": "kn_c03_build",
-      "type": "error_diagnosis",
-      "stem": "下列关于「经济建设任务」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「工人阶级领导、以工农联盟为基础。」——工农联盟",
-        "「对人民民主与对敌人专政的统一。」——工农联盟",
-        "「政权巩固要与经济建设相结合。」——经济建设任务",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「对人民民主与对敌人专政的统一。」这一条 —— 它对应的是「人民民主专政」，不是「工农联盟」。「工农联盟」的表述是：工人阶级领导、以工农联盟为基础。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-RMZ-035",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1220,27 +905,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c04_factor_hard",
-      "section_id": "sec_C_04",
-      "node_id": "kn_c04_factor",
-      "type": "error_diagnosis",
-      "stem": "下列关于「调动一切积极因素」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「调动一切积极因素为社会主义事业服务是基本方针。」——调动一切积极因素",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「以农业为基础、工业为主导，正确处理农轻重关系。」——统筹兼顾",
-        "「兼顾国家、集体、个人三者利益。」——统筹兼顾"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「以农业为基础、工业为主导，正确处理农轻重关系。」这一条 —— 它对应的是「农轻重关系」，不是「统筹兼顾」。「统筹兼顾」的表述是：兼顾国家、集体、个人三者利益。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SDGX-003",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c04_factor_feyn",
       "section_id": "sec_C_04",
       "node_id": "kn_c04_factor",
@@ -1290,27 +954,6 @@
       "source_chunk_id": "CH-SDGX-010",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c04_agric_hard",
-      "section_id": "sec_C_04",
-      "node_id": "kn_c04_agric",
-      "type": "error_diagnosis",
-      "stem": "下列关于「农轻重关系」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「调动一切积极因素为社会主义事业服务是基本方针。」——统筹兼顾",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「兼顾国家、集体、个人三者利益。」——统筹兼顾",
-        "「以农业为基础、工业为主导，正确处理农轻重关系。」——农轻重关系"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「调动一切积极因素为社会主义事业服务是基本方针。」这一条 —— 它对应的是「调动一切积极因素」，不是「统筹兼顾」。「统筹兼顾」的表述是：兼顾国家、集体、个人三者利益。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SDGX-010",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1368,27 +1011,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c04_balance_hard",
-      "section_id": "sec_C_04",
-      "node_id": "kn_c04_balance",
-      "type": "error_diagnosis",
-      "stem": "下列关于「统筹兼顾」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「兼顾国家、集体、个人三者利益。」——统筹兼顾",
-        "「以农业为基础、工业为主导，正确处理农轻重关系。」——农轻重关系",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「调动一切积极因素为社会主义事业服务是基本方针。」——农轻重关系"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「调动一切积极因素为社会主义事业服务是基本方针。」这一条 —— 它对应的是「调动一切积极因素」，不是「农轻重关系」。「农轻重关系」的表述是：以农业为基础、工业为主导，正确处理农轻重关系。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-SDGX-020",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c04_balance_feyn",
       "section_id": "sec_C_04",
       "node_id": "kn_c04_balance",
@@ -1438,27 +1060,6 @@
       "source_chunk_id": "CH-LM-003",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c05_twokinds_hard",
-      "section_id": "sec_C_05",
-      "node_id": "kn_c05_twokinds",
-      "type": "error_diagnosis",
-      "stem": "下列关于「两类矛盾」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「两类矛盾在一定条件下可相互转化。」——矛盾转化",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「敌我矛盾用专政，人民内部矛盾用民主方法解决。」——矛盾转化",
-        "「敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。」——两类矛盾"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「敌我矛盾用专政，人民内部矛盾用民主方法解决。」这一条 —— 它对应的是「不同方法解决」，不是「矛盾转化」。「矛盾转化」的表述是：两类矛盾在一定条件下可相互转化。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-LM-003",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -1516,27 +1117,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c05_method_hard",
-      "section_id": "sec_C_05",
-      "node_id": "kn_c05_method",
-      "type": "error_diagnosis",
-      "stem": "下列关于「不同方法解决」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「两类矛盾在一定条件下可相互转化。」——矛盾转化",
-        "「敌我矛盾用专政，人民内部矛盾用民主方法解决。」——不同方法解决",
-        "「敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。」——矛盾转化",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。」这一条 —— 它对应的是「两类矛盾」，不是「矛盾转化」。「矛盾转化」的表述是：两类矛盾在一定条件下可相互转化。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-LM-013",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c05_method_feyn",
       "section_id": "sec_C_05",
       "node_id": "kn_c05_method",
@@ -1590,27 +1170,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c05_transform_hard",
-      "section_id": "sec_C_05",
-      "node_id": "kn_c05_transform",
-      "type": "error_diagnosis",
-      "stem": "下列关于「矛盾转化」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「两类矛盾在一定条件下可相互转化。」——矛盾转化",
-        "「敌我矛盾用专政，人民内部矛盾用民主方法解决。」——不同方法解决",
-        "「敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。」——不同方法解决",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「敌我矛盾（对抗性）与人民内部矛盾（非对抗性）。」这一条 —— 它对应的是「两类矛盾」，不是「不同方法解决」。「不同方法解决」的表述是：敌我矛盾用专政，人民内部矛盾用民主方法解决。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-LM-064",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c05_transform_feyn",
       "section_id": "sec_C_05",
       "node_id": "kn_c05_transform",
@@ -1641,48 +1200,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_c06_twoprod_med",
-      "section_id": "sec_C_06",
-      "node_id": "kn_c06_twoprod",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：历史决定因素是生活资料的生产和人自身的生产（种的繁衍）。",
-      "options": [
-        "哲学是世界观",
-        "国家的起源与消亡",
-        "两种生产",
-        "私有制与阶级的起源"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「两种生产」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-JT-002",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c06_twoprod_hard",
-      "section_id": "sec_C_06",
-      "node_id": "kn_c06_twoprod",
-      "type": "error_diagnosis",
-      "stem": "下列关于「两种生产」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「生产力发展、社会分工导致私有制与阶级分化。」——国家的起源与消亡",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「历史决定因素是生活资料的生产和人自身的生产（种的繁衍）。」——两种生产",
-        "「国家是阶级矛盾不可调和的产物，随阶级消失而消亡。」——国家的起源与消亡"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「生产力发展、社会分工导致私有制与阶级分化。」这一条 —— 它对应的是「私有制与阶级的起源」，不是「国家的起源与消亡」。「国家的起源与消亡」的表述是：国家是阶级矛盾不可调和的产物，随阶级消失而消亡。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-JT-002",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_c06_twoprod_feyn",
@@ -1731,27 +1248,6 @@
       "answer": "A",
       "explanation": "「私有制与阶级的起源」：生产力发展、社会分工导致私有制与阶级分化。其余三项分别是其他概念的表述，注意别把相邻概念的定义当成本概念的定义。",
       "difficulty": 0.3,
-      "source_chunk_id": "CH-JT-121",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c06_origin_med",
-      "section_id": "sec_C_06",
-      "node_id": "kn_c06_origin",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：生产力发展、社会分工导致私有制与阶级分化。",
-      "options": [
-        "私有制与阶级的起源",
-        "哲学是世界观",
-        "两种生产",
-        "国家的起源与消亡"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「私有制与阶级的起源」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
       "source_chunk_id": "CH-JT-121",
       "authority_status": "reviewed",
       "exempt_marked": false,
@@ -1812,27 +1308,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c06_state_hard",
-      "section_id": "sec_C_06",
-      "node_id": "kn_c06_state",
-      "type": "error_diagnosis",
-      "stem": "下列关于「国家的起源与消亡」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「生产力发展、社会分工导致私有制与阶级分化。」——私有制与阶级的起源",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「历史决定因素是生活资料的生产和人自身的生产（种的繁衍）。」——私有制与阶级的起源",
-        "「国家是阶级矛盾不可调和的产物，随阶级消失而消亡。」——国家的起源与消亡"
-      ],
-      "answer": "C",
-      "explanation": "标错的是「历史决定因素是生活资料的生产和人自身的生产（种的繁衍）。」这一条 —— 它对应的是「两种生产」，不是「私有制与阶级的起源」。「私有制与阶级的起源」的表述是：生产力发展、社会分工导致私有制与阶级分化。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-JT-175",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c06_state_feyn",
       "section_id": "sec_C_06",
       "node_id": "kn_c06_state",
@@ -1865,48 +1340,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_c07_service_med",
-      "section_id": "sec_C_07",
-      "node_id": "kn_c07_service",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：文艺为人民大众、首先为工农兵服务。",
-      "options": [
-        "普及与提高·两个标准",
-        "文艺为人民大众",
-        "文艺与政治",
-        "哲学是世界观"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「文艺为人民大众」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-YA-002",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c07_service_hard",
-      "section_id": "sec_C_07",
-      "node_id": "kn_c07_service",
-      "type": "error_diagnosis",
-      "stem": "下列关于「文艺为人民大众」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「普及与提高辩证统一，政治标准与艺术标准统一。」——普及与提高·两个标准",
-        "「文艺从属于政治，又反作用于政治。」——普及与提高·两个标准",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「文艺为人民大众、首先为工农兵服务。」——文艺为人民大众"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「文艺从属于政治，又反作用于政治。」这一条 —— 它对应的是「文艺与政治」，不是「普及与提高·两个标准」。「普及与提高·两个标准」的表述是：普及与提高辩证统一，政治标准与艺术标准统一。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-YA-002",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c07_service_feyn",
       "section_id": "sec_C_07",
       "node_id": "kn_c07_service",
@@ -1937,48 +1370,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_c07_politics_med",
-      "section_id": "sec_C_07",
-      "node_id": "kn_c07_politics",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：文艺从属于政治，又反作用于政治。",
-      "options": [
-        "文艺与政治",
-        "普及与提高·两个标准",
-        "哲学是世界观",
-        "文艺为人民大众"
-      ],
-      "answer": "A",
-      "explanation": "这句话讲的是「文艺与政治」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-YA-028",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_c07_politics_hard",
-      "section_id": "sec_C_07",
-      "node_id": "kn_c07_politics",
-      "type": "error_diagnosis",
-      "stem": "下列关于「文艺与政治」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「普及与提高辩证统一，政治标准与艺术标准统一。」——普及与提高·两个标准",
-        "「文艺从属于政治，又反作用于政治。」——文艺与政治",
-        "「哲学思想是对整个世界的根本认识或根本看法（世界观），同时又是思想方法。」——哲学是世界观",
-        "「文艺为人民大众、首先为工农兵服务。」——普及与提高·两个标准"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「文艺为人民大众、首先为工农兵服务。」这一条 —— 它对应的是「文艺为人民大众」，不是「普及与提高·两个标准」。「普及与提高·两个标准」的表述是：普及与提高辩证统一，政治标准与艺术标准统一。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-YA-028",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_c07_politics_feyn",
@@ -2034,27 +1425,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_c07_popularize_med",
-      "section_id": "sec_C_07",
-      "node_id": "kn_c07_popularize",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：普及与提高辩证统一，政治标准与艺术标准统一。",
-      "options": [
-        "文艺为人民大众",
-        "哲学是世界观",
-        "普及与提高·两个标准",
-        "文艺与政治"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「普及与提高·两个标准」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-YA-020",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_c07_popularize_feyn",
       "section_id": "sec_C_07",
       "node_id": "kn_c07_popularize",
@@ -2081,6 +1451,102 @@
       "explanation": "参考要点：先复述「普及与提高·两个标准」的科学内涵，再指出它成立的条件与边界，最后用一个具体事例说明怎样按这一原理办事；只堆术语、不给例子或把原理绝对化都要扣分。",
       "difficulty": 0.7,
       "source_chunk_id": "CH-YA-020",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_c01_transition_feyn",
+      "section_id": "sec_C_01",
+      "node_id": "kn_c01_transition",
+      "type": "error_diagnosis",
+      "stem": "（论述/费曼）请用自己的话阐述「过渡时期」的含义，并指出一种常见的错误理解。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：「过渡时期」——从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。常见错误理解：把核心关系颠倒、丢掉关键限定，或把相邻概念的表述套到「过渡时期」头上。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-GDGB-085",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_c01_transition_apply",
+      "section_id": "sec_C_01",
+      "node_id": "kn_c01_transition",
+      "type": "application",
+      "stem": "（应用/案例）材料：从资本主义到共产主义之间的革命转变时期，国家只能是无产阶级专政。（可与「共产主义两个阶段」对照）　请结合原著关于「过渡时期」的论述，举一个现实中的例子，说明这条原理在什么条件下成立、机械套用会出什么问题。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：先复述「过渡时期」的科学内涵，再指出它成立的条件与边界，最后用一个具体事例说明怎样按这一原理办事；只堆术语、不给例子或把原理绝对化都要扣分。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-GDGB-085",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_c01_twostage_feyn",
+      "section_id": "sec_C_01",
+      "node_id": "kn_c01_twostage",
+      "type": "error_diagnosis",
+      "stem": "（论述/费曼）请用自己的话阐述「共产主义两个阶段」的含义，并指出一种常见的错误理解。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：「共产主义两个阶段」——共产主义分第一阶段（社会主义）与高级阶段。常见错误理解：把核心关系颠倒、丢掉关键限定，或把相邻概念的表述套到「共产主义两个阶段」头上。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-GDGB-049",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_c01_twostage_apply",
+      "section_id": "sec_C_01",
+      "node_id": "kn_c01_twostage",
+      "type": "application",
+      "stem": "（应用/案例）材料：共产主义分第一阶段（社会主义）与高级阶段。（可与「过渡时期」对照）　请结合原著关于「共产主义两个阶段」的论述，举一个现实中的例子，说明这条原理在什么条件下成立、机械套用会出什么问题。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：先复述「共产主义两个阶段」的科学内涵，再指出它成立的条件与边界，最后用一个具体事例说明怎样按这一原理办事；只堆术语、不给例子或把原理绝对化都要扣分。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-GDGB-049",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_c01_distribution_feyn",
+      "section_id": "sec_C_01",
+      "node_id": "kn_c01_distribution",
+      "type": "error_diagnosis",
+      "stem": "（论述/费曼）请用自己的话阐述「按劳与按需分配」的含义，并指出一种常见的错误理解。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：「按劳与按需分配」——社会主义按劳分配，共产主义高级阶段按需分配。常见错误理解：把核心关系颠倒、丢掉关键限定，或把相邻概念的表述套到「按劳与按需分配」头上。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-GDGB-050",
+      "authority_status": "reviewed",
+      "exempt_marked": false,
+      "trial_only": false,
+      "subjective": true
+    },
+    {
+      "id": "q_kn_c01_distribution_apply",
+      "section_id": "sec_C_01",
+      "node_id": "kn_c01_distribution",
+      "type": "application",
+      "stem": "（应用/案例）材料：社会主义按劳分配，共产主义高级阶段按需分配。（可与「过渡时期」对照）　请结合原著关于「按劳与按需分配」的论述，举一个现实中的例子，说明这条原理在什么条件下成立、机械套用会出什么问题。",
+      "options": [],
+      "answer": "",
+      "explanation": "参考要点：先复述「按劳与按需分配」的科学内涵，再指出它成立的条件与边界，最后用一个具体事例说明怎样按这一原理办事；只堆术语、不给例子或把原理绝对化都要扣分。",
+      "difficulty": 0.7,
+      "source_chunk_id": "CH-GDGB-050",
       "authority_status": "reviewed",
       "exempt_marked": false,
       "trial_only": false,

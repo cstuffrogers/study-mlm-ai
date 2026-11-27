@@ -20,7 +20,6 @@ class LocalQuiz {
         'stem': it['stem'],
         'options': it['options'] ?? const [],
         'difficulty': it['difficulty'] ?? 0.5,
-        'difficulty_band': bandOf(it),
         'subjective': it['subjective'] ?? false,
         'application': it['application'] ?? (it['type'] == 'application'),
         'source_chunk_id': it['source_chunk_id'] ?? '',
@@ -69,156 +68,140 @@ class LocalQuiz {
       it['trial_only'] == true ||
       (it['authority_status'] ?? 'reviewed') != 'reviewed';
 
-  // ------------------------------------------------------------ 难度分档
-  /// 易 / 中 / 难三档阈值（与 `backend/services/quiz_service.py`、
-  /// `backend/content/expand_quiz_bank.py` 同口径）：<0.45 易，<0.65 中，其余难。
-  static const double bandEasyMax = 0.45;
-  static const double bandMedMax = 0.65;
+  // ------------------------------------------------------------ 选题（D176）
+  //
+  // 后端同口径： `backend/services/quiz_service._select_items`。
+  // 早先按「易 / 中 / 难 / 拓展」分档出题，但题库里同知识点的各档只是同一句
+  // 定义换种问法 —— 一章 3 个知识点被问成 12 道题，用户看到的全是重复。
+  // 现在：一个知识点只出一道；几个变体只用于重考轮换；一套卷子里最多
+  // 1 道应用题 + 1 道费曼题。
+  static const String challengeApply = 'apply';
+  static const String challengeFeyn = 'feyn';
 
-  /// 难度档位标识（`difficulty_band` 字段值）。
-  /// 主观题/应用题单列 `challenge`（「拓展」）：它们难度值也很高，但若混进
-  /// 「难」档，一章 12 个知识点会全被论述题占满（旧版就是 4 道同模板论述题）。
-  static String bandOf(Map<String, dynamic> it) {
-    final type = '${it['type'] ?? ''}';
-    if (type == 'application' || it['subjective'] == true) return 'challenge';
-    final d = dnum(it['difficulty'], 0.5);
-    if (d < bandEasyMax) return 'easy';
-    if (d < bandMedMax) return 'medium';
-    return 'hard';
+  /// 拓展题种类：应用题 / 费曼自述题 / 空（客观题）
+  static String challengeKind(Map<String, dynamic> it) {
+    if ('${it['type'] ?? ''}' == 'application') return challengeApply;
+    return it['subjective'] == true ? challengeFeyn : '';
   }
 
-  static const List<String> bandOrder = ['easy', 'medium', 'hard', 'challenge'];
+  /// 客观题内部优先出「直接考表述」的题型，其次推演，最后错误诊断
+  static const Map<String, int> _typeRank = {
+    'concept_discrimination': 0,
+    'text_location': 0,
+    'logical_deduction': 1,
+    'error_diagnosis': 2,
+  };
 
-  static String bandLabel(String band) {
-    switch (band) {
-      case 'easy':
-        return '易';
-      case 'medium':
-        return '中';
-      case 'hard':
-        return '难';
-      case 'challenge':
-        return '拓展';
-      default:
-        return '';
-    }
+  static int typeRank(Map<String, dynamic> it) {
+    if (challengeKind(it).isNotEmpty) return 9; // 客观题永远排在主观/应用题前
+    return _typeRank['${it['type'] ?? ''}'] ?? 3;
   }
 
-  /// 每档出题名额：cap=12 → 易 4 / 中 4 / 难 2 / 拓展 2；cap=8 → 3/3/1/1。
-  ///
-  /// 拓展档留两个名额：一个案例应用题（application）+ 一个费曼自述题
-  /// （error_diagnosis / subjective），两者评分维度不同，不能互相顶替。
-  static Map<String, int> bandQuota(int cap) {
-    final challenge = cap >= 10 ? 2 : 1;
-    final rest = math.max(3, cap - challenge);
-    final easy = math.max(1, (rest * 0.36).round());
-    final med = math.max(1, (rest * 0.36).round());
-    final hard = math.max(1, rest - easy - med);
-    return {'easy': easy, 'medium': med, 'hard': hard, 'challenge': challenge};
+  /// 知识点键：同一 node_id 视为同一知识点（没有 node 时退到题号）。
+  static String nodeKey(Map<String, dynamic> it) {
+    final node = '${it['node_id'] ?? ''}'.trim();
+    return node.isNotEmpty ? node : '${it['id'] ?? ''}'.trim();
   }
 
   /// 题干归一化（去所有空白）：用于「同一道题重复登记」去重。
   static String _stemKey(Map<String, dynamic> it) =>
       '${it['stem'] ?? ''}'.replaceAll(RegExp(r'\s+'), '').trim();
 
-  // ------------------------------------------------------------ 选题
-  /// 按「易 / 中 / 难 / 拓展」三档出题（D169）。
+  /// 一个知识点只出一道（D176）。
   ///
-  /// 旧版只按「每知识点保底一道 + 余量顺序补齐」，结果：不看难度、同一张卷子
-  /// 反复重考一模一样、题库里重复登记的题会同一卷里出现两次。现在：
-  ///   ① 题干重复的只留一条；
-  ///   ② 每档按名额取题（不够由别的档补）；
-  ///   ③ [excludeIds]（最近两次做过的题）优先避开，[seed] 打乱档内顺序，
-  ///      所以重考同一章不会原样重复。
+  /// ① 题干重复的只留一条，按 [nodeKey] 分组，每个知识点只出一道；
+  /// ② 组内：没做过的在前（[excludeIds] = 最近两次做过的题），客观题优先，
+  ///    [seed] 让同一组的变体轮换；
+  /// ③ 题量 = 本章知识点数（上限 `quiz_size_max`），不再凑到 8 题。
   static List<Map<String, dynamic>> selectItems(
     List<Map<String, dynamic>> items, {
     Set<String> excludeIds = const <String>{},
     int seed = 0,
   }) {
-    final minSize = inum(OfflineContent.config['quiz_size_min'], 8);
     final maxSize = inum(OfflineContent.config['quiz_size_max'], 12);
 
-    // ① 去重（同题干只留第一条）
-    final uniq = <Map<String, dynamic>>[];
+    // ① 去重 + 按知识点分组（保持首次出现顺序）
+    final groups = <String, List<Map<String, dynamic>>>{};
+    final order = <String>[];
     final seenStem = <String>{};
     for (final it in items) {
-      final key = _stemKey(it);
-      if (key.isNotEmpty && !seenStem.add(key)) continue;
-      uniq.add(it);
+      final stem = _stemKey(it);
+      if (stem.isNotEmpty && !seenStem.add(stem)) continue;
+      final key = nodeKey(it);
+      if (!groups.containsKey(key)) {
+        groups[key] = <Map<String, dynamic>>[];
+        order.add(key);
+      }
+      groups[key]!.add(it);
     }
 
-    final cap = math.max(minSize, math.min(maxSize, uniq.length));
-    final quota = bandQuota(cap);
-    final buckets = <String, List<Map<String, dynamic>>>{
-      for (final b in bandOrder) b: <Map<String, dynamic>>[],
-    };
-    for (final it in uniq) {
-      (buckets[bandOf(it)] ?? buckets['hard']!).add(it);
-    }
-
-    // ③ 档内：没做过（fresh）在前，各自按种子打乱
+    final nodes = order.take(maxSize).toList();
     final rnd = math.Random(seed);
-    // 拓展档内部顺序：案例应用题 0、费曼自述题 1、其它 2
-    int priority(Map<String, dynamic> e) {
-      if ('${e['type']}' == 'application' && e['subjective'] == true) return 0;
-      if (e['subjective'] == true) return 1;
-      return 2;
+
+    // ② 组内排序：没做过的在前 → 客观题优先 → 题型优先；同档变体用 seed 轮换
+    final ranked = <String, List<Map<String, dynamic>>>{};
+    for (final key in nodes) {
+      final cands = List<Map<String, dynamic>>.from(groups[key]!)..shuffle(rnd);
+      // Dart 的 sort 不稳定，带上原始下标做末级键，保证同档轮换可预测
+      final entries = <({int pos, Map<String, dynamic> it})>[
+        for (var i = 0; i < cands.length; i++) (pos: i, it: cands[i]),
+      ];
+      entries.sort((a, b) {
+        final ka = excludeIds.contains('${a.it['id']}') ? 1 : 0;
+        final kb = excludeIds.contains('${b.it['id']}') ? 1 : 0;
+        if (ka != kb) return ka - kb;
+        final ra = typeRank(a.it);
+        final rb = typeRank(b.it);
+        if (ra != rb) return ra - rb;
+        return a.pos - b.pos;
+      });
+      ranked[key] = [for (final e in entries) e.it];
     }
 
-    for (final b in bandOrder) {
-      final list = buckets[b]!;
-      final fresh = list.where((e) => !excludeIds.contains('${e['id']}')).toList()..shuffle(rnd);
-      final used = list.where((e) => excludeIds.contains('${e['id']}')).toList()..shuffle(rnd);
-      fresh.sort((x, y) => priority(x) - priority(y));
-      used.sort((x, y) => priority(x) - priority(y));
-      buckets[b] = [...fresh, ...used];
-    }
-    // 拓展档「应用—费曼」交替：两个名额一人一个，评分维度互补
-    final ch = buckets['challenge']!;
-    final apps = ch.where((e) => priority(e) == 0).toList();
-    final feyns = ch.where((e) => priority(e) == 1).toList();
-    final rest = ch.where((e) => priority(e) == 2).toList();
-    final merged = <Map<String, dynamic>>[];
-    for (var i = 0; i < math.max(apps.length, feyns.length); i++) {
-      if (i < apps.length) merged.add(apps[i]);
-      if (i < feyns.length) merged.add(feyns[i]);
-    }
-    buckets['challenge'] = [...merged, ...rest];
-
-    // ② 按名额取
-    final chosen = <Map<String, dynamic>>[];
-    final ids = <String>{};
-    void take(Map<String, dynamic> it) {
-      if (chosen.length >= cap) return;
-      if (ids.add('${it['id']}')) chosen.add(it);
+    // ③ 拓展名额：费曼自述题**每卷必出**（它是「能不能用自己的话讲清」的唯一
+    // 信号）；知识点够多（≥ 6）时再配一道应用题，两者评分维度互补。
+    // 写主观题费时，所以最多就这两道，不因知识点多而线性变多。
+    final slots = <String>[];
+    if (nodes.length >= 6) {
+      slots.addAll([challengeFeyn, challengeApply]);
+    } else if (nodes.length >= 2) {
+      slots.add(challengeFeyn);
     }
 
-    for (final b in bandOrder) {
-      var n = 0;
-      for (final it in buckets[b]!) {
-        if (n >= (quota[b] ?? 0)) break;
-        final before = chosen.length;
-        take(it);
-        if (chosen.length > before) n++;
+    final picked = <String, Map<String, dynamic>>{};
+    for (final kind in slots) {
+      final shuffled = List<String>.from(nodes)..shuffle(rnd);
+      for (final key in shuffled) {
+        if (picked.containsKey(key)) continue;
+        Map<String, dynamic>? cand;
+        for (final it in ranked[key]!) {
+          if (challengeKind(it) == kind && !excludeIds.contains('${it['id']}')) {
+            cand = it;
+            break;
+          }
+        }
+        if (cand != null) {
+          picked[key] = cand;
+          break;
+        }
       }
     }
-    // 某档题不够 → 按 易→中→难→拓展 补齐
-    for (final b in bandOrder) {
-      for (final it in buckets[b]!) {
-        if (chosen.length >= cap) break;
-        take(it);
-      }
-    }
-    return chosen;
-  }
 
-  /// 排序：易 → 中 → 难 → 拓展，档内仍按知识点轮转（避免同知识点连坐）。
-  static List<Map<String, dynamic>> orderByTier(List<Map<String, dynamic>> items) {
-    final out = <Map<String, dynamic>>[];
-    for (final b in bandOrder) {
-      out.addAll(interleaveItems(items.where((it) => bandOf(it) == b).toList()));
+    for (final key in nodes) {
+      if (picked.containsKey(key)) continue;
+      final cands = ranked[key]!;
+      final objective = cands.where((it) => challengeKind(it).isEmpty).toList();
+      picked[key] = (objective.isNotEmpty ? objective : cands).first;
     }
-    return out;
+
+    // 客观题在前，拓展题在卷末（稳定：组内保持知识点顺序）
+    final objective = <Map<String, dynamic>>[];
+    final challenge = <Map<String, dynamic>>[];
+    for (final key in nodes) {
+      final it = picked[key]!;
+      (challengeKind(it).isEmpty ? objective : challenge).add(it);
+    }
+    return [...objective, ...challenge];
   }
 
   /// 同一章最近两次做过的题号：重考时优先换一批，不再原样重复。
@@ -245,47 +228,6 @@ class LocalQuiz {
     return (sectionId.hashCode ^ (0x9E3779B9 * (n + 1))) & 0x7fffffff;
   }
 
-  static List<Map<String, dynamic>> interleaveItems(
-      List<Map<String, dynamic>> items) {
-    if (items.length <= 2) return List<Map<String, dynamic>>.from(items);
-    final byNode = <String, List<Map<String, dynamic>>>{};
-    for (final it in items) {
-      (byNode['${it['node_id'] ?? ''}'] ??= []).add(it);
-    }
-    if (byNode.length <= 1) return List<Map<String, dynamic>>.from(items);
-    final out = <Map<String, dynamic>>[];
-    var idx = 0;
-    while (out.length < items.length) {
-      var progressed = false;
-      for (final bucket in byNode.values) {
-        if (idx < bucket.length) {
-          out.add(bucket[idx]);
-          progressed = true;
-        }
-      }
-      if (!progressed) break;
-      idx++;
-    }
-    if (out.length != items.length) return List<Map<String, dynamic>>.from(items);
-    // 与后端 `_interleave_items()` 同口径：轮转后若仍有相邻同节点（某节点题多时
-    // 会出现），做一次局部交换修正。早先缺这段，两端同题不同序。
-    String nodeOf(Map<String, dynamic> it) => '${it['node_id'] ?? ''}';
-    for (var i = 1; i < out.length; i++) {
-      if (nodeOf(out[i]) != nodeOf(out[i - 1])) continue;
-      for (var j = i + 1; j < out.length; j++) {
-        final okLeft = nodeOf(out[j]) != nodeOf(out[i - 1]);
-        final okRight = j + 1 >= out.length || nodeOf(out[j + 1]) != nodeOf(out[i]);
-        if (okLeft && okRight) {
-          final tmp = out[i];
-          out[i] = out[j];
-          out[j] = tmp;
-          break;
-        }
-      }
-    }
-    return out;
-  }
-
   static Future<Map<String, dynamic>> start(
       String sectionId, String routeId) async {
     await OfflineContent.ensureQuiz();
@@ -306,11 +248,11 @@ class LocalQuiz {
       throw LocalApiException(
           409, '章节 $sectionId 暂无题库，降级为按段落学习 + 简化测试');
     }
-    final selected = orderByTier(selectItems(
+    final selected = selectItems(
       items,
       excludeIds: recentItemIds(sectionId),
       seed: seedForSection(sectionId),
-    ));
+    );
     final testId = 'local_${DateTime.now().microsecondsSinceEpoch}';
     LocalDb.tests[testId] = {
       'id': testId,

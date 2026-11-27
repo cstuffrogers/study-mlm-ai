@@ -122,10 +122,6 @@ class QuizItem {
   final bool exemptMarked;
   final bool trialOnly;
 
-  /// 难度档位：easy / medium / hard / challenge（后端 `difficulty_band`，
-  /// 单机版由 `LocalQuiz.bandOf` 现算）。缺字段时按 difficulty 兜底。
-  final String band;
-
   QuizItem({
     required this.id,
     required this.type,
@@ -138,7 +134,6 @@ class QuizItem {
     required this.authorityStatus,
     required this.exemptMarked,
     required this.trialOnly,
-    this.band = '',
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> j) => QuizItem(
@@ -153,12 +148,6 @@ class QuizItem {
         authorityStatus: j['authority_status'] ?? 'reviewed',
         exemptMarked: j['exempt_marked'] ?? false,
         trialOnly: j['trial_only'] ?? false,
-        band: j['difficulty_band'] ??
-            ((j['application'] == true || j['type'] == 'application' || j['subjective'] == true)
-                ? 'challenge'
-                : ((j['difficulty'] ?? 0.5).toDouble() < 0.45
-                    ? 'easy'
-                    : ((j['difficulty'] ?? 0.5).toDouble() < 0.65 ? 'medium' : 'hard'))),
       );
 }
 

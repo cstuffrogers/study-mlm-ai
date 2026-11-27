@@ -61,7 +61,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   ///
   /// 原先跳的是「深入学习」导读页 —— 用户点了「去做练习」却落到只读页面，
   /// 还得再往下翻才找到入口（用户实报：怎么跳到深入学习界面了，应该去试题）。
-  /// 章节测试本身就按知识点交错排题（`interleaveItems`），正好对上「巩固」的语义。
+  /// 章节测试本身一个知识点只出一道（D176），正好对上「巩固」的语义。
   /// 无题库的章节由 ChapterTestScreen 自己报「暂无题库」并留在原页，不静默开空卷。
   void _practice(ReviewItem it) {
     if (it.sectionId.isEmpty) return;

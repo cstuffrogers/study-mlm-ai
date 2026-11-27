@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import secrets
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,15 +13,24 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 NEO4J_URL = os.getenv("NEO4J_URL", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "marxism_pass")
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+
+# ---- 密钥：未显式设置时**随机生成**，不再给固定默认值 ----
+# 旧默认值 `change-me-in-production` 是写死的公开串：一旦有人把服务从回环地址
+# 挪出去，任何人都能照默认值伪造 JWT。而单机自用也根本不需要这个固定值，
+# 所以未设置时直接随机生成一把强密钥（进程级；重启后旧 token 失效 ——
+# 本项目无登录页、前端固定 `demo_user`，不存在「重启要重登」的问题）。
+# 显式设成弱值仍只告警、不阻断启动（不打断本地开发与测试）。
+_ENV_SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+SECRET_KEY_IS_GENERATED = not _ENV_SECRET_KEY
+SECRET_KEY = _ENV_SECRET_KEY or secrets.token_urlsafe(32)
 
 # ---- 弱口令护栏 ----
 # 口径：单机自用不管；**一旦对外提供服务（非 localhost 访问）就必须改掉**。
-# 这里只做「检测 + 告警」，不硬性终止进程（不能打断本地开发与测试）。
-# 真正要对公网开服务时，把 SECRET_KEY 设为 32 字节以上的随机值。
+# 真正要对公网开服务时，把 SECRET_KEY 设为 32 字节以上的随机值（或干脆不设）。
 _INSECURE_SECRETS = {"", "change-me-in-production", "dev-secret-change-me",
                      "secret", "changeme", "test"}
-SECRET_KEY_IS_WEAK = SECRET_KEY.strip() in _INSECURE_SECRETS or len(SECRET_KEY.strip()) < 16
+SECRET_KEY_IS_WEAK = not SECRET_KEY_IS_GENERATED and (
+    SECRET_KEY in _INSECURE_SECRETS or len(SECRET_KEY) < 32)
 
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
@@ -115,13 +126,17 @@ def security_warnings() -> list[str]:
     免得打断开发与测试。
     """
     warns: list[str] = []
-    if SECRET_KEY_IS_WEAK:
+    if SECRET_KEY_IS_GENERATED:
         warns.append(
-            "SECRET_KEY 仍是默认值或过短：仅可用于本机自用，"
-            "对外提供服务前必须替换为 32 字节以上随机值")
+            "SECRET_KEY 未设置：本进程已随机生成一把强弱密钥（重启后旧 token 失效，属正常）；"
+            "要把服务提供给本机之外前，请在 .env 里显式设成 32 字节以上随机值")
+    elif SECRET_KEY_IS_WEAK:
+        warns.append(
+            "SECRET_KEY 是弱值或过短（<32 字节）：仅可用于本机自用，"
+            "对外提供服务前必须改成随机值，或直接删掉这一行让程序自生成")
     if "*" in CORS_ORIGINS:
         warns.append(
-            "CORS_ORIGINS 含通配符 '*'：任何网页都能带凭证调用本服务，"
+            "CORS_ORIGINS 含通配符 '*'：任何网页都能调用本服务（已强制关闭带凭证请求），"
             "请改为明确的来源白名单")
     if "marxism_pass" in DATABASE_URL or NEO4J_PASSWORD in {"marxism_pass", "neo4j", "password"}:
         warns.append(

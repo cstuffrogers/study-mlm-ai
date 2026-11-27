@@ -12,7 +12,7 @@ import re
 
 from sqlalchemy import select
 
-from core.config import QUIZ_SIZE_MIN, QUIZ_SIZE_MAX
+from core.config import QUIZ_SIZE_MAX
 from services.learning_db import session_scope
 from services import mastery_service as ms
 from core.verify.triple_check import TripleCheck
@@ -64,38 +64,45 @@ async def _items_for_section(section_id: str) -> list[QuizItem]:
         return list(res.scalars().all())
 
 
-# ------------------------------------------------------------ 难度分档（D169）
-# 与前端 `LocalQuiz.bandOf/bandQuota` 同口径：<0.45 易，<0.65 中，其余难；
-# 主观/应用题单列 challenge（「拓展」），不混进「难」档。
-BAND_EASY_MAX = 0.45
-BAND_MED_MAX = 0.65
-BAND_ORDER = ("easy", "medium", "hard", "challenge")
-BAND_LABELS = {"easy": "易", "medium": "中", "hard": "难", "challenge": "拓展"}
+# ------------------------------------------------------------ 出题口径（D176）
+#
+# D169 曾按「易 / 中 / 难 / 拓展」分档出题。用户实报：档与档之间并不是真难，
+# 而是**同一个知识点换一种问法**（易＝四段定义里挑一条、中＝给出定义反查概念名、
+# 难＝四条配对里找张冠李戴、拓展＝复述/举例），一章只 3 个知识点却出 12 道题，
+# 于是同一句定义被问四遍 —— 分档反而成了「重复」的来源。
+#
+# 现在不再分难度档，改为**一个知识点只出一道**：
+#   · 按 node_id 分组，一个知识点一题，题量 = 本章知识点数（上限 QUIZ_SIZE_MAX）；
+#   · 同一知识点的多个变体留作重考轮换（最近两次做过的优先避开）；
+#   · 一套卷子里最多 1 道应用题 + 1 道费曼题（评分维度互补，也不让人连写两篇）。
+CHALLENGE_APPLY = "apply"
+CHALLENGE_FEYN = "feyn"
+
+# 客观题内部优先出「直接考表述」的题型，其次推演，最后错误诊断
+_TYPE_RANK = {
+    "concept_discrimination": 0,
+    "text_location": 0,
+    "logical_deduction": 1,
+    "error_diagnosis": 2,
+}
 
 
-def band_of(it: QuizItem) -> str:
-    if it.type == "application" or it.subjective:
-        return "challenge"
-    d = it.difficulty if it.difficulty is not None else 0.5
-    if d < BAND_EASY_MAX:
-        return "easy"
-    if d < BAND_MED_MAX:
-        return "medium"
-    return "hard"
+def challenge_kind(it: QuizItem) -> str:
+    """拓展题种类：应用题 / 费曼自述题 / 空（客观题）。"""
+    if it.type == "application":
+        return CHALLENGE_APPLY
+    return CHALLENGE_FEYN if it.subjective else ""
 
 
-def band_quota(cap: int) -> dict[str, int]:
-    """每档名额：cap=12 → 易 4 / 中 4 / 难 2 / 拓展 2；cap=8 → 3/3/1/1。
+def _type_rank(it: QuizItem) -> int:
+    if challenge_kind(it):
+        return 9  # 客观题永远排在主观/应用题前面
+    return _TYPE_RANK.get(it.type, 3)
 
-    拓展档留两个名额：一个案例应用题（application）+ 一个费曼自述题
-    （error_diagnosis/subjective），两者评分维度不同，不能互相顶替。
-    """
-    challenge = 2 if cap >= 10 else 1
-    rest = max(3, cap - challenge)
-    easy = max(1, round(rest * 0.36))
-    med = max(1, round(rest * 0.36))
-    hard = max(1, rest - easy - med)
-    return {"easy": easy, "medium": med, "hard": hard, "challenge": challenge}
+
+def _node_key(it: QuizItem) -> str:
+    """知识点键：同一 node_id 视为同一知识点（没有 node 时退到题号）。"""
+    return (it.node_id or it.id or "").strip()
 
 
 def _stem_key(it: QuizItem) -> str:
@@ -118,123 +125,76 @@ async def _recent_item_ids(user_id: str, section_id: str, last_tests: int = 2) -
 
 def _select_items(items: list[QuizItem], exclude_ids: set[str] | None = None,
                   seed: int = 0) -> list[QuizItem]:
-    """按「易 / 中 / 难 / 拓展」三档出题（D169）。
+    """一个知识点只出一道（D176）。
 
-    旧版只做「特殊题型限额 + 每知识点保底 + 余量顺序补齐」：不看难度，同一章
-    重考一模一样，题库里重复登记的题还会同一卷出现两次。现在：
-      ① 题干重复的只留一条；
-      ② 每档按名额取题（不够由别的档补）；
-      ③ `exclude_ids`（最近两次做过的题）优先避开，`seed` 打乱档内顺序。
+    旧版按「易/中/难/拓展」名额取题，但题库里同知识点的各档其实只是同一句定义
+    换种问法 —— 一章 3 个知识点被问成 12 道题，看上去全是重复。现在：
+      ① 按 node_id 分组，**每个知识点只出一道**，题量 = 知识点数（上限 QUIZ_SIZE_MAX）；
+      ② 组内优先出客观题（概念辨析 > 逻辑推演 > 错误诊断），`exclude_ids`
+         （最近两次做过的题）优先避开，`seed` 让同一组的变体轮换；
+      ③ 费曼自述题每卷必出（≥ 2 个知识点时）；知识点 ≥ 6 时再配 1 道应用题，
+         两者评分维度互补，均排在卷末。
     """
     import random
 
-    uniq: list[QuizItem] = []
-    seen: set[str] = set()
-    for it in items:
-        key = _stem_key(it)
-        if key and key in seen:
-            continue
-        seen.add(key)
-        uniq.append(it)
-
-    cap = max(QUIZ_SIZE_MIN, min(QUIZ_SIZE_MAX, len(uniq)))
-    quota = band_quota(cap)
     exclude = exclude_ids or set()
-    buckets: dict[str, list[QuizItem]] = {b: [] for b in BAND_ORDER}
-    for it in uniq:
-        buckets[band_of(it)].append(it)
-
-    rnd = random.Random(seed)
-
-    def _priority(it: QuizItem) -> int:
-        """拓展档内部顺序：案例应用题 0、费曼自述题 1、其它 2。"""
-        if it.type == "application" and it.subjective:
-            return 0
-        if it.subjective:
-            return 1
-        return 2
-
-    for b in BAND_ORDER:
-        fresh = [it for it in buckets[b] if it.id not in exclude]
-        used = [it for it in buckets[b] if it.id in exclude]
-        rnd.shuffle(fresh)
-        rnd.shuffle(used)
-        buckets[b] = sorted(fresh, key=_priority) + sorted(used, key=_priority)
-    # 拓展档「应用—费曼」交替：两个名额一人一个，评分维度互补
-    ch = buckets["challenge"]
-    apps = [it for it in ch if _priority(it) == 0]
-    feyns = [it for it in ch if _priority(it) == 1]
-    rest = [it for it in ch if _priority(it) == 2]
-    merged: list[QuizItem] = []
-    for i in range(max(len(apps), len(feyns))):
-        if i < len(apps):
-            merged.append(apps[i])
-        if i < len(feyns):
-            merged.append(feyns[i])
-    buckets["challenge"] = merged + rest
-
-    chosen: list[QuizItem] = []
-    chosen_ids: set[str] = set()
-
-    def _add(it: QuizItem) -> bool:
-        if len(chosen) >= cap or it.id in chosen_ids:
-            return False
-        chosen.append(it)
-        chosen_ids.add(it.id)
-        return True
-
-    for b in BAND_ORDER:
-        taken = 0
-        for it in buckets[b]:
-            if taken >= quota[b]:
-                break
-            if _add(it):
-                taken += 1
-    for b in BAND_ORDER:
-        for it in buckets[b]:
-            if len(chosen) >= cap:
-                break
-            _add(it)
-    return chosen
-
-
-def _order_by_tier(items: list[QuizItem]) -> list[QuizItem]:
-    """排序：易 → 中 → 难 → 拓展，档内按知识点轮转。"""
-    out: list[QuizItem] = []
-    for b in BAND_ORDER:
-        out.extend(_interleave_items([it for it in items if band_of(it) == b]))
-    return out
-
-
-def _interleave_items(items: list[QuizItem]) -> list[QuizItem]:
-    """轻量交错排题（interleaving）：尽量让相邻两题属于不同知识点，降低块状效应。
-    保持组内相对顺序稳定（不随机），仅在必要时调整；确定性结果便于测试。"""
-    if len(items) <= 2:
-        return list(items)
-    # 按 node 分组，保持首次出现顺序
     groups: dict[str, list[QuizItem]] = {}
     order: list[str] = []
+    seen_stems: set[str] = set()
     for it in items:
-        if it.node_id not in groups:
-            groups[it.node_id] = []
-            order.append(it.node_id)
-        groups[it.node_id].append(it)
-    if len(groups) <= 1:
-        return list(items)
-    # 轮转取题：每轮从每个还有剩余题的节点取一道，避免连续同节点
-    out: list[QuizItem] = []
-    while any(groups[k] for k in order):
-        for k in order:
-            if groups[k]:
-                out.append(groups[k].pop(0))
-    # 校验：若仍有相邻同节点（极少），做一次局部交换
-    for i in range(1, len(out)):
-        if out[i].node_id == out[i - 1].node_id:
-            for j in range(i + 1, len(out)):
-                if out[j].node_id != out[i - 1].node_id and (j + 1 >= len(out) or out[j + 1].node_id != out[i].node_id):
-                    out[i], out[j] = out[j], out[i]
-                    break
-    return out
+        stem = _stem_key(it)
+        if stem and stem in seen_stems:
+            continue  # 题干完全重复的只留一条
+        seen_stems.add(stem)
+        key = _node_key(it)
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(it)
+
+    nodes = order[:QUIZ_SIZE_MAX]
+    rnd = random.Random(seed)
+
+    # 组内排序：没做过的在前 → 客观题优先 → 题型优先；同档变体用 seed 轮换
+    ranked: dict[str, list[QuizItem]] = {}
+    for key in nodes:
+        cands = list(groups[key])
+        rnd.shuffle(cands)
+        cands.sort(key=lambda it: (1 if it.id in exclude else 0, _type_rank(it)))
+        ranked[key] = cands
+
+    # 拓展名额：费曼自述题**每卷必出**（它是「能不能用自己的话讲清」的唯一信号），
+    # 知识点够多（≥ 6）时再配一道应用题，两者评分维度互补。
+    # 写主观题费时，所以最多就这两道，不因知识点多而线性变多。
+    slots: list[str] = []
+    if len(nodes) >= 6:
+        slots = [CHALLENGE_FEYN, CHALLENGE_APPLY]
+    elif len(nodes) >= 2:
+        slots = [CHALLENGE_FEYN]
+
+    picked: dict[str, QuizItem] = {}
+    for kind in slots:
+        for key in rnd.sample(nodes, len(nodes)):
+            if key in picked:
+                continue
+            cand = next((it for it in ranked[key]
+                         if challenge_kind(it) == kind and it.id not in exclude), None)
+            if cand is not None:
+                picked[key] = cand
+                break
+
+    for key in nodes:
+        if key in picked:
+            continue
+        cands = ranked[key]
+        objective = [it for it in cands if not challenge_kind(it)]
+        picked[key] = (objective or cands)[0]
+
+    chosen = [picked[key] for key in nodes]
+    # 客观题在前，拓展题在卷末（稳定排序，组内保持知识点顺序）
+    chosen.sort(key=lambda it: 1 if challenge_kind(it) else 0)
+    return chosen
+
 
 
 def _norm_choice(s: str) -> str:
@@ -251,7 +211,7 @@ def _public_item(it: QuizItem) -> dict:
         raise OrthodoxyViolation(f"题目 {it.id} 缺少溯源 chunk_id，拒绝出题")
     return {
         "id": it.id, "type": it.type, "stem": it.stem, "options": it.options,
-        "difficulty": it.difficulty, "difficulty_band": band_of(it),
+        "difficulty": it.difficulty,
         "subjective": it.subjective,
         "application": it.type == "application",
         "source_chunk_id": it.source_chunk_id,
@@ -275,10 +235,8 @@ async def start_section_test(user_id: str, section_id: str, route_id: str) -> di
     items = await _items_for_section(section_id)
     if not items:
         raise OrthodoxyViolation(f"章节 {section_id} 暂无题库，降级为按段落学习 + 简化测试")
-    # 控制题量 8-12（P0 题库可多于 12 题）：
-    #  1) 应用题/主观题（特殊题型）必选；
-    #  2) 优先保障每个知识点至少 1 道（先修覆盖完整）；
-    #  3) 余量按题库顺序补齐；最后交错排序（P2-⑤ 降低块状）。
+    # 出题口径（D176）：一个知识点只出一道，题量 = 本章知识点数（上限 QUIZ_SIZE_MAX）。
+    # 不再按「易/中/难」名额出题 —— 那些档只是同一句定义换种问法。
     excluded = await _recent_item_ids(user_id, section_id)
     # 种子必须**跨进程稳定**：早先用内置 hash()，而 str 的 hash 每个进程随机化，
     # 于是同一章节每次启动选出的题不一样 —— 掌握度在 0.8 阈值上下漂移，
@@ -286,7 +244,6 @@ async def start_section_test(user_id: str, section_id: str, route_id: str) -> di
     # crc32 与前端 `seedForSection` 一样是内容确定的。
     chosen = _select_items(items, exclude_ids=excluded,
                            seed=_seed_for_section(section_id, len(excluded)))
-    chosen = _order_by_tier(chosen)
     public = [_public_item(it) for it in chosen]
     async with session_scope() as s:
         test = SectionTest(user_id=user_id, section_id=section_id, route_id=route_id,
@@ -873,7 +830,17 @@ async def start_diagnostic(user_id: str, route_id: str) -> dict:
         # 摸底测必须是能点选项的题：应用题/主观题没有选项（走三维 rubric 评分），
         # 塞进摸底测里用户点进去就答不了（D142，与单机版同口径）。
         its = [it for it in its if len(it.options or []) > 1]
-        items.extend(its[:3])  # 每章抽 3 题
+        # 摸底测也按知识点去重：一章只抽 3 个知识点各 1 题，
+        # 不然「每章抽 3 题」会抽到同一知识点的 3 个变体（D176）。
+        seen_nodes: set[str] = set()
+        for it in its:
+            key = _node_key(it)
+            if key in seen_nodes:
+                continue
+            seen_nodes.add(key)
+            items.append(it)
+            if len(seen_nodes) >= 3:
+                break
     if not items:
         # 无题库：返回空，调用方可选跳过
         return {"diag_id": None, "items": [], "note": "该路线题库建设中，可跳过摸底直接选起点"}

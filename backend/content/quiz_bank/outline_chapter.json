@@ -310,27 +310,6 @@
       "subjective": true
     },
     {
-      "id": "q_kn_object_activity_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_object_activity",
-      "type": "error_diagnosis",
-      "stem": "下列关于「对象性活动」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——思维的此岸性",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——革命的实践"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「思维的此岸性」。「思维的此岸性」的表述是：思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-001",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_object_activity_feyn",
       "section_id": "sec_A_02",
       "node_id": "kn_object_activity",
@@ -361,27 +340,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_cishixing_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_cishixing",
-      "type": "error_diagnosis",
-      "stem": "下列关于「思维的此岸性」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——革命的实践",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-002",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_cishixing_feyn",
@@ -433,27 +391,6 @@
       "source_chunk_id": "CH-MLTH-004",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_rev_practice_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_rev_practice",
-      "type": "error_diagnosis",
-      "stem": "下列关于「革命的实践」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——革命的实践",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——思维的此岸性",
-        "「宗教所反映的现实的人的社会关系，本质是经济基础与阶级矛盾。宗教是世俗基础自我分裂的产物。」——世俗基础",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」这一条 —— 它对应的是「对象性活动」，不是「思维的此岸性」。「思维的此岸性」的表述是：思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-004",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -511,27 +448,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_secbasis_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_secbasis",
-      "type": "error_diagnosis",
-      "stem": "下列关于「世俗基础」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动",
-        "「宗教所反映的现实的人的社会关系，本质是经济基础与阶级矛盾。宗教是世俗基础自我分裂的产物。」——世俗基础",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-004",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_secbasis_feyn",
       "section_id": "sec_A_02",
       "node_id": "kn_secbasis",
@@ -581,27 +497,6 @@
       "source_chunk_id": "CH-MLTH-005",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_intuition_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_intuition",
-      "type": "error_diagnosis",
-      "stem": "下列关于「直观」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「静观式地把握对象、不介入改造的被动认识方式，是旧唯物主义的认识论特征。」——直观",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -659,27 +554,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_humannature_med",
-      "section_id": "sec_A_02",
-      "node_id": "kn_humannature",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：实际上是一切社会关系的总和，非单个人所固有的抽象物。人是历史的、社会的、阶级的存在。",
-      "options": [
-        "实践",
-        "人的本质",
-        "对象性活动",
-        "思维的此岸性"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「人的本质」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-MLTH-007",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_humannature_feyn",
       "section_id": "sec_A_02",
       "node_id": "kn_humannature",
@@ -710,48 +584,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_socialsum_med",
-      "section_id": "sec_A_02",
-      "node_id": "kn_socialsum",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：决定人的本质的现实关系整体，以生产关系为基础，包含阶级关系等。",
-      "options": [
-        "思维的此岸性",
-        "社会关系的总和",
-        "实践",
-        "对象性活动"
-      ],
-      "answer": "B",
-      "explanation": "这句话讲的是「社会关系的总和」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-MLTH-005",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_socialsum_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_socialsum",
-      "type": "error_diagnosis",
-      "stem": "下列关于「社会关系的总和」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动",
-        "「决定人的本质的现实关系整体，以生产关系为基础，包含阶级关系等。」——社会关系的总和",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-005",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_socialsum_feyn",
@@ -803,27 +635,6 @@
       "source_chunk_id": "CH-MLTH-009",
       "authority_status": "reviewed",
       "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_civilsociety_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_civilsociety",
-      "type": "error_diagnosis",
-      "stem": "下列关于「市民社会」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「在马克思历史唯物主义语境中指与政治国家相对的物质生活关系总和，是资产阶级社会的同义语，是旧唯物主义的立脚点。」——市民社会"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-009",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
       "trial_only": false,
       "subjective": false
     },
@@ -881,27 +692,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_humansociety_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_humansociety",
-      "type": "error_diagnosis",
-      "stem": "下列关于「人类社会」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「扬弃资产阶级孤立个人、实现自由联合的共产主义社会关系，是新唯物主义的立脚点。」——人类社会"
-      ],
-      "answer": "A",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-009",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_humansociety_feyn",
       "section_id": "sec_A_02",
       "node_id": "kn_humansociety",
@@ -955,27 +745,6 @@
       "subjective": false
     },
     {
-      "id": "q_kn_standpoint_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_standpoint",
-      "type": "error_diagnosis",
-      "stem": "下列关于「立脚点」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「哲学体系的阶级立场与社会基础。新旧唯物主义的对立归根结底是立脚点（阶级立场）的对立。」——立脚点",
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动"
-      ],
-      "answer": "D",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-009",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
       "id": "q_kn_standpoint_feyn",
       "section_id": "sec_A_02",
       "node_id": "kn_standpoint",
@@ -1006,48 +775,6 @@
       "exempt_marked": false,
       "trial_only": false,
       "subjective": true
-    },
-    {
-      "id": "q_kn_changeworld_med",
-      "section_id": "sec_A_02",
-      "node_id": "kn_changeworld",
-      "type": "logical_deduction",
-      "stem": "下列哪一概念，其表述是：通过革命实践改造现实，是新唯物主义与一切旧哲学的根本区别。哲学从解释世界的工具变为改变世界的武器。",
-      "options": [
-        "思维的此岸性",
-        "实践",
-        "改变世界",
-        "对象性活动"
-      ],
-      "answer": "C",
-      "explanation": "这句话讲的是「改变世界」，是它的完整表述；另三个名字各有别的对应内容，别按字面猜。",
-      "difficulty": 0.5,
-      "source_chunk_id": "CH-MLTH-010",
-      "authority_status": "reviewed",
-      "exempt_marked": false,
-      "trial_only": false,
-      "subjective": false
-    },
-    {
-      "id": "q_kn_changeworld_hard",
-      "section_id": "sec_A_02",
-      "node_id": "kn_changeworld",
-      "type": "error_diagnosis",
-      "stem": "下列关于「改变世界」及相关概念的配对中，有一项把概念的名称标错了（张冠李戴），它是？",
-      "options": [
-        "「指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。」——对象性活动",
-        "「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」——对象性活动",
-        "「通过革命实践改造现实，是新唯物主义与一切旧哲学的根本区别。哲学从解释世界的工具变为改变世界的武器。」——改变世界",
-        "「思维不超出现实可达范围、能在实践中被检验和实现的性质。与康德不可知论的彼岸性相对。」——思维的此岸性"
-      ],
-      "answer": "B",
-      "explanation": "标错的是「人改造客观世界的感性的、对象性的物质活动，是马克思主义认识论与历史观的基础范畴。非日常行为、非道德践履、非理论思考。」这一条 —— 它对应的是「实践」，不是「对象性活动」。「对象性活动」的表述是：指向外部对象并改变对象的人的活动（德 gegenständliche Tätigkeit），强调实践的对象性与改造性，区别于纯意识活动。",
-      "difficulty": 0.7,
-      "source_chunk_id": "CH-MLTH-010",
-      "authority_status": "reviewed",
-      "exempt_marked": true,
-      "trial_only": false,
-      "subjective": false
     },
     {
       "id": "q_kn_changeworld_feyn",
