@@ -67,8 +67,6 @@ void main() {
       '/api/quiz/appeal': const {'test_id': 't_local_1', 'reason': 'x'},
       '/api/dialogue/d_local_1/messages': const {},
       '/api/llm-config': const {},
-      '/api/auth/register': const {'username': 'u', 'password': 'p'},
-      '/api/auth/login': const {'username': 'u', 'password': 'p'},
     };
     final missing = <String>[];
     for (final e in cases.entries) {

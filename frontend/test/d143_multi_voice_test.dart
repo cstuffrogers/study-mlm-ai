@@ -30,12 +30,12 @@ Set<String> _backendVoices() {
 
 void main() {
   group('音色档位表', () {
-    test('五档齐全，id 与 TtsPresets 一一对应', () {
-      expect(TtsVoiceSlots.all.length, 5);
+    test('六档齐全，id 与 TtsPresets 一一对应', () {
+      expect(TtsVoiceSlots.all.length, 6);
       final slotIds = TtsVoiceSlots.all.map((s) => s.id).toList();
       final presetIds = TtsPresets.all.map((p) => p.id).toList();
       expect(slotIds, presetIds, reason: '档位表与风格预设的 id 顺序必须一致');
-      expect(slotIds.toSet().length, 5, reason: 'id 不许重复');
+      expect(slotIds.toSet().length, 6, reason: 'id 不许重复');
     });
 
     test('每档的神经语音都在后端白名单内（否则后端静默换成默认女声）', () {
@@ -48,12 +48,14 @@ void main() {
       }
     });
 
-    test('四个「特色音色」各自指向不同神经语音（不能四档一个音）', () {
+    test('五个「特色音色」至少覆盖四个不同神经语音（播音腔与广播员共用云扬，靠 pitchHz 区分）', () {
       final featured = TtsVoiceSlots.all
           .where((s) => s.id != 'natural')
           .map((s) => s.neuralVoice)
           .toSet();
-      expect(featured.length, 4, reason: '四个调性档必须是四个不同音色');
+      // era_anchor 与 anchor_male 都用 YunyangNeural，但 era_anchor 额外下压 pitchHz，
+      // 听感更低更老派 —— 音色可重叠，靠音调区分是设计意图，不算「四档一个音」。
+      expect(featured.length, 4, reason: '特色档至少需覆盖四个不同音色');
     });
 
     test('前端 neuralVoices 与后端 ALLOWED_VOICES 集合完全相同', () {

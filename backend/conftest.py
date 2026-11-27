@@ -5,6 +5,11 @@
 import os
 import sys
 
+# 测试需要完整路由面：学习域 12 个路由 + WebSocket 已移入 api/legacy，
+# 运行中的服务默认只挂 TTS（前端全本地化）。这里在导入 app 之前把开关打开，
+# 让 TestClient(app) 仍能访问全部学习域端点，且不改变 uvicorn 启动的服务。
+os.environ.setdefault("LEGACY_ROUTERS", "1")
+
 _BACKEND = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_BACKEND)
 

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../offline/data_compat.dart';
+import '../services/backup_reminder.dart';
 import '../theme/app_theme.dart';
 
 class DataBackupScreen extends StatefulWidget {
@@ -70,6 +71,9 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/xxmz_backup_${_ts()}.json');
       await file.writeAsString(json);
+      // 登记备份时间：首页据此判断「N 天没备份就提醒」。
+      // 写文件成功才算备份完成，故放在 writeAsString 之后。
+      await BackupReminder.markExported();
       if (!mounted) return;
       setState(() => _preview = json.length > 1200 ? '${json.substring(0, 1200)}…' : json);
       _toast('已保存到文件（${(json.length / 1024).toStringAsFixed(1)} KB）\n${file.path}');

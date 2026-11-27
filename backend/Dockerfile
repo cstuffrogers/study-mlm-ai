@@ -32,6 +32,7 @@ WORKDIR /app/backend
 
 EXPOSE 8190
 
-# 默认完整模式：连 docker-compose 内的 postgres/redis/neo4j
-# 轻量模式（无 DB）：覆盖为 AUTO_CREATE_TABLES=0
+# 默认内存模式：不连 PG/Redis/Neo4j，后端仅挂 TTS（/api/tts/speak）。
+# 轻量模式（无 DB）：AUTO_CREATE_TABLES=0（docker-compose 已默认设好）
+# 需要学习域服务端模式时，设 AUTO_CREATE_TABLES=1 并恢复 PG/Redis/Neo4j 连接。
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8190"]

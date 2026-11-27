@@ -22,20 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import AUTO_CREATE_TABLES, CORS_ORIGINS, CORS_ALLOW_CREDENTIALS
 from core.db import init_db
-from api.auth_routes import router as auth_router
-from api.dialogue_routes import router as dialogue_router
-from api.chunk_routes import router as chunk_router
-from api.route_routes import router as route_router
-from api.quiz_routes import router as quiz_router
-from api.mastery_routes import router as mastery_router
-from api.recommendation_routes import router as recommendation_router
-from api.sync_routes import router as sync_router
-from api.review_routes import router as review_router
-from api.analytics_routes import router as analytics_router
-from api.motivation_routes import router as motivation_router
-from api.badge_routes import router as badge_router
 from api.tts_routes import router as tts_router
-from api.llm_config_routes import router as llm_config_router
+from api.legacy import mount_legacy_routers
 from websocket.server import router as ws_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -55,21 +43,13 @@ def create_app() -> FastAPI:
     )
 
     # 路由挂载
-    app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
-    app.include_router(dialogue_router, prefix="/api/dialogue", tags=["dialogue"])
-    app.include_router(chunk_router, prefix="/api/chunks", tags=["chunks"])
-    app.include_router(route_router, prefix="/api/routes", tags=["routes"])
-    app.include_router(quiz_router, prefix="/api/quiz", tags=["quiz"])
-    app.include_router(mastery_router, prefix="/api/mastery", tags=["mastery"])
-    app.include_router(recommendation_router, prefix="/api/recommendation", tags=["recommendation"])
-    app.include_router(sync_router, prefix="/api/sync", tags=["sync"])
-    app.include_router(review_router, prefix="/api/review", tags=["review"])
-    app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
-    app.include_router(motivation_router, prefix="/api/motivation", tags=["motivation"])
-    app.include_router(badge_router, prefix="/api/badges", tags=["badges"])
+    # 默认只挂 TTS：前端已全本地化（api_client 走 LocalRouter），仅 /api/tts/speak
+    # 仍由后端合成。学习域 12 个路由 + WebSocket 移入 api/legacy，设
+    # LEGACY_ROUTERS=1 时才挂载（开发/测试用；测试由 conftest.py 自动启用）。
     app.include_router(tts_router, prefix="/api/tts", tags=["tts"])
-    app.include_router(llm_config_router, prefix="/api/llm-config", tags=["llm-config"])
-    app.include_router(ws_router, tags=["websocket"])
+    if os.getenv("LEGACY_ROUTERS", "0").strip() == "1":
+        mount_legacy_routers(app)
+        app.include_router(ws_router, tags=["websocket"])
 
     @app.on_event("startup")
     async def _startup() -> None:

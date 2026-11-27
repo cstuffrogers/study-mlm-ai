@@ -14,7 +14,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marxism_reader/offline/local_db.dart';
 import 'package:marxism_reader/offline/offline_content.dart';
 import 'package:marxism_reader/screens/analytics_dashboard.dart';
-import 'package:marxism_reader/screens/route_picker.dart';
 import 'package:marxism_reader/screens/source_browser_screen.dart';
 import 'package:marxism_reader/screens/home_screen.dart';
 import 'package:marxism_reader/screens/tools_screen.dart';
@@ -72,16 +71,28 @@ void main() {
     }
   });
 
-  testWidgets('选择学习路线：标题完整落在头部容器内（不被下方列表遮住）', (tester) async {
-    await _pump(tester, _phone(const RoutePickerScreen()));
+  testWidgets('首页（选路线）：标题完整落在头部容器内（不被下方列表遮住）', (tester) async {
+    await _pump(
+      tester,
+      _phone(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => ChatService()),
+            ChangeNotifierProvider(create: (_) => SyncController()),
+          ],
+          child: const HomeScreen(),
+        ),
+      ),
+    );
     expect(tester.takeException(), isNull);
 
     final header = tester.widget<GradientHeader>(find.byType(GradientHeader));
     final headerRect = tester.getRect(find.byType(GradientHeader));
-    // 头部高度不小于「基准 128 + 状态栏 40」
+    // 头部高度不小于「基准 + 状态栏 40」
     expect(headerRect.height, greaterThanOrEqualTo(header.height + 40 - 0.5));
 
-    final titleRect = tester.getRect(find.text('选择学习路线'));
+    // 首页标题走 BrandTitle（分行渲染），用副标题文本验证「标题区不超出头部容器」
+    final titleRect = tester.getRect(find.text('先选学习路线，再进章节精读'));
     expect(titleRect.bottom, lessThanOrEqualTo(headerRect.bottom));
     expect(titleRect.top, greaterThanOrEqualTo(headerRect.top));
   });

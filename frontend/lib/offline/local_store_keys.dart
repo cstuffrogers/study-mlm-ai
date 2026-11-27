@@ -47,6 +47,11 @@ class LocalStoreKeys {
   /// 不存在 = 还没弹过（或老版本升上来、本功能上线前的安装）。
   static const String changelogSeen = 'off_changelog_seen';
 
+  /// 上次成功导出备份的时间戳（毫秒，见 services/backup_reminder.dart）。
+  /// 用于「N 天没备份就提醒导出」：本机数据是唯一副本（allowBackup=false），
+  /// 丢了就全没，所以要定期提示用户导出一份 JSON 落盘。
+  static const String backupLastTs = 'off_backup_last_ts';
+
   /// LocalDb 全部文档键，按 flush 顺序
   static const List<String> docs = [
     mastery,

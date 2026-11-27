@@ -23,7 +23,7 @@
 | Phase | 内容 | 状态 |
 |-------|------|------|
 | 1 | 工程骨架（FastAPI + Flutter + docker-compose） | ✓ |
-| 2 | RAG 检索 + 防偏离核心（OrthodoxyGuard + 五层过滤） | ✓（规则召回；pgvector/Neo4j 待 Docker 集成） |
+| 2 | RAG 检索 + 防偏离核心（OrthodoxyGuard + 五层过滤） | ✓（规则召回；pgvector/Neo4j 已随 docker-compose 精简移除） |
 | 3 | Prompt 渲染 + LLM 4 级路由 + 辩难豁免 + 双轨制 + 三重校验 | ✓（Mock LLM 默认；配 key 走真实国产模型） |
 | 4 | 内容生产（《提纲》11 条 + 12 概念锚点 + 40 苏格拉底问题） | ✓ |
 | 5 | Flutter 前端（三层阅读器 + 五模式会话浮层 + 溯源卡片 + 辩难豁免视觉） | ✓ |
@@ -145,7 +145,7 @@ flutter build apk --release
 | **登录账号 / 密码** | **无 —— 本系统当前没有登录页，打开即用** |
 | 当前用户身份 | 固定演示用户 `demo_user`（前端常量，后端按此用户记录学情） |
 
-说明：后端虽已内置 `/api/auth/register`、`/api/auth/login`（bcrypt+JWT）接口，但**前端 UI 尚未接入登录**，所有页面默认以 `demo_user` 直接使用。若后续需要多用户/鉴权，需另接入登录页。
+说明：本系统**没有登录页、无鉴权子系统**（认证路由 `auth_routes.py` 与进程内用户库 `user_store.py` 已删除），打开即用，所有页面默认以 `demo_user` 直接使用。若要支持多用户/鉴权，需从零重新引入整套认证体系。
 
 ### ℹ️ 关于页
 
@@ -222,9 +222,9 @@ python -m ml.synthesize_llm --count 500   # 生成 ml/llm_samples.json
 python -m ml.train_stance                 # 自动合并 LLM 样本重训
 ```
 
-### 模式 B：完整模式（Docker 一键启动）
+### 模式 B：Docker 一键启动
 
-含 PostgreSQL(pgvector) + Redis + Neo4j + 后端 app，真实持久化 + 向量/图召回。
+精简版：仅后端 app，内存模式启动，零数据库依赖。App 已全本地化，后端默认只挂 TTS（`/api/tts/speak`），PG/pgvector/Redis/Neo4j 已从 compose 移除（学习域 12 路由移入 `backend/api/legacy`，`LEGACY_ROUTERS=1` 时才挂载）。
 
 ```bash
 cp backend/.env.example backend/.env   # 填 LLM_API_KEY 走真实模型（可选）
@@ -233,7 +233,9 @@ docker compose up --build
 
 - 后端 API：http://localhost:8190
 - 健康检查：http://localhost:8190/health
-- Neo4j Browser：http://localhost:7474（neo4j / marxism_pass）
+- TTS：http://localhost:8190/api/tts/speak
+
+> 需要学习域服务端模式（对话 / 题库 / 掌握度等 legacy 路由）时，恢复 `docker-compose.yml` 中注释掉的 postgres / redis / neo4j 三个服务，并把 app 的 `AUTO_CREATE_TABLES` 改回 `"1"`、补回数据库连接串。
 
 ## 测试
 
@@ -325,7 +327,6 @@ Phase 6 核心套件（含在整个 925 passed 里）：
 - `LLM_API_KEY` — 配齐走真实国产模型（通义/文心/DeepSeek，OpenAI 兼容）；留空走 Mock
 - `AUTO_CREATE_TABLES` — 完整模式 `1`（建表），轻量模式 `0`（跳过）
 - `ENABLE_SEMANTIC_CACHE` — 语义缓存开关
-- `SECRET_KEY` — 默认 `change-me-in-production`，**对外提供服务前必须换成 32 字节以上随机值**
 
 ### ⚠️ 部署边界（务必先看）
 
@@ -334,9 +335,9 @@ Phase 6 核心套件（含在整个 925 passed 里）：
 
 因此：
 
-- 默认只允许跑在**本机回环地址**；`docker-compose.yml` 已把 8190 / 5432 / 6379 / 7474 / 7687 全部绑到 `127.0.0.1`
+- 默认只允许跑在**本机回环地址**；`docker-compose.yml` 已把后端 8190 绑到 `127.0.0.1`（精简后不再有 PG/Redis/Neo4j 端口）
 - 启动时会打印安全告警（弱口令 / CORS 通配 / 无鉴权），看到告警就说明「这份服务只能自己用」
-- 要多人使用，必须先补鉴权（`auth_routes.py` 已能签发 JWT，但**没有任何路由校验它**）
+- 要多人使用，必须从零引入鉴权体系（本项目已删除认证子系统，无 JWT 签发，也没有任何路由做身份校验）
 
 ## 版权与合规
 

@@ -12,7 +12,7 @@ import uuid
 import pytest
 from fastapi import HTTPException
 
-from api.quiz_routes import delete_attempt
+from api.legacy.quiz_routes import delete_attempt
 from model.models_learning import MasteryRecord
 from services.learning_startup import ensure_learning_ready
 from services.learning_db import session_scope

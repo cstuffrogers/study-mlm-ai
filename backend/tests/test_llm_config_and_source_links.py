@@ -13,8 +13,8 @@ import os
 
 import pytest
 
-from api.llm_config_routes import ConfigIn, get_config, save_config
-from api.route_routes import section_guide
+from api.legacy.llm_config_routes import ConfigIn, get_config, save_config
+from api.legacy.route_routes import section_guide
 from content import source_links
 from content.routes import SECTIONS, get_section
 from services.content_provider import chunks_by_work, get_chunk

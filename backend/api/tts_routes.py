@@ -20,6 +20,7 @@ class SpeakIn(BaseModel):
     text: str = Field(..., description="要朗读的纯文本（前端已剥离 Markdown/LaTeX）")
     voice: str | None = Field(None, description="神经语音 ShortName；默认晓晓")
     rate: str | None = Field(None, description="语速，如 '+10%' / '-5%'")
+    pitch: str | None = Field(None, description="音调偏移，如 '-3Hz' / '+10Hz'；不传用微软默认")
 
 
 @router.get("/health")
@@ -43,6 +44,7 @@ def tts_speak(body: SpeakIn):
             text,
             voice=body.voice or tts_service.DEFAULT_VOICE,
             rate=body.rate or "+0%",
+            pitch=body.pitch or "",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -66,6 +68,7 @@ def tts_speak_get(
     text: str,
     voice: str | None = None,
     rate: str | None = None,
+    pitch: str | None = None,
 ):
     """GET 版朗读：让前端可把 <audio src=此URL> 并「同步」调用 play()。
 
@@ -82,6 +85,7 @@ def tts_speak_get(
             t,
             voice=voice or tts_service.DEFAULT_VOICE,
             rate=rate or "+0%",
+            pitch=pitch or "",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

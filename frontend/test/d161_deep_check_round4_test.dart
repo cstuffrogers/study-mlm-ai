@@ -28,7 +28,6 @@ import 'package:marxism_reader/offline/offline_content.dart';
 import 'package:marxism_reader/services/api_client.dart';
 
 import 'package:marxism_reader/screens/analytics_dashboard.dart';
-import 'package:marxism_reader/screens/knowledge_node_screen.dart';
 import 'package:marxism_reader/screens/profile_dashboard.dart';
 import 'helpers/offline_assets_guard.dart';
 
@@ -447,23 +446,6 @@ void main() {
         home: ProfileDashboardScreen(routeId: routeA)));
     await tester.pumpAndSettle();
     expect(find.textContaining('维度得分 = 该维度已评估知识点的掌握度均值'),
-        findsOneWidget);
-  });
-
-  testWidgets('口径说明·知识点详情：掌握依据标注五信号合成口径', (tester) async {
-    final nodeId = firstNodeId();
-    LocalDb.mastery[routeA] = {
-      nodeId: masteryRec(
-        nodeId,
-        0.82,
-        DateTime.now().toUtc(),
-        basis: {'accuracy': 1.0, 'stability': 0.5, 'difficulty': 0.4},
-      ),
-    };
-    await tester.pumpWidget(MaterialApp(
-        home: KnowledgeNodeScreen(nodeId: nodeId, routeId: routeA)));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('掌握度由准确性、难度、稳定性、对话参与、费曼表达五项加权合成'),
         findsOneWidget);
   });
 

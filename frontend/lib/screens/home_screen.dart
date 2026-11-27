@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 
 import '../services/sync_controller.dart';
 import '../services/badge_service_api.dart';
+import '../services/backup_reminder.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/author_art.dart';
@@ -19,6 +20,7 @@ import '../widgets/guide_dialog.dart';
 import '../widgets/route_cards.dart';
 import '../widgets/sync_notice.dart';
 import 'analytics_dashboard.dart';
+import 'data_backup_screen.dart';
 import 'llm_config_screen.dart';
 import 'tools_screen.dart';
 import 'badge_screen.dart';
@@ -32,15 +34,27 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _unseenBadges = 0;
+  /// 上次备份时间戳（毫秒）；null = 从未备份或尚未读出。
+  int? _lastBackupTs;
 
   @override
   void initState() {
     super.initState();
     _loadUnseenBadges();
+    _loadLastBackupTs();
     // 启动时合并离线暂存并拉取断点（断点续学）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SyncController>().flush();
     });
+  }
+
+  /// 读上次备份时间：决定首页要不要弹「该备份了」提醒。
+  /// 读取失败不阻断首页（最坏情况 = 一直提醒，用户点一下就消失）。
+  Future<void> _loadLastBackupTs() async {
+    try {
+      final ts = await BackupReminder.readLastTs();
+      if (mounted) setState(() => _lastBackupTs = ts);
+    } catch (_) {} // 提醒失败不阻断首页
   }
 
   Future<void> _loadUnseenBadges() async {
@@ -74,6 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 message: sync.message.isNotEmpty ? sync.message : '离线暂存 ${sync.pending} 条进度',
                 offline: !sync.online,
                 onRetry: () => context.read<SyncController>().flush(),
+              ),
+            // 本机数据是唯一副本（allowBackup=false），N 天没导出就提示备份
+            if (_lastBackupTs != null &&
+                BackupReminder.overdue(_lastBackupTs))
+              _BackupReminderBanner(
+                onTap: () => _push(const DataBackupScreen()),
               ),
             Expanded(
               child: AuroraBackground(
@@ -202,6 +222,41 @@ class _HeaderAction extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 首页顶部的「该备份了」提醒横幅。
+///
+/// 与 SyncNotice 同形态：一行图标 + 文案 + 操作按钮。点击直接进备份页，
+/// 由用户自己决定什么时候导出（App 不强制弹窗打断阅读）。
+class _BackupReminderBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _BackupReminderBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = const Color(0xFFB45309);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: color.withValues(alpha: 0.1),
+      child: Row(
+        children: [
+          Icon(Icons.backup_rounded, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '本机数据是唯一副本，建议每周导出一份备份，防丢机或卸载重装',
+              style: TextStyle(fontSize: 12, color: color),
+            ),
+          ),
+          TextButton(
+            onPressed: onTap,
+            child: const Text('去备份', style: TextStyle(fontSize: 12)),
+          ),
+        ],
       ),
     );
   }

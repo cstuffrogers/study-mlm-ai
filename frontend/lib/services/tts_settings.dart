@@ -24,6 +24,7 @@ class TtsPreset {
     required this.hint,
     required this.pitch,
     required this.rate,
+    this.pitchHz = 0,
   });
 
   final String id;
@@ -35,6 +36,11 @@ class TtsPreset {
 
   /// 语速倍数（1.0 = 原速）。
   final double rate;
+
+  /// Web 端神经语音的音调偏移（Hz），如 -3 → '-3Hz'、+10 → '+10Hz'。
+  /// 0 = 不传，用微软默认音调。与 [pitch]（安卓/浏览器兜底用的倍数）分开：
+  /// 两者单位不同，避免互相污染。
+  final int pitchHz;
 }
 
 class TtsPresets {
@@ -80,13 +86,26 @@ class TtsPresets {
     rate: 1.14,
   );
 
-  /// 页面展示顺序：自然在前，其余按「女声 → 男声」。
+  /// 年代播音腔：低沉沉稳的男声，语速偏慢，像老式电台广播。
+  /// 与「广播员男声」都用云扬（YunyangNeural，专业男声），但 pitchHz=-4
+  /// 把音调压得更低、语速放慢，听感更「老派」。Web 与安卓都生效。
+  static const TtsPreset eraAnchor = TtsPreset(
+    id: 'era_anchor',
+    label: '年代播音腔',
+    hint: '低沉沉稳、语速偏慢，像老式电台广播',
+    pitch: 0.8,
+    rate: 0.9,
+    pitchHz: -4,
+  );
+
+  /// 页面展示顺序：自然在前，其余按「女声 → 男声」，播音腔收在最后。
   static const List<TtsPreset> all = <TtsPreset>[
     natural,
     gentleFemale,
     sweetFemale,
     anchorMale,
     powerfulMale,
+    eraAnchor,
   ];
 
   static TtsPreset byId(String? id) => all.firstWhere(

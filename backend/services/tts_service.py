@@ -9,10 +9,12 @@
 纯确定性工程：不训练、不蒸馏、不接大模型，只调用现成语音合成。
 
 设计要点：
-- 结果做**内容寻址缓存**（key = voice|rate|text），热门句子（课文、导读、常见问答）
+- 结果做**内容寻址缓存**（key = voice|rate|pitch|text），热门句子（课文、导读、常见问答）
   只合成一次，重复朗读命中缓存近乎零延迟。
 - 合成失败 / 离线时抛异常，由前端**回退**到浏览器原生 speechSynthesis，功能不中断。
 - 语音白名单，避免任意文本 + 任意 voice 被滥用。
+- pitch 以 Hz 偏移传给 edge-tts（如 '-3Hz' / '+10Hz'）；空或非法则不传（用微软默认）。
+  缓存 key 必须含 pitch，否则同文本同 voice 但不同音调会误命中旧缓存。
 """
 from __future__ import annotations
 
@@ -59,11 +61,13 @@ def available() -> bool:
     return _EDGE_OK
 
 
-def _cache_key(voice: str, rate: str, text: str) -> str:
+def _cache_key(voice: str, rate: str, pitch: str, text: str) -> str:
     h = hashlib.sha256()
     h.update(voice.encode("utf-8"))
     h.update(b"\x00")
     h.update(rate.encode("utf-8"))
+    h.update(b"\x00")
+    h.update(pitch.encode("utf-8"))
     h.update(b"\x00")
     h.update(text.encode("utf-8"))
     return h.hexdigest()
@@ -94,8 +98,12 @@ def _cache_put(key: str, data: bytes) -> None:
             _cache_bytes_total -= len(dropped)
 
 
-async def _synth_async(text: str, voice: str, rate: str) -> bytes:
-    comm = edge_tts.Communicate(text, voice, rate=rate)
+async def _synth_async(text: str, voice: str, rate: str, pitch: str) -> bytes:
+    kwargs = {'rate': rate}
+    # edge-tts 的 pitch 形如 '-3Hz' / '+10Hz'；空字符串表示不传（用微软默认）。
+    if pitch:
+        kwargs['pitch'] = pitch
+    comm = edge_tts.Communicate(text, voice, **kwargs)
     buf = bytearray()
     async for chunk in comm.stream():
         if chunk.get("type") == "audio":
@@ -103,8 +111,13 @@ async def _synth_async(text: str, voice: str, rate: str) -> bytes:
     return bytes(buf)
 
 
-def synthesize(text: str, voice: str = DEFAULT_VOICE, rate: str = "+0%") -> bytes:
-    """把文本合成为 MP3 字节。命中缓存直接返回；失败抛 RuntimeError。"""
+def synthesize(text: str, voice: str = DEFAULT_VOICE, rate: str = "+0%",
+               pitch: str = "") -> bytes:
+    """把文本合成为 MP3 字节。命中缓存直接返回；失败抛 RuntimeError。
+
+    [pitch] 为 edge-tts 音调偏移（Hz），如 '-3Hz' / '+10Hz'；空串表示不传，
+    用微软默认音调。参与缓存 key，避免同 voice 同文本不同音调误命中。
+    """
     if not _EDGE_OK:
         raise RuntimeError("edge-tts 不可用")
     t = (text or "").strip()
@@ -118,15 +131,21 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE, rate: str = "+0%") -> byte
     r = (rate or "+0%").strip()
     if not r or r[-1] != "%":
         r = "+0%"
+    # pitch 归一：空或非法（不带 'Hz' 后缀）则置空，用微软默认
+    p = (pitch or "").strip()
+    if p and not p.endswith("Hz"):
+        p = ""
 
-    key = _cache_key(voice, r, t)
+    key = _cache_key(voice, r, p, t)
     hit = _cache_get(key)
     if hit is not None:
         return hit
 
     # edge-tts 是异步的；在同步接口里用独立事件循环跑，并加超时。
     async def _runner() -> bytes:
-        return await asyncio.wait_for(_synth_async(t, voice, r), timeout=_SYNTH_TIMEOUT)
+        return await asyncio.wait_for(
+            _synth_async(t, voice, r, p), timeout=_SYNTH_TIMEOUT
+        )
 
     def _one_attempt() -> bytes:
         try:

@@ -19,7 +19,7 @@ class TtsVoiceSlot {
   });
 
   /// 与 TtsPresets 的 id 一一对应（natural / gentle_female / sweet_female /
-  /// anchor_male / power_male）。
+  /// anchor_male / power_male / era_anchor）。
   final String id;
 
   final String label;
@@ -79,12 +79,21 @@ class TtsVoiceSlots {
     nativeHints: <String>['yunjian', 'yunxi', 'male', '男', 'kangkang'],
   );
 
+  static const TtsVoiceSlot eraAnchor = TtsVoiceSlot(
+    id: 'era_anchor',
+    label: '年代播音腔',
+    hint: '低沉沉稳、语速偏慢，像老式电台广播（Web 用「云扬」+ 音调下压）',
+    neuralVoice: 'zh-CN-YunyangNeural',
+    nativeHints: <String>['yunyang', 'kangkang', 'male', '男'],
+  );
+
   static const List<TtsVoiceSlot> all = <TtsVoiceSlot>[
     natural,
     gentleFemale,
     sweetFemale,
     anchorMale,
     powerfulMale,
+    eraAnchor,
   ];
 
   static TtsVoiceSlot byId(String? id) => all.firstWhere(

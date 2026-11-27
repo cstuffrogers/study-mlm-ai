@@ -9,7 +9,7 @@ import pytest
 from services.learning_startup import ensure_learning_ready
 from services import quiz_service, mastery_service as ms
 from services.learning_db import session_scope
-from api.quiz_routes import history
+from api.legacy.quiz_routes import history
 from model.models_learning import QuizItem
 from core.config import MASTERY_THRESHOLDS
 

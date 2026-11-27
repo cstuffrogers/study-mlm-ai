@@ -1,7 +1,7 @@
 """异步数据库连接 — PostgreSQL + pgvector
 
 engine/session 采用懒加载：仅在 init_db() 或 get_session() 首次调用时创建。
-轻量模式（AUTO_CREATE_TABLES=0 且不调 auth/chunk 路由）完全不碰 asyncpg，
+轻量模式（AUTO_CREATE_TABLES=0 且不调 chunk 路由）完全不碰 asyncpg，
 因此无 Docker / 无 PG 也能启动 app 跑对话核心闭环。
 """
 from __future__ import annotations

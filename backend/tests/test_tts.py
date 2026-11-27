@@ -40,12 +40,15 @@ def test_invalid_voice_falls_back_to_default():
 
 def test_rate_normalization_via_cache_key():
     # 语速规格化：非法 rate 归一为 '+0%'，等价于默认
-    k1 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+0%", "你好")
-    k2 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+0%", "你好")
+    k1 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+0%", "", "你好")
+    k2 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+0%", "", "你好")
     assert k1 == k2
     # 不同语速 → 不同缓存键
-    k3 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+20%", "你好")
+    k3 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+20%", "", "你好")
     assert k1 != k3
+    # 不同音调 → 不同缓存键（pitch 必须参与 key，否则同文本同语音不同音调会误命中）
+    k4 = tts_service._cache_key(tts_service.DEFAULT_VOICE, "+0%", "-4Hz", "你好")
+    assert k1 != k4
 
 
 @pytest.mark.parametrize("text", ["实践是检验真理的唯一标准。", "人民群众是历史的创造者。"])

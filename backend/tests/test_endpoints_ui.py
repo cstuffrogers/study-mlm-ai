@@ -8,7 +8,7 @@ import pytest
 
 from services.learning_startup import ensure_learning_ready
 from services import quiz_service
-from api import route_routes, mastery_routes, quiz_routes, chunk_routes, dialogue_routes
+from api.legacy import route_routes, mastery_routes, quiz_routes, chunk_routes, dialogue_routes
 
 
 def uid():

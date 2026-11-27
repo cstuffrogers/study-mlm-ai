@@ -279,10 +279,19 @@ String _neuralUrl(String text, String rateStr) {
   //
   // voice：Web 端的「温柔女声 / 广播员男声」等预设**就是**这几个微软神经语音，
   // 不带 voice 参数就永远是默认晓晓，页面上选了也没用。
+  final preset = TtsSettings.instance.preset;
+  // 年代播音腔等预设用 pitchHz 给神经语音下压音调：只有 != 0 时才传，
+  // 传空串会让后端用微软默认，且空 pitch 不进缓存 key（与旧缓存兼容）。
+  final Map<String, String> pitchEntry = preset.pitchHz != 0
+      ? <String, String>{
+          'pitch': '${preset.pitchHz > 0 ? '+' : ''}${preset.pitchHz}Hz',
+        }
+      : const <String, String>{};
   final uri = Uri.parse('/api/tts/speak').replace(queryParameters: {
     'text': t,
     'rate': rateStr,
     'voice': TtsSettings.instance.slot.neuralVoice,
+    ...pitchEntry,
   });
   return uri.toString();
 }

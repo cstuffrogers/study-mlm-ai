@@ -62,11 +62,3 @@ class QuizHistoryApi {
       ApiClient.delete('/api/quiz/attempt/${Uri.encodeComponent(attemptId)}',
           query: {'user_id': userId});
 }
-
-class AuthApi {
-  Future<Map<String, dynamic>> register(String email, String password, {String nickname = ''}) =>
-      ApiClient.post('/api/auth/register', {'email': email, 'password': password, 'nickname': nickname});
-
-  Future<Map<String, dynamic>> login(String email, String password) =>
-      ApiClient.post('/api/auth/login', {'email': email, 'password': password});
-}
