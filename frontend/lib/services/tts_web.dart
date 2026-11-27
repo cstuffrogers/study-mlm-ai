@@ -31,6 +31,13 @@ import 'tts_voice_pick.dart';
 /// 当前正在朗读的「条目 id」。null 表示空闲。全局同一时刻只朗读一段。
 final ValueNotifier<String?> ttsCurrent = ValueNotifier<String?>(null);
 
+/// 当前播放是否已从后端神经语音**回退**到浏览器原生语音（机器腔）。
+///
+/// 为什么会有它：神经语音偶发失败（微软侧/网络抖动）时，本文件会重试到全部失败
+/// 才回退浏览器语音。两种音色差异极大，回退在用户听感上就是「突然变声」；
+/// 连续朗读的状态条读这个值，明确显示「已切本机语音」，避免被当成故障。
+final ValueNotifier<bool> ttsNeuralFallback = ValueNotifier<bool>(false);
+
 /// 与原生实现保持 API 一致：Web 端不存在异步初始化，这里只在语音列表就绪时自增。
 final ValueNotifier<int> ttsReadyTick = ValueNotifier<int>(0);
 
@@ -242,6 +249,21 @@ void _browserSpeak(String text, String id, double rate) {
 
 // ------------------------- 神经语音（后端 URL，同步播放） -------------------------
 
+/// 每段神经语音最多尝试次数；全部失败才回退浏览器语音。
+///
+/// 为什么要重试：连续朗读中最常见的失败是微软侧/网络的**瞬时**抖动（连接重置、
+/// 限流、响应变慢），这类失败重试一次基本就能成功。直接回退成浏览器机器腔，
+/// 用户听到的就是「突然变声」。
+const int _neuralMaxAttempts = 2;
+
+/// 神经语音看门狗：这段时间内一个音频字节都没到（后端挂起/离线且未触发
+/// onError），才判定失败。
+///
+/// 口径：后端单次合成有 20 秒超时，且响应是**缓冲式**的——第一字节要等合成
+/// 完才下发。35 秒 = 20 秒合成 + 下载/网络余量。旧版 15 秒会在合成仍在进行
+/// 时误判失败、切到机器腔，正是「突然变声」的直接原因之一。
+const Duration _neuralWatchdog = Duration(seconds: 35);
+
 String _rateToEdge(double rate) {
   final pct = ((rate - 1.0) * 100).round();
   if (pct == 0) return '+0%';
@@ -288,7 +310,7 @@ void _stopAudio() {
   }
 }
 
-/// 用后端 URL 同步播放；失败自动回退浏览器语音。
+/// 用后端 URL 同步播放；失败**先重试**，全部失败才回退浏览器语音。
 /// [onDone] 在本段播放自然结束时回调（用于「整页长文」分段续播与连续朗读换页）。
 void _playNeuralUrl(
   String url,
@@ -297,7 +319,23 @@ void _playNeuralUrl(
   double rate, {
   void Function()? onDone,
 }) {
+  _playNeuralAttempt(url, id, text, rate, onDone, attempt: 0);
+}
+
+/// 单次尝试：[attempt] 从 0 开始，失败且还有余量时原地重试（同 URL 重新请求）。
+///
+/// 重试会新建 <audio> 并 `_stopAudio()` 放掉上一个：只 pause 不够，
+/// 上一个的下载/缓冲不释放，重试等于白费。
+void _playNeuralAttempt(
+  String url,
+  String id,
+  String text,
+  double rate,
+  void Function()? onDone, {
+  required int attempt,
+}) {
   _stopAudio();
+  ttsNeuralFallback.value = false;
   // 命中了「下一页预热」：这一段音频已经在下或在缓存里了，直接拿来播，换页没空档。
   final warm = _warm.remove(url);
   final audio = warm ?? html.AudioElement();
@@ -308,9 +346,21 @@ void _playNeuralUrl(
     if (fellBack) return;
     fellBack = true;
     _stopAudio();
+    // 重试全部失败：切浏览器语音，并明确置位供状态条提示。
+    ttsNeuralFallback.value = true;
     if (ttsCurrent.value == id) {
       _browserSpeak(text, id, rate);
     }
+  }
+
+  /// 本次尝试失败：还有余量就重试，否则回退。
+  void fail() {
+    if (fellBack) return;
+    if (attempt + 1 < _neuralMaxAttempts) {
+      _playNeuralAttempt(url, id, text, rate, onDone, attempt: attempt + 1);
+      return;
+    }
+    fallback();
   }
 
   audio.onEnded.listen((_) {
@@ -321,20 +371,21 @@ void _playNeuralUrl(
       ttsCurrent.value = null;
     }
   });
-  audio.onError.listen((_) => fallback());
+  audio.onError.listen((_) => fail());
   // 预热过的元素不重设 src：按 HTML 规范重设会走一遍加载算法，白白丢掉已下载的数据。
   if (warm == null) audio.src = url;
   // 关键：在点击手势内同步 play()（异步后才 play 会被自动播放策略拦截）。
   audio.play().then((_) {}).catchError((_) {
-    fallback();
+    fail();
     return null;
   });
   ttsCurrent.value = id;
 
-  // 看门狗：若 15 秒仍没有任何音频数据（后端挂起/离线且未触发 onError），回退。
-  _watchdog = Timer(const Duration(seconds: 15), () {
+  // 看门狗：若 _neuralWatchdog 内仍没有任何音频数据（后端挂起/离线且未触发
+  // onError），按失败处理（重试或回退）。
+  _watchdog = Timer(_neuralWatchdog, () {
     if (ttsCurrent.value == id && audio.readyState == 0) {
-      fallback();
+      fail();
     }
   });
 }
@@ -474,6 +525,8 @@ void ttsSpeak(
   _pending.clear();
   _stopAudio();
   _segOnDone = onDone;
+  // 新一轮朗读开始：回退标志复位（神经路径重新尝试，浏览器手选路径本就不是回退）。
+  ttsNeuralFallback.value = false;
   if (_neuralDisabled) {
     // 用户在设置页手选了浏览器语音：直接用它，不再先试神经语音
     _segments = const <String>[];
@@ -509,6 +562,7 @@ void ttsStop() {
   _segIndex = 0;
   _segOnDone = null;
   ttsCurrent.value = null;
+  ttsNeuralFallback.value = false;
 }
 
 /// 暂停朗读（保留当前进度，可继续）。只暂停，不释放音频缓冲。

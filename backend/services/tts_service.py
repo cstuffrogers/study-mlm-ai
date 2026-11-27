@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import threading
+import time
 from collections import OrderedDict
 from typing import Optional
 
@@ -127,7 +128,7 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE, rate: str = "+0%") -> byte
     async def _runner() -> bytes:
         return await asyncio.wait_for(_synth_async(t, voice, r), timeout=_SYNTH_TIMEOUT)
 
-    try:
+    def _one_attempt() -> bytes:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -148,16 +149,25 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE, rate: str = "+0%") -> byte
             th.join()
             if "e" in err:
                 raise err["e"]
-            data = result.get("data", b"")
-        else:
-            data = asyncio.run(_runner())
-    except Exception as e:
-        raise RuntimeError(f"语音合成失败：{e}") from e
+            return result.get("data", b"")
+        return asyncio.run(_runner())
 
-    if not data:
-        raise RuntimeError("语音合成返回空音频")
-    _cache_put(key, data)
-    return data
+    # 失败重试一次：连续朗读时请求密集，微软侧偶发连接重置/限流/慢响应，
+    # 这类瞬时故障重试一次基本能接上。不重试的话前端只能回退浏览器机器腔，
+    # 用户听感就是「念着念着突然变声」。
+    last_err: Exception | None = None
+    for _attempt in range(2):
+        try:
+            data = _one_attempt()
+            if not data:
+                raise RuntimeError("语音合成返回空音频")
+            _cache_put(key, data)
+            return data
+        except Exception as e:
+            last_err = e
+            if _attempt == 0:
+                time.sleep(0.8)
+    raise RuntimeError(f"语音合成失败：{last_err}") from last_err
 
 
 def cache_size() -> int:

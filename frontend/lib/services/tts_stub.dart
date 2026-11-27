@@ -5,6 +5,9 @@ import 'tts_settings.dart';
 
 final ValueNotifier<String?> ttsCurrent = ValueNotifier<String?>(null);
 
+/// 空实现恒为 false（与 Web/原生实现保持 API 一致）。
+final ValueNotifier<bool> ttsNeuralFallback = ValueNotifier<bool>(false);
+
 /// 与原生/Web 实现保持 API 一致（空实现永不就绪）
 final ValueNotifier<int> ttsReadyTick = ValueNotifier<int>(0);
 

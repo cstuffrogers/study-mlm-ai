@@ -171,6 +171,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
     super.initState();
     // 连续朗读要感知「朗读被停 / 被别的喇叭抢走」，只挂一个监听，别轮询。
     ttsCurrent.addListener(_onTtsChanged);
+    // 神经语音回退到本机语音时，状态条要立刻更新出提示（不靠别的重绘捎带）。
+    ttsNeuralFallback.addListener(_onTtsFallbackChanged);
     _load();
     _loadRouteIndex();
   }
@@ -189,6 +191,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       _chatSvc!.removeListener(_chatListener!);
     }
     ttsCurrent.removeListener(_onTtsChanged);
+    ttsNeuralFallback.removeListener(_onTtsFallbackChanged);
     _autoWatchdog?.cancel();
     _autoWatchdog = null;
     // 离开原文页 = 连续朗读的终点：声音停、后台保活开关复位。
@@ -1094,10 +1097,17 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         const SizedBox(width: 4),
         Flexible(
           child: Text(
-            _autoPaused ? '已暂停 · ${_autoMode!.short}' : '连续朗读 · ${_autoMode!.short}',
+            _autoPaused
+                ? '已暂停 · ${_autoMode!.short}'
+                : (ttsNeuralFallback.value
+                    ? '已切本机语音 · ${_autoMode!.short}'
+                    : '连续朗读 · ${_autoMode!.short}'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11.5, color: AppColors.ink700),
+            style: TextStyle(
+              fontSize: 11.5,
+              color: ttsNeuralFallback.value && !_autoPaused ? AppColors.danger : AppColors.ink700,
+            ),
           ),
         ),
         TextButton(
@@ -1477,6 +1487,12 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       setState(() => _autoPaused = true);
       ttsPause();
     }
+  }
+
+  /// 神经语音回退到浏览器本机语音：状态条立刻刷新，明确提示，别让用户误以为出故障。
+  void _onTtsFallbackChanged() {
+    if (!mounted || _autoMode == null) return;
+    setState(() {});
   }
 
   /// 朗读被停 / 被别的喇叭抢走 → 连续朗读跟着收摊，

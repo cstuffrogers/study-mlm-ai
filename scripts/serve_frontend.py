@@ -83,6 +83,8 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     # 这样前端朗读音频与页面同源（http://localhost:8080/api/tts/speak）：
     #   - 彻底避开跨端口 / CORS / 自动播放来源限制；
     #   - 前端只需相对 URL，任何 host 打开页面都能用。
+    # 超时给 60 秒：后端单次合成 20 秒超时，失败还会重试一次（最坏 2×20s
+    # + 网络余量），30 秒会在重试途中把请求掐断、前端误判失败回退机器腔。
     BACKEND_HOST = "127.0.0.1"
     BACKEND_PORT = int(os.environ.get("TTS_BACKEND_PORT", "8190"))
 
@@ -93,7 +95,7 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(length) if length else None
         try:
-            conn = http.client.HTTPConnection(self.BACKEND_HOST, self.BACKEND_PORT, timeout=30)
+            conn = http.client.HTTPConnection(self.BACKEND_HOST, self.BACKEND_PORT, timeout=60)
             fwd = {k: v for k, v in self.headers.items()
                    if k.lower() not in ("host", "connection")}
             conn.request(self.command, self.path, body=body, headers=fwd)

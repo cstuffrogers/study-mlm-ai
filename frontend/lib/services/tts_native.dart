@@ -20,6 +20,10 @@ import 'tts_voice_slots.dart';
 /// 当前正在朗读的「条目 id」。null 表示空闲。全局同一时刻只朗读一段。
 final ValueNotifier<String?> ttsCurrent = ValueNotifier<String?>(null);
 
+/// 安卓走系统 TTS 单引擎，不存在「神经语音 → 浏览器语音」的回退，恒为 false。
+/// （与 Web 实现保持 API 一致，状态条可统一读取。）
+final ValueNotifier<bool> ttsNeuralFallback = ValueNotifier<bool>(false);
+
 /// 引擎就绪状态：初始化是异步的，就绪后自增一次，让喇叭按钮重新求值。
 final ValueNotifier<int> ttsReadyTick = ValueNotifier<int>(0);
 
@@ -65,6 +69,9 @@ Future<void> ttsInit() async {
         await _ch.invokeMethod<bool>('setVoice', {'name': saved});
       } catch (_) {}
     }
+    // 把当前预设的语音包提前切好：用户一开始朗读，音色就已经是目标状态，
+    // speak 时的 _applySlotVoice 直接是空操作（手选过语音包时上面已生效）。
+    await _applySlotVoice();
         _ch.setMethodCallHandler((call) async {
       if (call.method == 'done') {
         final id = call.arguments as String?;
@@ -114,7 +121,12 @@ Future<bool> ttsSetVoice(String name) async {
   if (!ttsAvailable()) return false;
   try {
     final ok = await _ch.invokeMethod<bool>('setVoice', {'name': name}) ?? false;
-    if (ok) await TtsSettings.instance.setVoiceName(name);
+    if (ok) {
+      // 手选语音包会改变「谁优先」：清掉预设的已切标记，
+      // 回到「自动优选」时下一次朗读才会重新匹配预设音色。
+      _appliedSlot = null;
+      await TtsSettings.instance.setVoiceName(name);
+    }
     return ok;
   } catch (e) {
     debugPrint('切换语音包失败：$e');
@@ -169,36 +181,85 @@ void ttsSpeak(
   ttsCurrent.value = id;
   // 风格预设：语速在调用方的 rate 上再乘预设倍数，音调交给预设（安卓引擎范围 0.5~2.0）
   final preset = TtsSettings.instance.preset;
-  _applySlotVoice();
-  _ch.invokeMethod<bool>('speak', {
-    'text': body,
-    'id': id,
-    'rate': rate * preset.rate,
-    'pitch': preset.pitch,
-  }).then((ok) {
-    if (ok != true && ttsCurrent.value == id) ttsCurrent.value = null;
-  }).catchError((Object e) {
-    if (ttsCurrent.value == id) ttsCurrent.value = null;
-    debugPrint('TTS 朗读失败：$e');
+  // 先切语音包、再发 speak：setVoice 与 speak 走同一条 MethodChannel、按序到达，
+  // 保证 speak 到达时音色已是目标状态——否则异步切音落在朗读中途，就是「突然变声」。
+  _applySlotVoice().then((_) {
+    // 切音完成时本任务可能已被更新的任务取代（用户点了别的喇叭 / 停止 / 切换模式）：
+    // 只给「当前任务」发 speak，避免旧任务的 speak 迟到后插队。
+    if (ttsCurrent.value != id) return;
+    _ch.invokeMethod<bool>('speak', {
+      'text': body,
+      'id': id,
+      'rate': rate * preset.rate,
+      'pitch': preset.pitch,
+    }).then((ok) {
+      if (ok != true && ttsCurrent.value == id) ttsCurrent.value = null;
+    }).catchError((Object e) {
+      if (ttsCurrent.value == id) ttsCurrent.value = null;
+      debugPrint('TTS 朗读失败：$e');
+    });
   });
 }
 
 /// 把当前风格档对应的系统语音包设上去（手选过语音包、或档位没关键词时跳过）。
 /// 失败/没找到都静默：音调语速预设仍然生效，不该因为选不到音色就静默不读。
-void _applySlotVoice() {
+///
+/// **必须在 speak 之前 await**：`engine.setVoice` 在系统引擎上立即生效，落在
+/// 朗读中途就是突兀的「变声」——连续朗读首段念白很长，异步切音几乎必然落在中途。
+/// MethodChannel 调用按通道 FIFO，等切音完成再发 speak，setVoice 必先于 speak 到达。
+///
+/// 同一档位一次会话只切一次（完成后才记 [_appliedSlot]）；进行中的切音对同档位
+/// 调用方共享，避免重复 setVoice。
+Future<void> _applySlotVoice() {
   final settings = TtsSettings.instance;
-  if (settings.voiceName.isNotEmpty) return;
+  if (settings.voiceName.isNotEmpty) return Future.value();
   final slot = TtsVoiceSlots.byId(settings.presetId);
-  if (slot.nativeHints.isEmpty) return;
-  if (_appliedSlot == slot.id) return;
-  _appliedSlot = slot.id;
-  _voiceForSlot(slot).then((name) {
-    if (name == null || settings.voiceName.isNotEmpty) return;
-    _ch.invokeMethod<bool>('setVoice', {'name': name}).catchError((Object _) => false);
-  }).catchError((Object _) => null);
+  if (slot.nativeHints.isEmpty) return Future.value();
+  if (_appliedSlot == slot.id) return Future.value();
+  if (_slotVoicePending != null && _slotVoiceSlotId == slot.id) {
+    return _slotVoicePending!;
+  }
+  final f = _switchSlotVoice(slot, settings);
+  _slotVoicePending = f;
+  _slotVoiceSlotId = slot.id;
+  f.whenComplete(() {
+    if (_slotVoicePending == f) {
+      _slotVoicePending = null;
+      _slotVoiceSlotId = null;
+    }
+  });
+  return f;
 }
 
+/// 真正切语音包：按预设找音色并调用 setVoice。
+/// 无论成功、失败还是没匹配到语音包，都记入 [_appliedSlot]——
+/// 播放中途反复重切，就是反复「变声」。
+Future<void> _switchSlotVoice(TtsVoiceSlot slot, TtsSettings settings) async {
+  final name = await _voiceForSlot(slot);
+  if (name == null) {
+    // 没匹配到语音包：只做音调语速近似，不切音色。
+    _appliedSlot = slot.id;
+    return;
+  }
+  if (settings.voiceName.isNotEmpty) {
+    // 等语音包列表期间用户手选了语音包：以手选为准。
+    _appliedSlot = slot.id;
+    return;
+  }
+  try {
+    await _ch.invokeMethod<bool>('setVoice', {'name': name});
+  } catch (_) {
+    // 切换失败也记入：不在播放中重试，避免反复切音。
+  }
+  _appliedSlot = slot.id;
+}
+
+/// 进行中的语音包切换 Future（同档位调用方共享）。
+Future<void>? _slotVoicePending;
+String? _slotVoiceSlotId;
+
 /// 上一次按风格档设过的系统语音（避免每次朗读都重设一遍）。
+/// 只在切换完成后记录，避免「切音落在朗读中途」的变声问题。
 String? _appliedSlot;
 
 void ttsStop() {

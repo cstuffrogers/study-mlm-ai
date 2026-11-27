@@ -111,10 +111,12 @@ void main() {
 
     test('手选语音包优先于风格档位', () {
       final src = _read('lib/services/tts_native.dart');
-      final i = src.indexOf('void _applySlotVoice()');
+      // _applySlotVoice 已改为 Future（先切音、后 speak，杜绝朗读中途变声），
+      // 门禁只锁「手选语音包优先」这一守卫仍在函数体内第一道。
+      final i = src.indexOf('_applySlotVoice() {');
       expect(i, greaterThan(0));
       final block = src.substring(i, i + 400);
-      expect(block, contains('if (settings.voiceName.isNotEmpty) return;'),
+      expect(block, contains('if (settings.voiceName.isNotEmpty) return Future.value();'),
           reason: '手选过的语音包不能被预设覆盖');
     });
 
