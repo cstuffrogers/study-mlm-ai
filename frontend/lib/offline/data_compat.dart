@@ -4,7 +4,7 @@
 //   · 升级只做**加法**：补默认字段、补新键；绝不删除、绝不重命名、绝不清空；
 //   · 每次启动跑一遍 run()，必须幂等——第二遍不能再改动任何东西；
 //   · 备份/恢复只覆盖同名记录，**不删除**备份里没有的数据；
-//   · API Key 默认不进备份（导出即字符串，容易外泄），换机后请重新填写；
+//   · API Key 默认不进备份（导出即字符串，容易外泄），用户显式勾选才带；
 //   · 备份格式带 format 版本号，将来格式变化要能在 import 里识别并兼容。
 import 'dart:convert';
 
@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_meta.dart';
+import '../services/llm_config_store.dart';
 import 'local_db.dart';
 import 'local_store_keys.dart';
 
@@ -35,6 +36,9 @@ class DataCompat {
       await LocalDb.flushKey('settings');
       debugPrint('DataCompat: 本机数据已登记到 schema=$schema（未删除任何数据）');
     }
+    // 给已有密钥的老用户补一份独立副本（幂等）：这一份不进 settings 大文档，
+    // 那份文档读坏时 AI 配置能自愈，用户不用重新填一遍（D174）。
+    await LlmConfigStore.ensureShadow();
   }
 
   /// 老版本写下的消息可能缺 mode / created_at；补默认值即可，
@@ -233,6 +237,9 @@ class DataCompat {
       counts['tts_keys'] = n;
     }
     await LocalDb.flush();
+    // 恢复完后补一份密钥冗余副本：备份里带了 API Key 时，这份副本也要立刻种上，
+    // 否则「先恢复、后又碰上设置文档读坏」还是会丢一次。
+    await LlmConfigStore.ensureShadow();
     return counts;
   }
 

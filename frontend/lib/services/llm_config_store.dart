@@ -10,7 +10,10 @@
 //   本机没有 .env 概念，因此「清空字段」= 恢复内置缺省值，不存在环境变量回落。
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../offline/local_db.dart';
+import '../offline/local_store_keys.dart';
 
 /// 生效中的大模型配置
 class LlmConfig {
@@ -126,7 +129,55 @@ class LlmConfigStore {
   static Map<String, dynamic> _raw() {
     final v = LocalDb.settings[_key];
     if (v is Map) return v.cast<String, dynamic>();
-    return const {};
+    // 主存储里没有（或整份设置文档读坏了）：用冗余副本顶上并写回主存储。
+    // 为什么会出现这种情况：settings 是「一次读出 + 整篇回写」的一份大 JSON，
+    // 升级装包时进程被杀、写到一半被截断，LocalDb 就会隔离它并按空数据启动，
+    // 表现为「更新后 AI 用不了、又得重填密钥」（见 D174）。
+    final shadow = _shadowRaw();
+    if (shadow.isEmpty) return const {};
+    _restoreFromShadow(shadow);
+    return shadow;
+  }
+
+  /// 读冗余副本（只在 LocalDb 启动时读进内存，这里不碰磁盘）。
+  static Map<String, dynamic> _shadowRaw() {
+    final raw = LocalDb.extra(LocalStoreKeys.llmConfigShadow);
+    if (raw == null || raw.isEmpty) return const {};
+    try {
+      final v = jsonDecode(raw);
+      return v is Map ? v.cast<String, dynamic>() : const {};
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  /// 本次进程里是否用冗余副本救回过配置（界面据此提示用户「不用重填」）。
+  static bool restoredFromShadow = false;
+
+  /// 把副本写回主存储。同步改内存 + 异步落盘，不阻塞调用方（load 是同步的）。
+  ///
+  /// 不做「只恢复一次」的门闩：写回后 settings 里就有 llm_config 了，下次 _raw()
+  /// 不会再走到这里；真加了门闩反而会让「恢复一次后被用户清掉」的情形再也不救。
+  static void _restoreFromShadow(Map<String, dynamic> shadow) {
+    restoredFromShadow = true;
+    debugPrint('LlmConfigStore: 主存储里没有 AI 配置，已从冗余副本自愈');
+    LocalDb.settings[_key] = jsonDecode(jsonEncode(shadow)) as Map;
+    LocalDb.flushKey('settings').catchError((Object e) {
+      debugPrint('LlmConfigStore: 自愈写回失败（内存已可用）：$e');
+    });
+  }
+
+  /// 启动时补一份冗余副本（幂等）。
+  ///
+  /// 老用户升级上来时主存储里已有密钥、副本还是空的：这一跑就等于把副本「种」上，
+  /// 以后这份大文档再读坏就丢不了密钥了。
+  static Future<void> ensureShadow() async {
+    await LocalDb.ensure();
+    final cur = LocalDb.settings[_key];
+    if (cur is! Map) return;
+    final want = jsonEncode(Map<String, dynamic>.from(cur));
+    if (LocalDb.extra(LocalStoreKeys.llmConfigShadow) == want) return;
+    await LocalDb.setExtra(LocalStoreKeys.llmConfigShadow, want);
   }
 
   /// 生效配置（缺省值补齐）
@@ -248,6 +299,8 @@ class LlmConfigStore {
 
     LocalDb.settings[_key] = jsonDecode(jsonEncode(saved)) as Map;
     await LocalDb.flushKey('settings');
+    // 同步维护独立副本：主存储（settings 这一整份文档）万一读坏了，密钥还能自愈回来。
+    await LocalDb.setExtra(LocalStoreKeys.llmConfigShadow, jsonEncode(saved));
     return status();
   }
 
@@ -256,6 +309,7 @@ class LlmConfigStore {
     await LocalDb.ensure();
     LocalDb.settings.remove(_key);
     await LocalDb.flushKey('settings');
+    await LocalDb.setExtra(LocalStoreKeys.llmConfigShadow, null);
     return status();
   }
 

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/llm_config_api.dart';
+import '../services/llm_config_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 
@@ -213,6 +214,14 @@ class _LlmConfigScreenState extends State<LlmConfigScreen> {
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
                 children: [
                   AnimatedEntrance(child: _modeBanner(configured, s)),
+                  // 自愈告知：本机设置文档上次没读完整（升级装包时进程被杀、
+                  // 写到一半被截断），密钥已从独立副本自动恢复——必须说出来，
+                  // 否则用户会把「升级后 AI 用不了」当成又要重新配一遍。
+                  if (LlmConfigStore.restoredFromShadow) ...[
+                    const SizedBox(height: 10),
+                    _messageCard('本机设置文件上次没读完整（多半是升级装包时被中断），'
+                        'AI 配置已从独立副本自动恢复，不用重新填写。建议点一下「测试连接」确认可用。'),
+                  ],
                   const SizedBox(height: 14),
                   AnimatedEntrance(child: _presetCard(presets, labels)),
                   const SizedBox(height: 14),

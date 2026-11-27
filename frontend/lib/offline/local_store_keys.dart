@@ -102,6 +102,20 @@ class LocalStoreKeys {
     return null;
   }
 
+  // —— 跨文档冗余副本（独立键，不属于七份文档）——
+  /// 大模型配置的**冗余副本**（JSON 字符串，与 settings 里的 llm_config 同构）。
+  ///
+  /// 为什么需要：API Key 只存在 `off_settings` 这一份文档里，而这整份文档是
+  /// 「一次读出 + 整篇回写」的。一旦这份 JSON 读坏了（升级装包时进程被杀、
+  /// 写到一半被截断），LocalDb 会把它隔离到 `off_settings_corrupt` 并按空数据
+  /// 启动——结果是掌握/进度/对话都还在，**只有设置类（AI 配置）没了**，
+  /// 用户看到的就是「更新后 AI 用不了，又得重新配置一遍」（D174）。
+  /// 有了副本，读不到主存储时能从副本自愈，不用用户重填。
+  static const String llmConfigShadow = 'off_llm_config_shadow';
+
+  /// 全部「独立小键」（LocalDb 启动时会一次性读进内存）
+  static const List<String> extras = [llmConfigShadow];
+
   // —— 其它 ——
   /// 学习记录同步队列
   static const String syncQueue = 'sync_queue_v1';

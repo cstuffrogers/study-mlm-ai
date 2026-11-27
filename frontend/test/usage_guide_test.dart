@@ -103,7 +103,8 @@ testWidgets('引导说明包含批判性阅读按钮的位置/开启方式/作�
     expect(find.textContaining('升级与数据保留'), findsOneWidget);
     expect(find.textContaining('覆盖安装新版本不会清空本机数据'), findsOneWidget);
     expect(find.textContaining('卸载重装'), findsOneWidget);
-    expect(find.textContaining('API Key 出于安全不进备份'), findsOneWidget);
+    expect(find.textContaining('API Key 出于安全默认不进备份'), findsOneWidget);
+    expect(find.textContaining('备份里包含 API Key'), findsOneWidget);
     // 列举的数据面必须覆盖用户点名的几项
     for (final k in ['对话记录', '学习记录', '学情', '原文笔记', '阅读进度', '大模型 API 设置']) {
       expect(find.textContaining(k), findsWidgets, reason: '说明里漏了「$k」');
@@ -148,7 +149,9 @@ testWidgets('引导说明包含批判性阅读按钮的位置/开启方式/作�
     expect(find.textContaining('原文笔记 1'), findsOneWidget);
     expect(find.text('导出到文件'), findsOneWidget);
     expect(find.text('从文件恢复'), findsOneWidget);
-    expect(find.textContaining('API Key 不进备份'), findsOneWidget);
+    // 密钥默认不进备份，但可以显式勾选（D174：换机后免重填）
+    expect(find.text('备份里包含 API Key'), findsOneWidget);
+    expect(find.textContaining('API Key 默认不进备份'), findsOneWidget);
 
     await t.binding.setSurfaceSize(null);
   });

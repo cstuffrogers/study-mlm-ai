@@ -68,6 +68,30 @@ class LocalDb {
   /// 勋章授予记录：badgeId -> {award_id, badge_id, awarded_at, source_event, read_flag}
   static Map<String, dynamic> badges = {};
 
+  /// 独立小键（不属于七份文档）的运行时副本，`ensure()` 时一次读进内存。
+  /// 用途：存那些「不能跟大文档一起丢」的小东西（目前只有大模型配置的冗余副本）。
+  static final Map<String, String> _extras = <String, String>{};
+
+  /// 读一个独立小键（未设置时为 null）。同步、不碰磁盘。
+  static String? extra(String key) => _extras[key];
+
+  /// 写/删一个独立小键（`value` 为 null 即删除）。
+  static Future<void> setExtra(String key, String? value) async {
+    await ensure();
+    if (value == null) {
+      _extras.remove(key);
+    } else {
+      _extras[key] = value;
+    }
+    final p = _prefs;
+    if (p == null || _memoryOnly) return;
+    if (value == null) {
+      await p.remove(key);
+    } else {
+      await p.setString(key, value);
+    }
+  }
+
   // ------------------------------------------------------------ 数据生命周期上限
   // 作答流水与学情信号没有上限会让存储随使用无限膨胀（每条 flush 全量序列化）。
   // 界面只读最近窗口（历史 200 条 / 动机 14 天），统计也只取最近样本：
@@ -100,6 +124,13 @@ class LocalDb {
       settings = _readMap(_kSettings);
       signals = _readList(_kSignals);
       badges = _readMap(_kBadges);
+      // 独立小键（跨文档冗余副本）：启动时一次读进内存，供同步读取方（如
+      // LlmConfigStore.load）在 settings 读坏时自愈使用。
+      _extras.clear();
+      for (final key in LocalStoreKeys.extras) {
+        final v = _memoryOnly ? null : _prefs?.getString(key);
+        if (v != null && v.isNotEmpty) _extras[key] = v;
+      }
       _ready = true;
     }();
   }
@@ -110,7 +141,7 @@ class LocalDb {
     try {
       return (jsonDecode(raw) as Map).cast<String, dynamic>();
     } catch (_) {
-      _quarantine(key, raw);
+      _markCorrupt(key, raw);
       return {};
     }
   }
@@ -121,9 +152,20 @@ class LocalDb {
     try {
       return jsonDecode(raw) as List;
     } catch (_) {
-      _quarantine(key, raw);
+      _markCorrupt(key, raw);
       return [];
     }
+  }
+
+  /// 本次启动读到解析失败的文档键（已隔离到 `<键>_corrupt`）。
+  /// 界面据此告知用户「设置读取异常」，不再默默丢掉。
+  static final Set<String> corruptedOnLoad = <String>{};
+
+  /// 隔离 + 记一笔：文档解析失败时不静默丢弃，已备份的原文仍在隔离键里。
+  static void _markCorrupt(String key, String raw) {
+    corruptedOnLoad.add(key);
+    debugPrint('LocalDb: 文档 $key 解析失败（已隔离到 ${LocalStoreKeys.corruptKey(key)}）');
+    _quarantine(key, raw);
   }
 
   /// 文档解析失败时不静默丢弃：把原文隔离保存到 `<文档键>_corrupt`，
@@ -301,6 +343,11 @@ class LocalDb {
     settings = {};
     signals = [];
     badges = {};
+    // 独立小键也要清：否则「清空本机数据」后 AI 密钥还会从冗余副本里活回来。
+    for (final key in LocalStoreKeys.extras) {
+      await setExtra(key, null);
+    }
+    corruptedOnLoad.clear();
     await flush();
   }
 
@@ -320,5 +367,7 @@ class LocalDb {
     settings = {};
     signals = [];
     badges = {};
+    _extras.clear();
+    corruptedOnLoad.clear();
   }
 }

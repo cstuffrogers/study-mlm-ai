@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:marxism_reader/offline/local_db.dart';
 import 'package:marxism_reader/offline/local_router.dart';
+import 'package:marxism_reader/offline/local_store_keys.dart';
 import 'package:marxism_reader/services/llm_client.dart';
 import 'package:marxism_reader/services/llm_config_store.dart';
 
@@ -28,6 +29,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await LocalDb.ensure();
     LocalDb.settings.clear();
+    // 冗余副本也要清：否则上一组用例写下的密钥会从副本里「自愈」回来，
+    // 本组的「未配置」断言就不成立了。
+    await LocalDb.setExtra(LocalStoreKeys.llmConfigShadow, null);
+    LlmConfigStore.restoredFromShadow = false;
   });
 
   group('LlmConfigStore', () {
@@ -209,4 +214,98 @@ void main() {
     });
   });
 
+  // 升级丢配置回归（D174）：用户报「更新 APP 后 AI 用不了、又得重新配置一遍」。
+  // 根因是 settings 是「一次读出 + 整篇回写」的大文档，升级装包时进程被杀、
+  // 写到一半被截断 → 整份读坏 → 被隔离、按空数据启动，掌握/进度都还在，
+  // 只有设置类（AI 配置）没了。现在密钥多存一份独立副本，读不到就自愈。
+  group('AI 配置自愈（升级后不用重填密钥）', () {
+    const body = {
+      'api_key': 'sk-selfheal-abcdef123456',
+      'base_url': 'https://api.deepseek.com/v1',
+      'model': 'deepseek-chat',
+    };
+
+    setUp(() async {
+      LlmConfigStore.restoredFromShadow = false;
+      SharedPreferences.setMockInitialValues({});
+      LocalDb.reloadForTest();
+      await LocalDb.ensure();
+      LocalDb.settings.clear();
+    });
+
+    test('保存时同步写一份独立副本，清空时副本一起删', () async {
+      await LlmConfigStore.save(body);
+      final shadow = LocalDb.extra(LocalStoreKeys.llmConfigShadow);
+      expect(shadow, isNotNull);
+      expect(shadow, contains('sk-selfheal-abcdef123456'));
+
+      await LlmConfigStore.clear();
+      expect(LocalDb.extra(LocalStoreKeys.llmConfigShadow), isNull);
+      expect(LlmConfigStore.load().enabled, false);
+    });
+
+    test('主存储丢了密钥，从副本自愈并写回主存储', () async {
+      await LlmConfigStore.save(body);
+      LlmConfigStore.restoredFromShadow = false;
+
+      // 模拟「settings 整份读坏 → 按空数据启动」
+      LocalDb.settings.clear();
+      final cfg = LlmConfigStore.load();
+      expect(cfg.enabled, true);
+      expect(cfg.apiKey, 'sk-selfheal-abcdef123456');
+      expect(cfg.model, 'deepseek-chat');
+      expect(LlmConfigStore.restoredFromShadow, true);
+      // 内存里已经写回主存储（异步落盘不影响本次会话可用）
+      expect(LocalDb.settings['llm_config'], isA<Map>());
+    });
+
+    test('老用户升级上来：启动时把现有密钥补种成副本', () async {
+      LocalDb.settings['llm_config'] = {
+        'LLM_API_KEY': 'sk-legacy-999888',
+        'LLM_BASE_URL': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        'LLM_MODEL': 'qwen-plus',
+      };
+      await LocalDb.flushKey('settings');
+      expect(LocalDb.extra(LocalStoreKeys.llmConfigShadow), isNull);
+
+      await LlmConfigStore.ensureShadow();
+      expect(LocalDb.extra(LocalStoreKeys.llmConfigShadow),
+          contains('sk-legacy-999888'));
+      // 幂等：再跑一次内容不变
+      final first = LocalDb.extra(LocalStoreKeys.llmConfigShadow);
+      await LlmConfigStore.ensureShadow();
+      expect(LocalDb.extra(LocalStoreKeys.llmConfigShadow), first);
+    });
+
+    test('「清空本机数据」后副本一起清，密钥不会自己活回来', () async {
+      await LlmConfigStore.save(body);
+      await LocalDb.resetAll();
+      expect(LocalDb.extra(LocalStoreKeys.llmConfigShadow), isNull);
+      expect(LlmConfigStore.load().enabled, false);
+    });
+
+    test('真的整份设置文档读坏（隔离 + 空启动）也能恢复密钥', () async {
+      final shadow = jsonEncode({
+        'LLM_API_KEY': 'sk-corrupt-case-777',
+        'LLM_BASE_URL': 'https://api.deepseek.com/v1',
+        'LLM_MODEL': 'deepseek-chat',
+      });
+      SharedPreferences.setMockInitialValues({
+        'off_settings': '{"route_id": "route_A", ', // 截断的坏 JSON
+        'off_llm_config_shadow': shadow,
+      });
+      LocalDb.reloadForTest();
+      await LocalDb.ensure();
+
+      // 坏文档被隔离、按空数据启动（其它数据仍在各自的键里）
+      expect(LocalDb.corruptedOnLoad, contains('off_settings'));
+      expect(LocalDb.settings, isEmpty);
+
+      // 密钥照样能用，不用用户重填
+      final cfg = LlmConfigStore.load();
+      expect(cfg.enabled, true);
+      expect(cfg.apiKey, 'sk-corrupt-case-777');
+      expect(LlmConfigStore.restoredFromShadow, true);
+    });
+  });
 }

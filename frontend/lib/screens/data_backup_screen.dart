@@ -27,6 +27,10 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
   bool _busy = false;
   String _preview = '';
 
+  /// 导出时是否带上 API Key（默认不带：备份就是一串明文，容易外泄）。
+  /// 带上才能做到「卸载重装后一键恢复，不用手重填密钥」。
+  bool _withApiKey = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,7 +66,7 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
     }
     setState(() => _busy = true);
     try {
-      final json = await DataCompat.exportJson();
+      final json = await DataCompat.exportJson(includeApiKey: _withApiKey);
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/xxmz_backup_${_ts()}.json');
       await file.writeAsString(json);
@@ -194,6 +198,22 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
           const SizedBox(height: 12),
           _statCard(),
           const SizedBox(height: 12),
+          // 密钥默认不进备份（备份是可拷贝的明文文本）；勾上才能换机/重装后一键恢复。
+          // 放在导出按钮上方，让「带不带」在点导出之前就能决定。
+          Card(
+            margin: EdgeInsets.zero,
+            child: SwitchListTile(
+              value: _withApiKey,
+              onChanged: _busy ? null : (v) => setState(() => _withApiKey = v),
+              title: const Text('备份里包含 API Key', style: TextStyle(fontSize: 14)),
+              subtitle: const Text(
+                '默认不带（备份文件是明文，泄露了别人就能用你的额度）。'
+                '勾上后重装/换机「从文件恢复」就不用再去 AI 对话引擎页重填密钥。',
+                style: TextStyle(fontSize: 12, height: 1.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -216,7 +236,7 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
           const SizedBox(height: 8),
           const Text(
             '备份是一段 JSON 文件，含对话、答题记录、掌握度、章节进度、勋章、原文笔记/书签/划线、'
-            '阅读进度与设置。朗读风格预设、语音包也会一并备份。出于安全，API Key 不进备份——换机恢复后请到大模型配置页重填一次。\n\n'
+            '阅读进度与设置。朗读风格预设、语音包也会一并备份。出于安全，API Key 默认不进备份（需要时勾选上面的开关）——换机恢复后也可以到大模型配置页重填一次。\n\n'
             '「导出到文件」保存在应用文档目录下（xxmz_backup_日期_时间.json），'
             '换机时把该文件传到新手机即可用「从文件恢复」灌回。',
             style: TextStyle(fontSize: 12, height: 1.6, color: AppColors.ink500),
