@@ -5,6 +5,8 @@
 // 但有人可能只取代码、或删掉数据只跑纯离线逻辑；那时依赖它的测试会整片报错——
 // 看起来像项目坏了，实际只是缺数据。
 //
+// 离线正文已按著作拆分为 assets/offline/chunks/w<编号>.json（见 chunks_index.json）。
+//
 // 用法：在测试文件 main() 的开头调用
 //   if (skipWithoutOfflineAssets()) return;
 // 无数据时该文件只报一条 skip（带补齐指引），其余测试不注册。

@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.4.35+56
+version: 1.4.36+57
 
 environment:
   sdk: ^3.12.1
@@ -37,7 +37,7 @@ dependencies:
   http: ^1.2.0
   provider: ^6.1.0
   shared_preferences: ^2.3.0
-  archive: ^3.0.0
+  # 离线内容层：chunks 按著作拆分为明文 JSON，APK 的 ZIP 自动压缩，无需压缩库。
   flutter_markdown: ^0.7.7+1
   flutter_markdown_latex: ^0.3.4
   flutter_math_fork: ^0.7.4
@@ -98,9 +98,10 @@ flutter:
   assets:
     - pic/red/
     # 单机版数据：构建期由 scripts/export_offline_assets.py 生成
-    # （meta/knowledge 轻量；chunks 约 15MB 仅在用到原文时加载）
+    # （meta/knowledge 轻量；chunks 按著作拆分为 chunks/w<编号>.json，按需加载）
     - assets/offline/
     - assets/offline/sections/
+    - assets/offline/chunks/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

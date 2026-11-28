@@ -5,7 +5,8 @@
   meta.json          路线 / 章节 / 知识点(含前置后继) / 著作清单 / 阶段标签
   sections/<id>.json 每章导读 + 知识点 + 原文链接 + 延伸阅读（与 /guide 接口同构）
   quiz.json          题库（含 answer/explanation，离线判分必需）
-  chunks.json.gz     全部原文分片（gzip 压缩，构建期生成，App 解压读取；明文约 22MB，压缩后约 7MB）
+  chunks/w<编号>.json  每部著作的原文分片（按著作拆分，APK ZIP 自动压缩）
+  chunks_index.json   倒排表：work→文件、chunk_id→work、paragraph_id→work
   manifest.json      版本、生成时间、条目数、体积
 
 只在内容变更后重跑：python scripts/export_offline_assets.py
@@ -52,12 +53,8 @@ def _dump(path: Path, obj) -> int:
 
 
 def _dump_gz(path: Path, obj) -> int:
-    """gzip 压缩写盘，返回压缩后字节数。
-
-    chunks.json 含全部原文分片（明文约 22MB），以明文打包进 APK 会
-    白白占用十几 MB 体积。构建期 gzip 压缩后 App 端解压读取，APK
-    体积直接降一个量级，首屏加载字节数也同步减少。
-    """
+    """gzip 压缩写盘，返回压缩后字节数。（已弃用：chunks 改用按著作拆分的明文 JSON，
+    APK 的 ZIP 自动压缩；保留此函数以备其他大资产需要。）"""
     path.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
     compressed = gzip.compress(data.encode("utf-8"), compresslevel=9)
@@ -219,12 +216,49 @@ def build_quiz() -> int:
 
 
 def build_chunks() -> int:
+    """按著作拆分原文分片，每部著作一个明文 JSON 文件。
+
+    原 chunks.json（明文 22MB / gzip 7MB）拆成 N 个 chunks/w<编号>.json：
+    - APK 的 ZIP 已对 JSON 做 deflate 压缩，无需再 gzip，省掉 archive 依赖；
+    - 首屏进精读页只加载当前著作（几百 KB~1MB），不用加载全库；
+    - 同时输出 chunks_index.json 倒排表（chunk_id→work、work→文件），
+      支持按 id 反查著作后按需加载。
+    """
+    import shutil
+    from collections import defaultdict
     from services import content_provider as cp
+
+    # 清理旧产物：单文件 chunks.json.gz 与可能残留的 chunks/ 目录
+    old_gz = OUT / "chunks.json.gz"
+    if old_gz.exists():
+        old_gz.unlink()
+    old_dir = OUT / "chunks"
+    if old_dir.exists():
+        shutil.rmtree(old_dir)
 
     keep = ("id", "text", "source", "source_location", "layer",
             "authority_score", "orthodoxy_tag", "paragraph_id", "logical_type")
     rows = [{k: c.get(k) for k in keep if c.get(k) is not None} for c in cp.all_chunks()]
-    return _dump_gz(OUT / "chunks.json.gz", rows)
+
+    by_work: dict[str, list] = defaultdict(list)
+    for r in rows:
+        by_work[r["source"]].append(r)
+
+    works_index: dict[str, dict] = {}
+    chunk_work: dict[str, str] = {}
+    total = 0
+    for i, (work, wrows) in enumerate(sorted(by_work.items())):
+        fname = f"w{i:04d}.json"
+        size = _dump(OUT / "chunks" / fname, wrows)
+        total += size
+        works_index[work] = {"file": f"chunks/{fname}", "count": len(wrows)}
+        for r in wrows:
+            chunk_work[r["id"]] = work
+
+    index = {"works": works_index, "chunk_work": chunk_work}
+    total += _dump(OUT / "chunks_index.json", index)
+    print(f"      {len(by_work)} works, {len(rows)} chunks → chunks/w*.json + chunks_index.json")
+    return total
 
 
 def build_work_sections() -> int:

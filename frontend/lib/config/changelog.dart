@@ -50,6 +50,16 @@ class ChangelogEntry {
 /// 更新说明正文。**最新版本在最前面。**
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
+    version: '1.4.36',
+    date: '2026-11-28',
+    groups: [
+      ChangelogGroup('变化', [
+        '进入精读更快：原著原文库改为按书拆分，打开任意一本原著时只加载该书的原文，不再一次性加载全部原著，从点进页面到读上正文的等待更短。',
+        '原文数据按需加载：在对话检索、跳转定位等场景下，原文数据按需取用并缓存，后续翻阅不再重复加载，运行更轻量。',
+      ]),
+    ],
+  ),
+  ChangelogEntry(
     version: '1.4.35',
     date: '2026-11-28',
     groups: [

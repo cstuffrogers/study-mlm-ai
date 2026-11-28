@@ -207,7 +207,8 @@ class LocalRouter {
     }
     // /api/chunks/by_work/{work}
     if (rest.length > 2 && rest[1] == 'by_work') {
-      await OfflineContent.ensureChunks();
+      // 只加载当前著作，首屏从全库 7MB 降到单著作几百 KB~1MB。
+      await OfflineContent.ensureChunksForWork(rest[2]);
       final work = rest[2];
       final list = OfflineContent.chunksOfWork(work);
       // 同时给 items / chunks：不同页面历史上取过不同键名。
@@ -222,7 +223,8 @@ class LocalRouter {
     }
     // /api/chunks/{chunkId}
     if (rest.length == 2) {
-      await OfflineContent.ensureChunks();
+      // 按 chunk_id 反查著作，只加载该著作。
+      await OfflineContent.ensureChunkForId(rest[1]);
       final c = OfflineContent.chunk(rest[1]);
       // D135：后端 `chunk_routes.get_chunk()` 对不存在的分片回 200 +
       // `{error: 'not_found', chunk_id}`，而 `widgets/chunk_tag.dart` 正是按

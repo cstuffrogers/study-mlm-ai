@@ -2,15 +2,14 @@
 //
 // 设计要点：
 //   · meta / knowledge 很小，首次用到时同步解析；
-//   · chunks（gzip 压缩后约 7MB）与 quiz 按需懒加载，避免启动即卡；
-//   · chunks.json.gz 以 gzip 压缩存储，加载时解压再 jsonDecode——APK 体积
-//     比明文 22MB 降一个量级，首屏加载字节数同步减少；
+//   · chunks 按著作拆分（chunks/w<编号>.json），精读页首屏只加载当前著作，
+//     对话检索用 ensureChunks() 加载全库；
+//   · chunks_index.json 倒排表（work→文件、chunk_id→work），
+//     支持按 id 反查著作后按需加载；
 //   · 全部按 chunk_id / work / paragraph / section 建 Map 索引，查询 O(1)；
 //   · 只做读取，不写任何数据（用户学情在 LocalDb）。
 import 'dart:convert';
-import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 Map<String, dynamic> _decodeMap(String s) =>
@@ -45,22 +44,18 @@ class OfflineContent {
   static Future<void>? _chunksLoading;
   static Future<void>? _quizLoading;
 
+  // chunks 拆分索引：work→文件、chunk_id→work
+  static Map<String, Map<String, dynamic>> _workFile = const {};
+  static Map<String, String> _chunkWork = const {};
+  static bool _indexReady = false;
+  static Future<void>? _indexLoading;
+  /// 每个著作的加载 Future，防止并发请求重复加载同一文件
+  static final Map<String, Future<void>> _workLoading = {};
+
   /// 读取失败时降级为空数据（例如未绑定 WidgetsBinding 的纯单元测试）。
   static Future<String?> _load(String name) async {
     try {
       return await rootBundle.loadString('$_dir/$name');
-    } catch (e) {
-      // ignore: avoid_print
-      print('OfflineContent 资源缺失 $name: $e');
-      return null;
-    }
-  }
-
-  /// 读取二进制资产（gzip 压缩的 chunks.json.gz 等），失败返回 null。
-  static Future<Uint8List?> _loadBytes(String name) async {
-    try {
-      final data = await rootBundle.load('$_dir/$name');
-      return data.buffer.asUint8List();
     } catch (e) {
       // ignore: avoid_print
       print('OfflineContent 资源缺失 $name: $e');
@@ -93,37 +88,86 @@ class OfflineContent {
     }();
   }
 
+  // ---------------------------------------------------------------- chunks
+
+  /// 加载 chunks_index.json 倒排表（work→文件、chunk_id→work）。
+  static Future<void> _ensureIndex() {
+    if (_indexReady) return Future.value();
+    return _indexLoading ??= () async {
+      final raw = await _load('chunks_index.json');
+      if (raw == null) {
+        _indexReady = true;
+        return;
+      }
+      final root = _decodeMap(raw);
+      _workFile = (root['works'] as Map?)?.cast<String, Map<String, dynamic>>() ?? const {};
+      _chunkWork = (root['chunk_work'] as Map?)?.cast<String, String>() ?? const {};
+      _indexReady = true;
+    }();
+  }
+
+  /// 只加载指定著作的原文分片。精读页首屏用，加载量从全库 7MB 降到单著作
+  /// 几百 KB~1MB，显著提速。已加载则跳过，并发请求共享同一 Future。
+  static Future<void> ensureChunksForWork(String work) async {
+    if (work.isEmpty || _chunksByWork.containsKey(work)) return;
+    final existing = _workLoading[work];
+    if (existing != null) return existing;
+    final f = _loadWorkChunks(work);
+    _workLoading[work] = f;
+    try {
+      await f;
+    } finally {
+      _workLoading.remove(work);
+    }
+  }
+
+  static Future<void> _loadWorkChunks(String work) async {
+    await _ensureIndex();
+    final file = _workFile[work]?['file'] as String?;
+    if (file == null) return;
+    final rawText = await _load(file);
+    if (rawText == null) return;
+    final raw = (jsonDecode(rawText) as List);
+    final list = <Map<String, dynamic>>[];
+    for (final e in raw) {
+      final c = (e as Map).cast<String, dynamic>();
+      list.add(c);
+      final id = c['id'] as String? ?? '';
+      if (id.isEmpty) continue;
+      _chunkById[id] = c;
+      (_chunksByWork[work] ??= <Map<String, dynamic>>[]).add(c);
+      final pid = c['paragraph_id'] as String? ?? '';
+      if (pid.isNotEmpty) {
+        (_chunksByParagraph[pid] ??= <Map<String, dynamic>>[]).add(c);
+      }
+    }
+  }
+
+  /// 按 chunk_id 反查著作并只加载该著作（单分片定位场景，如原文跳转）。
+  static Future<void> ensureChunkForId(String chunkId) async {
+    await _ensureIndex();
+    final work = _chunkWork[chunkId];
+    if (work != null) await ensureChunksForWork(work);
+  }
+
+  /// 加载全库所有著作（对话检索、全量测试用）。并行加载各著作文件。
+  static Future<void> ensureAllChunks() async {
+    await _ensureIndex();
+    final works = _workFile.keys.toList();
+    await Future.wait([for (final w in works) ensureChunksForWork(w)]);
+    _chunks = [for (final w in works) for (final c in _chunksByWork[w] ?? const []) c];
+  }
+
   static Future<void> ensureChunks() {
     if (_chunksReady) return Future.value();
     return _chunksLoading ??= () async {
       await ensureMeta();
-      // chunks.json.gz 为 gzip 压缩的原文分片包：加载字节数从明文 22MB 降到
-      // 约 7MB，解压后再 jsonDecode 建索引，APK 体积与首屏加载双收益。
-      final bytes = await _loadBytes('chunks.json.gz');
-      if (bytes == null) {
-        _chunksReady = true;
-        return;
-      }
-      final rawText = utf8.decode(GZipDecoder().decodeBytes(bytes));
-      final raw = (jsonDecode(rawText) as List);
-      final list = <Map<String, dynamic>>[];
-      for (final e in raw) {
-        final c = (e as Map).cast<String, dynamic>();
-        list.add(c);
-        final id = c['id'] as String? ?? '';
-        if (id.isEmpty) continue;
-        _chunkById[id] = c;
-        final work = c['source'] as String? ?? '';
-        (_chunksByWork[work] ??= <Map<String, dynamic>>[]).add(c);
-        final pid = c['paragraph_id'] as String? ?? '';
-        if (pid.isNotEmpty) {
-          (_chunksByParagraph[pid] ??= <Map<String, dynamic>>[]).add(c);
-        }
-      }
-      _chunks = list;
+      await ensureAllChunks();
       _chunksReady = true;
     }();
   }
+
+  // ---------------------------------------------------------------- 元数据
 
   static Future<void> ensureQuiz() {
     if (_quizReady) return Future.value();
@@ -225,7 +269,8 @@ class OfflineContent {
     return _chunksByWork[work] ?? const [];
   }
 
-  static String workOfChunk(String chunkId) => chunk(chunkId)?['source'] as String? ?? '';
+  static String workOfChunk(String chunkId) =>
+      _chunkWork[chunkId] ?? chunk(chunkId)?['source'] as String? ?? '';
 
   static List<Map<String, dynamic>> chunksForParagraph(String paragraphId) =>
       List<Map<String, dynamic>>.from(_chunksByParagraph[paragraphId] ?? const []);
