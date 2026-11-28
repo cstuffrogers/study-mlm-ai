@@ -50,6 +50,16 @@ class ChangelogEntry {
 /// 更新说明正文。**最新版本在最前面。**
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
+    version: '1.4.35',
+    date: '2026-11-28',
+    groups: [
+      ChangelogGroup('变化', [
+        '安装包明显瘦身：内置的原著原文库改用压缩方式存储，安装包体积比上一版减少约 15MB，下载与安装更快。',
+        '进入精读更快：首次打开任意原著的精读页时，原文数据的加载与解析速度大幅提升，从点进页面到读上正文的等待时间明显缩短。',
+      ]),
+    ],
+  ),
+  ChangelogEntry(
     version: '1.4.34',
     date: '2026-11-28',
     groups: [

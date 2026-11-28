@@ -2,11 +2,15 @@
 //
 // 设计要点：
 //   · meta / knowledge 很小，首次用到时同步解析；
-//   · chunks（约 15MB）与 quiz 按需懒加载，避免启动即卡；
+//   · chunks（gzip 压缩后约 7MB）与 quiz 按需懒加载，避免启动即卡；
+//   · chunks.json.gz 以 gzip 压缩存储，加载时解压再 jsonDecode——APK 体积
+//     比明文 22MB 降一个量级，首屏加载字节数同步减少；
 //   · 全部按 chunk_id / work / paragraph / section 建 Map 索引，查询 O(1)；
 //   · 只做读取，不写任何数据（用户学情在 LocalDb）。
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 Map<String, dynamic> _decodeMap(String s) =>
@@ -52,6 +56,18 @@ class OfflineContent {
     }
   }
 
+  /// 读取二进制资产（gzip 压缩的 chunks.json.gz 等），失败返回 null。
+  static Future<Uint8List?> _loadBytes(String name) async {
+    try {
+      final data = await rootBundle.load('$_dir/$name');
+      return data.buffer.asUint8List();
+    } catch (e) {
+      // ignore: avoid_print
+      print('OfflineContent 资源缺失 $name: $e');
+      return null;
+    }
+  }
+
   // ---------------------------------------------------------------- 元数据
   static Future<void> ensureMeta() {
     if (_metaReady) return Future.value();
@@ -81,8 +97,15 @@ class OfflineContent {
     if (_chunksReady) return Future.value();
     return _chunksLoading ??= () async {
       await ensureMeta();
-      final rawText = await _load('chunks.json');
-      final raw = rawText == null ? const [] : (jsonDecode(rawText) as List);
+      // chunks.json.gz 为 gzip 压缩的原文分片包：加载字节数从明文 22MB 降到
+      // 约 7MB，解压后再 jsonDecode 建索引，APK 体积与首屏加载双收益。
+      final bytes = await _loadBytes('chunks.json.gz');
+      if (bytes == null) {
+        _chunksReady = true;
+        return;
+      }
+      final rawText = utf8.decode(GZipDecoder().decodeBytes(bytes));
+      final raw = (jsonDecode(rawText) as List);
       final list = <Map<String, dynamic>>[];
       for (final e in raw) {
         final c = (e as Map).cast<String, dynamic>();

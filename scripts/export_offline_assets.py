@@ -5,7 +5,7 @@
   meta.json          路线 / 章节 / 知识点(含前置后继) / 著作清单 / 阶段标签
   sections/<id>.json 每章导读 + 知识点 + 原文链接 + 延伸阅读（与 /guide 接口同构）
   quiz.json          题库（含 answer/explanation，离线判分必需）
-  chunks.json        全部原文分片（id/source/location/text/layer/authority/orthodoxy）
+  chunks.json.gz     全部原文分片（gzip 压缩，构建期生成，App 解压读取；明文约 22MB，压缩后约 7MB）
   manifest.json      版本、生成时间、条目数、体积
 
 只在内容变更后重跑：python scripts/export_offline_assets.py
@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+import gzip
 import os
 import re
 import sys
@@ -48,6 +49,20 @@ def _dump(path: Path, obj) -> int:
     data = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
     path.write_text(data, encoding="utf-8")
     return len(data.encode("utf-8"))
+
+
+def _dump_gz(path: Path, obj) -> int:
+    """gzip 压缩写盘，返回压缩后字节数。
+
+    chunks.json 含全部原文分片（明文约 22MB），以明文打包进 APK 会
+    白白占用十几 MB 体积。构建期 gzip 压缩后 App 端解压读取，APK
+    体积直接降一个量级，首屏加载字节数也同步减少。
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    compressed = gzip.compress(data.encode("utf-8"), compresslevel=9)
+    path.write_bytes(compressed)
+    return len(compressed)
 
 
 def build_meta() -> dict:
@@ -209,7 +224,7 @@ def build_chunks() -> int:
     keep = ("id", "text", "source", "source_location", "layer",
             "authority_score", "orthodoxy_tag", "paragraph_id", "logical_type")
     rows = [{k: c.get(k) for k in keep if c.get(k) is not None} for c in cp.all_chunks()]
-    return _dump(OUT / "chunks.json", rows)
+    return _dump_gz(OUT / "chunks.json.gz", rows)
 
 
 def build_work_sections() -> int:

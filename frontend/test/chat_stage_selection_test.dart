@@ -63,8 +63,10 @@ void main() {
       svc.stageSelection(text: '实践是检验真理的唯一标准', paragraphId: 'x:p1');
       await tester.pump();
       svc.send(content: '这句话和认识论什么关系？');
-      await tester.pump();
 
+      // send 同步添加 user turn；离线响应是异步的（.then(_handle)），
+      // 不依赖它是否在同一帧内完成（chunks 加载变快后响应会更快完成），
+      // 先验证合并逻辑，再 pump 让响应落定。
       expect(svc.turns.length, 1);
       final t = svc.turns.first;
       expect(t.role, 'user');
@@ -72,6 +74,7 @@ void main() {
       expect(t.selectedText, '实践是检验真理的唯一标准', reason: '选中的原文要一起进提示词');
       expect(t.mode, ChatMode.chat.name);
       expect(svc.stagedSelection, isEmpty, reason: '一条提问只带一次选区');
+      await tester.pump(); // 让离线响应完成，避免 clear 后 _handle 再入队
       svc.clear();
     });
 
