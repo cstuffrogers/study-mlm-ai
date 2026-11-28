@@ -306,8 +306,25 @@ void main() {
       }
     });
 
+    test('分页尺寸取正文区（LayoutBuilder）高度，不用整屏高度', () {
+      // 用户实报：原文每页都要往下拉一点才看得全。整屏高度多算了 AppBar +
+      // 状态栏 + 底栏（手机 ~110px），分页每页就多塞 2~4 行。
+      final body = slice(src, ': LayoutBuilder(', 'final needBuild');
+      expect(body, contains('(constraints.maxHeight'));
+      expect(body, isNot(contains('(mq.size.height')),
+          reason: '整屏高度含 AppBar/底栏，多出来的高度会让每页多塞几行');
+      final call = slice(src, 'Future<void> _buildDoc(Size size', 'final width');
+      expect(call, contains('TextStyle style'), reason: '分页要用渲染时的实际样式去量');
+    });
+
+    test('分页测量样式与 Text 渲染样式一致（含 DefaultTextStyle 的字距）', () {
+      // Text 会把显式 style 与 bodyMedium 合并（letterSpacing 0.25），
+      // 只用 _textStyle() 去量会少算字距，一行多挤几个字 → 整页多出一两行。
+      expect(src, contains('DefaultTextStyle.of(context).style.merge(_textStyle())'));
+    });
+
     test('排版只跟尺寸/字号缩放走，不跟朗读状态走', () {
-      final body = slice(src, 'Future<void> _buildDoc(Size size)', '/// 翻页即停朗读。');
+      final body = slice(src, 'Future<void> _buildDoc(Size size, TextStyle style)', '/// 翻页即停朗读。');
       // 分页入参里没有朗读相关的东西
       final call = slice(body, 'ReaderPaginator.paginate(', ';');
       expect(call, isNot(contains('_auto')));

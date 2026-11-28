@@ -50,6 +50,16 @@ class ChangelogEntry {
 /// 更新说明正文。**最新版本在最前面。**
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
+    version: '1.4.37',
+    date: '2026-11-28',
+    groups: [
+      ChangelogGroup('修复', [
+        '原文页一屏正好读完：以前每页最后几行总要往下拉一点才看得全，字号调得越大越明显；现在按真实可用高度和实际字距分页，一页能装多少行自动跟着字号走，不用再下拉。',
+        '字号开到最大也不挤坏底栏：页码和字号数字在极窄时自动缩排，不会再出现底栏溢出。',
+      ]),
+    ],
+  ),
+  ChangelogEntry(
     version: '1.4.36',
     date: '2026-11-28',
     groups: [

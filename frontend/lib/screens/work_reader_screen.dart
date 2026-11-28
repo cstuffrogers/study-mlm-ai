@@ -122,6 +122,8 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   Size? _docSize;
   // 系统字号缩放也参与分页，变了必须重排（否则缩放后仍是旧排版，末行被裁）
   TextScaler? _docScaler;
+  // 分页用的实际文本样式（含 DefaultTextStyle 合并进来的字距）；变了要重排
+  TextStyle? _docStyle;
   double _fontSize = 18;
   final double _lineHeight = 1.9;
   int? _keepPage; // 重排后要停留的页
@@ -207,6 +209,16 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   }
 
   TextStyle _textStyle() => TextStyle(fontSize: _fontSize, height: _lineHeight, color: const Color(0xFF241C1A), fontFamily: 'Deng', fontFamilyFallback: const ['Deng', 'Roboto', 'WarnSym']);
+
+  /// 分页测量用的样式 = **Text 真正渲染时用的样式**。
+  ///
+  /// `Text(block, style: _textStyle())` 并不是只用这一个样式渲染：它会和最近的
+  /// DefaultTextStyle（Scaffold/Material 给的 bodyMedium，带 letterSpacing 0.25、
+  /// leadingDistribution.even）合并。只用 _textStyle() 去量 → 每行少算字距，
+  /// 一行能多挤一两个字 → 整页多出 1~3 行，用户看到的就是「每页都要往下拉一点
+  /// 才能看全最后几行」（实报）。所以测量也必须走同一次 merge。
+  TextStyle _measureStyle(BuildContext context) =>
+      DefaultTextStyle.of(context).style.merge(_textStyle());
 
   Future<void> _load() async {
     setState(() {
@@ -321,20 +333,23 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
   /// 分页测量结果不变。命中缓存可跳过 TextPainter 逐行测量（进入/返回卡顿主因）。
   static final Map<String, ReaderDoc> _pageCache = <String, ReaderDoc>{};
 
-  Future<void> _buildDoc(Size size) async {
+  /// [style] 必须是渲染侧的**实际**样式（见 _measureStyle）：字号、字距、行高
+  /// 任何一项对不上，量出来的行数就与渲染不符，页面就会溢出需要下拉。
+  Future<void> _buildDoc(Size size, TextStyle style) async {
     final width = size.width - _padding.left - _padding.right;
     final height = size.height - _padding.top - _padding.bottom;
     if (width <= 0 || height <= 0) return;
     // 分页测量必须带上系统字号缩放：渲染侧的 Text 会自动应用 textScaler，
     // 测量侧不带就会低估行高，末尾那一行被挤出页面（用户实报）。
     final scaler = MediaQuery.textScalerOf(context);
-    // 分页缓存：同一本书 + 字号 + 视口 + 系统缩放的测量结果不变，
+    // 分页缓存：同一本书 + 字号 + 字距 + 视口 + 系统缩放的测量结果不变，
     // 命中缓存直接用，跳过 TextPainter 逐行测量（进入/返回卡顿主因）。
-    final cacheKey = '${widget.work}|$_fontSize|$width|$height|${scaler.scale}';
+    final cacheKey = '${widget.work}|$_fontSize|${style.letterSpacing}|${style.wordSpacing}|'
+        '${style.leadingDistribution}|$width|$height|${scaler.scale}';
     final cached = _pageCache[cacheKey];
     final doc = cached ?? ReaderPaginator.paginate(
       paragraphs: _paragraphs, width: width, height: height,
-      style: _textStyle(), textScaler: scaler,
+      style: style, textScaler: scaler,
     );
     if (cached == null) _pageCache[cacheKey] = doc;
     final sp = await SharedPreferences.getInstance();
@@ -357,6 +372,7 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
       _doc = doc;
       _docSize = size;
       _docScaler = scaler;
+      _docStyle = style;
       _page = target;
       _building = false;
       _pc?.dispose();
@@ -1027,21 +1043,27 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final mq = MediaQuery.of(context);
-                      // 分页尺寸用**不含软键盘的物理视口**：IME 弹出时 mq.size.height 变小
-                      // 但 viewInsets.bottom 增大，两者之和恒定。整数化避免浮点精度导致
-                      // needBuild 误判触发 _buildDoc 重新分页（页数多时逐行测量整本书，
-                      // 输入/退出各卡一次）。
-                      final vpHeight = (mq.size.height + mq.viewInsets.bottom).round();
-                      final vpWidth = mq.size.width.round();
+                      // 分页尺寸必须是**正文区（LayoutBuilder）的实际大小**：
+                      // 不能用 mq.size.height —— 那是整个屏幕，比 body 多出
+                      // AppBar + 状态栏 + 底部翻页栏（手机约 110px），按它分页
+                      // 每页会多塞 2~4 行，用户得下拉才看得全（实报）。
+                      // 加上 viewInsets.bottom 抵消软键盘：IME 弹收时 body 变矮而
+                      // 键盘高度等量增加，两者之和恒定，不会触发重新分页（逐行测量整本书，卡）。
+                      // 整数化避免浮点精度导致 needBuild 误判。
+                      final vpHeight = (constraints.maxHeight + mq.viewInsets.bottom).round();
+                      final vpWidth = constraints.maxWidth.round();
                       final size = Size(vpWidth.toDouble(), vpHeight.toDouble());
+                      // 量文本必须用「Text 实际渲染的样式」：DefaultTextStyle 合并后的字距/行高
+                      final style = _measureStyle(context);
                       final needBuild = _doc == null ||
                           _docSize != size ||
-                          _docScaler != MediaQuery.textScalerOf(context);
+                          _docScaler != MediaQuery.textScalerOf(context) ||
+                          _docStyle != style;
                       if (needBuild) {
                         if (!_building) {
                           _building = true;
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) _buildDoc(size);
+                            if (mounted) _buildDoc(size, style);
                           });
                         }
                         return const Center(child: CircularProgressIndicator());
@@ -1178,14 +1200,23 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
         child: Row(
           children: [
             IconButton(tooltip: '上一页', icon: const Icon(Icons.chevron_left), onPressed: _page > 0 ? () => _goto(_page - 1) : null),
-            InkWell(
-              onTap: _promptGoto,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Text(
-                  '${_page + 1} / $total',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink700),
+            // 页码靠 Flexible + FittedBox 收窄：字号调到最大或系统字号放大时，
+            // 这一行本来是「图标固定宽 + 页码文字变宽」，文字一大就把 Row 撑溢出
+            // （底栏上一条黄黑斑马线）。页码可以被压缩，图标不能被。
+            Flexible(
+              child: InkWell(
+                onTap: _promptGoto,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${_page + 1} / $total',
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink700),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1197,7 +1228,14 @@ class _WorkReaderScreenState extends State<WorkReaderScreen> {
               _autoInlineStatus()
             else ...[
               IconButton(tooltip: '缩小字号', icon: const Icon(Icons.text_decrease), onPressed: fs > 13 ? () => _setFont(fs - 1) : null),
-              Text('${fs.toInt()}', style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
+              // 字号数字同样可压缩（见上面页码的注释）：它跟着系统字号放大，
+              // 是这一行里第二个会把 Row 撑宽的固定元素。
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('${fs.toInt()}', maxLines: 1, style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
+                ),
+              ),
               IconButton(tooltip: '放大字号', icon: const Icon(Icons.text_increase), onPressed: fs < 30 ? () => _setFont(fs + 1) : null),
               IconButton(
                 tooltip: '加书签',
